@@ -1,0 +1,144 @@
+services:
+  # ==========================================
+  # MONGO DATABASE
+  # ==========================================
+  mongo:
+    image: mongo:6
+    container_name: ecom-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - ecom-net
+
+  # ==========================================
+  # BACKEND SERVICE
+  # Express.js API - Port: 5000
+  # ==========================================
+  backend:
+    image: node:22-alpine
+    container_name: ecom-backend
+    working_dir: /app
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - PORT=5000
+      - JWT_SECRET=karan
+      - MONGODB_URL=mongodb+srv://desanat40_db_user:idHdG4DfCNUs4MIK@cluster0.gz2nv83.mongodb.net/?appName=Cluster0
+      - RAZORPAY_KEY_ID=rzp_test_RiO8tYeBeor2G8
+      - RAZORPAY_KEY_SECRET=B6ksE3JeHISlK4qFwuh1Ir55
+      - PAGINATION_MAX_LIMIT=12
+      - CLOUD_NAME=do8ufkhvn
+      - API_KEY=539939964867154
+      - API_SECRET=CjFV3VGJFFUFPUCzk9_29pHCqMs
+      # Standardizing for Cloudinary naming
+      - CLOUDINARY_CLOUD_NAME=do8ufkhvn
+      - CLOUDINARY_API_KEY=539939964867154
+      - CLOUDINARY_API_SECRET=CjFV3VGJFFUFPUCzk9_29pHCqMs
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+    command: npm start
+    networks:
+      - ecom-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ecom_backend.rule=Host(`api.yourdomain.com`)"
+      - "traefik.http.routers.ecom_backend.entrypoints=websecure"
+      - "traefik.http.routers.ecom_backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.ecom_backend.loadbalancer.server.port=5000"
+
+  # ==========================================
+  # ADMIN SERVICE
+  # React Admin Dashboard - Port: 5173
+  # ==========================================
+  admin:
+    image: node:22-alpine
+    container_name: ecom-admin
+    working_dir: /app
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:5000/api/
+    volumes:
+      - ./AdminEcommerce:/app
+    command: npm run dev -- --host --port 5173
+    networks:
+      - ecom-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ecom_admin.rule=Host(`admin.yourdomain.com`)"
+      - "traefik.http.routers.ecom_admin.entrypoints=websecure"
+      - "traefik.http.routers.ecom_admin.tls.certresolver=letsencrypt"
+      - "traefik.http.services.ecom_admin.loadbalancer.server.port=5173"
+
+  # ==========================================
+  # STOREFRONT SERVICE
+  # React Customer Frontend - Port: 5174
+  # ==========================================
+  storefront:
+    image: node:22-alpine
+    container_name: ecom-storefront
+    working_dir: /app
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5174:5174"
+    environment:
+      - VITE_BACKEND_URL=http://localhost:5000
+      - VITE_RAZORPAY_KEY=rzp_test_HSSeDI22muUrLR
+    volumes:
+      - ./agriculture_userside:/app
+    command: npm run dev -- --host --port 5174
+    networks:
+      - ecom-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ecom_storefront.rule=Host(`shop.yourdomain.com`)"
+      - "traefik.http.routers.ecom_storefront.entrypoints=websecure"
+      - "traefik.http.routers.ecom_storefront.tls.certresolver=letsencrypt"
+      - "traefik.http.services.ecom_storefront.loadbalancer.server.port=5174"
+
+  # ==========================================
+  # DESIKRISHI SERVICE
+  # Next.js Application - Port: 3000
+  # ==========================================
+  desikrishi:
+    image: node:22-alpine
+    container_name: ecom-desikrishi
+    working_dir: /app
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+    volumes:
+      - ./desikrishi:/app
+    command: npm run dev -- --hostname 0.0.0.0 --port 3000
+    networks:
+      - ecom-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ecom_desikrishi.rule=Host(`desikrishi.yourdomain.com`)"
+      - "traefik.http.routers.ecom_desikrishi.entrypoints=websecure"
+      - "traefik.http.routers.ecom_desikrishi.tls.certresolver=letsencrypt"
+      - "traefik.http.services.ecom_desikrishi.loadbalancer.server.port=3000"
+
+volumes:
+  mongo-data:
+    driver: local
+
+networks:
+  ecom-net:
+    driver: bridge
+
