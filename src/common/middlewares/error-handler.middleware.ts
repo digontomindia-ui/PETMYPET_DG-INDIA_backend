@@ -22,8 +22,12 @@ export function notFoundHandler(req: Request, res: Response): void {
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function errorHandlerMiddleware(err: unknown, req: Request, res: Response, _next: NextFunction): void {
+export function errorHandlerMiddleware(
+  err: unknown,
+  req: Request,
+  res: Response,
+  _next: NextFunction,
+): void {
   const appError = normalizeError(err);
 
   logger.error(
@@ -88,5 +92,5 @@ interface MongoDuplicateKeyError {
 }
 
 function isMongoDuplicateKeyError(err: unknown): err is MongoDuplicateKeyError {
-  return typeof err === 'object' && err !== null && 'code' in err && (err as { code: unknown }).code === 11000;
+  return typeof err === 'object' && err !== null && 'code' in err && err.code === 11000;
 }

@@ -1,4 +1,4 @@
-import type { Schema } from 'mongoose';
+import type { Query, Schema } from 'mongoose';
 
 /**
  * Adds isDeleted/deletedAt fields, excludes soft-deleted docs from find/count queries by
@@ -11,21 +11,21 @@ export function softDeletePlugin(schema: Schema): void {
     deletedAt: { type: Date, default: null },
   });
 
-  const excludeDeleted = function (this: {
-    getFilter: () => Record<string, unknown>;
-    getOptions: () => Record<string, unknown>;
-  }) {
+  function excludeDeleted(this: Query<unknown, unknown>): void {
     const options = this.getOptions();
     if (options.includeDeleted) return;
     const filter = this.getFilter();
     if (filter.isDeleted === undefined) {
-      filter.isDeleted = false;
+      this.where({ isDeleted: false });
     }
-  };
+  }
 
-  schema.pre(['find', 'findOne', 'findOneAndUpdate', 'countDocuments', 'count'], excludeDeleted);
+  schema.pre('find', excludeDeleted);
+  schema.pre('findOne', excludeDeleted);
+  schema.pre('findOneAndUpdate', excludeDeleted);
+  schema.pre('countDocuments', excludeDeleted);
 
-  schema.methods.softDelete = function (this: { isDeleted: boolean; deletedAt: Date | null; save: () => Promise<unknown> }) {
+  schema.methods.softDelete = function (this: SoftDeletable & { save: () => Promise<unknown> }) {
     this.isDeleted = true;
     this.deletedAt = new Date();
     return this.save();

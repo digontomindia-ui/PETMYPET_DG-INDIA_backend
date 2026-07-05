@@ -1,10 +1,10 @@
 import type { NextFunction, Request, Response } from 'express';
-import type { ZodTypeAny } from 'zod';
+import type { ZodType } from 'zod';
 
 interface ValidationSchemas {
-  body?: ZodTypeAny;
-  query?: ZodTypeAny;
-  params?: ZodTypeAny;
+  body?: ZodType<unknown>;
+  query?: ZodType<unknown>;
+  params?: ZodType<unknown>;
 }
 
 export function validate(schemas: ValidationSchemas) {

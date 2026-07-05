@@ -17,8 +17,16 @@ export interface SendEmailInput {
 
 export async function sendEmail(input: SendEmailInput): Promise<void> {
   if (isTest || !env.SMTP_HOST) {
-    logger.debug({ to: input.to, subject: input.subject }, 'Email send skipped (no SMTP configured)');
+    logger.debug(
+      { to: input.to, subject: input.subject },
+      'Email send skipped (no SMTP configured)',
+    );
     return;
   }
-  await transporter.sendMail({ from: env.SMTP_FROM, to: input.to, subject: input.subject, html: input.html });
+  await transporter.sendMail({
+    from: env.SMTP_FROM,
+    to: input.to,
+    subject: input.subject,
+    html: input.html,
+  });
 }

@@ -22,8 +22,10 @@ export const httpRequestsTotal = new client.Counter({
 export function metricsMiddleware(req: Request, res: Response, next: NextFunction): void {
   const endTimer = httpRequestDuration.startTimer();
   res.on('finish', () => {
-    const route = req.route?.path ? `${req.baseUrl}${req.route.path as string}` : req.path;
-    const labels = { method: req.method, route, status_code: String(res.statusCode) };
+    // express-serve-static-core types req.route as `any`; narrow it explicitly before use.
+    const route = req.route as { path?: string } | undefined;
+    const routePath = typeof route?.path === 'string' ? `${req.baseUrl}${route.path}` : req.path;
+    const labels = { method: req.method, route: routePath, status_code: String(res.statusCode) };
     httpRequestsTotal.inc(labels);
     endTimer(labels);
   });

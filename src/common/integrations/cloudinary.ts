@@ -18,19 +18,22 @@ export interface UploadResult {
 
 export async function uploadBuffer(buffer: Buffer, folder: string): Promise<UploadResult> {
   return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream({ folder, resource_type: 'auto' }, (error, result) => {
-      if (error || !result) {
-        reject(error ?? new Error('Cloudinary upload failed'));
-        return;
-      }
-      resolve({
-        url: result.secure_url,
-        publicId: result.public_id,
-        resourceType: result.resource_type,
-        bytes: result.bytes,
-        format: result.format,
-      });
-    });
+    const stream = cloudinary.uploader.upload_stream(
+      { folder, resource_type: 'auto' },
+      (error, result) => {
+        if (error || !result) {
+          reject(new Error(error?.message ?? 'Cloudinary upload failed'));
+          return;
+        }
+        resolve({
+          url: result.secure_url,
+          publicId: result.public_id,
+          resourceType: result.resource_type,
+          bytes: result.bytes,
+          format: result.format,
+        });
+      },
+    );
     stream.end(buffer);
   });
 }

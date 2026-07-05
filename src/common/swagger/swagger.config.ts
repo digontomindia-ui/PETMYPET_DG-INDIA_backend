@@ -35,5 +35,8 @@ const sourceRoot = isProduction ? './dist/modules' : './src/modules';
 
 export const swaggerSpec = swaggerJSDoc({
   definition: swaggerDefinition,
-  apis: [`${sourceRoot}/**/*.routes.${isProduction ? 'js' : 'ts'}`, `${sourceRoot}/**/*.docs.${isProduction ? 'js' : 'ts'}`],
+  apis: [
+    `${sourceRoot}/**/*.routes.${isProduction ? 'js' : 'ts'}`,
+    `${sourceRoot}/**/*.docs.${isProduction ? 'js' : 'ts'}`,
+  ],
 });

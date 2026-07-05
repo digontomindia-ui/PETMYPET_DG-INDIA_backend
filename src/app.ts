@@ -1,17 +1,21 @@
-import express, { type Express } from 'express';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import express, { type Express, type Request } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import mongoSanitize from 'express-mongo-sanitize';
 import hpp from 'hpp';
-import pinoHttp from 'pino-http';
+import { pinoHttp } from 'pino-http';
 import swaggerUi from 'swagger-ui-express';
 import { corsOrigins, env } from './common/config/env.js';
 import { logger } from './common/utils/logger.js';
 import { requestIdMiddleware } from './common/middlewares/request-id.middleware.js';
 import { generalRateLimiter } from './common/middlewares/rate-limit.middleware.js';
-import { errorHandlerMiddleware, notFoundHandler } from './common/middlewares/error-handler.middleware.js';
+import {
+  errorHandlerMiddleware,
+  notFoundHandler,
+} from './common/middlewares/error-handler.middleware.js';
 import { metricsMiddleware, metricsRegistry } from './common/observability/metrics.js';
 import { swaggerSpec } from './common/swagger/swagger.config.js';
 import { apiRouter } from './routes/index.js';
@@ -26,8 +30,8 @@ export function createApp(): Express {
   app.use(
     pinoHttp({
       logger,
-      genReqId: (req) => (req as unknown as { requestId: string }).requestId,
-      customLogLevel: (_req, res, err) => {
+      genReqId: (req: IncomingMessage) => (req as Request).requestId,
+      customLogLevel: (_req: IncomingMessage, res: ServerResponse, err?: Error) => {
         if (err || res.statusCode >= 500) return 'error';
         if (res.statusCode >= 400) return 'warn';
         return 'info';

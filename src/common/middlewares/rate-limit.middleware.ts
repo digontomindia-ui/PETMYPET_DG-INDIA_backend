@@ -8,7 +8,8 @@ function buildStore(prefix: string) {
   if (isTest) return undefined;
   return new RedisStore({
     prefix,
-    sendCommand: (...args: string[]) => redisClient.call(...args) as Promise<never>,
+    sendCommand: (command: string, ...args: string[]) =>
+      redisClient.call(command, ...args) as Promise<never>,
   });
 }
 
@@ -18,7 +19,11 @@ export const generalRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   statusCode: HTTP_STATUS.TOO_MANY_REQUESTS,
-  message: { success: false, error: 'TOO_MANY_REQUESTS', message: 'Too many requests, please try again later' },
+  message: {
+    success: false,
+    error: 'TOO_MANY_REQUESTS',
+    message: 'Too many requests, please try again later',
+  },
   store: buildStore('rl:general:'),
 });
 

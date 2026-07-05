@@ -29,7 +29,8 @@ async function bootstrap(): Promise<void> {
   const shutdown = async (signal: string): Promise<void> => {
     logger.info(`Received ${signal}, shutting down gracefully`);
     httpServer.close();
-    await Promise.all([disconnectDatabase(), disconnectRedis(), closeAllQueues(), shutdownTracing()]);
+    disconnectRedis();
+    await Promise.all([disconnectDatabase(), closeAllQueues(), shutdownTracing()]);
     process.exit(0);
   };
 
@@ -38,7 +39,6 @@ async function bootstrap(): Promise<void> {
 }
 
 bootstrap().catch((err: unknown) => {
-  // eslint-disable-next-line no-console
   console.error('Fatal error during bootstrap', err);
   process.exit(1);
 });

@@ -15,8 +15,14 @@ export function verifyWebhookSignature(rawBody: string, signature: string): bool
   return timingSafeEqual(expectedBuffer, signatureBuffer);
 }
 
-export function verifyPaymentSignature(orderId: string, paymentId: string, signature: string): boolean {
-  const expected = createHmac('sha256', env.RAZORPAY_KEY_SECRET).update(`${orderId}|${paymentId}`).digest('hex');
+export function verifyPaymentSignature(
+  orderId: string,
+  paymentId: string,
+  signature: string,
+): boolean {
+  const expected = createHmac('sha256', env.RAZORPAY_KEY_SECRET)
+    .update(`${orderId}|${paymentId}`)
+    .digest('hex');
   const expectedBuffer = Buffer.from(expected);
   const signatureBuffer = Buffer.from(signature);
   if (expectedBuffer.length !== signatureBuffer.length) return false;
