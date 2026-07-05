@@ -10,6 +10,7 @@ export const createBookingSchema = z.object({
   scheduledStart: z.coerce.date().refine((date) => date.getTime() > Date.now(), {
     message: 'scheduledStart must be in the future',
   }),
+  couponCode: z.string().min(1).max(30).optional(),
   notes: z.string().max(1000).default(''),
 });
 

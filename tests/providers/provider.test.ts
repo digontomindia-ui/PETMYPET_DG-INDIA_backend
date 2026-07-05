@@ -5,8 +5,7 @@ vi.mock('../../src/common/integrations/mailer.js', () => ({ sendEmail: vi.fn() }
 vi.mock('../../src/common/integrations/sms.js', () => ({ sendSms: vi.fn() }));
 
 const { createApp } = await import('../../src/app.js');
-const { signupAndVerify } = await import('../helpers/auth.js');
-const { UserModel } = await import('../../src/modules/users/user.schema.js');
+const { createAdmin, signupAndVerify } = await import('../helpers/auth.js');
 
 describe('provider profile lifecycle', () => {
   const app = createApp();
@@ -40,13 +39,8 @@ describe('provider profile lifecycle', () => {
     );
     expect(nearbyBeforeApproval.body.data).toHaveLength(0);
 
-    const admin = await signupAndVerify(app, { role: 'USER' });
-    await UserModel.updateOne({ _id: admin.user.id }, { role: 'SUPER_ADMIN' });
-    const adminLogin = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ email: admin.payload.email, password: admin.payload.password })
-      .expect(200);
-    const adminToken = adminLogin.body.data.tokens.accessToken as string;
+    const admin = await createAdmin(app);
+    const adminToken = admin.accessToken;
 
     const pendingList = await request(app)
       .get('/api/v1/providers/pending-kyc')

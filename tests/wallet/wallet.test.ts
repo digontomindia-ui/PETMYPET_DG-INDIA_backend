@@ -5,7 +5,7 @@ vi.mock('../../src/common/integrations/mailer.js', () => ({ sendEmail: vi.fn() }
 vi.mock('../../src/common/integrations/sms.js', () => ({ sendSms: vi.fn() }));
 
 const { createApp } = await import('../../src/app.js');
-const { signupAndVerify } = await import('../helpers/auth.js');
+const { createAdmin, signupAndVerify } = await import('../helpers/auth.js');
 const { walletService } = await import('../../src/modules/wallet/wallet.service.js');
 const { WALLET_TRANSACTION_REASONS } = await import('../../src/modules/wallet/wallet.constants.js');
 
@@ -24,8 +24,20 @@ describe('wallet', () => {
       .set('Authorization', `Bearer ${user.tokens.accessToken}`);
     expect(initial.body.data.balance).toBe(0);
 
-    await walletService.credit(user.user.id, 500, WALLET_TRANSACTION_REASONS.BOOKING_REFUND, null, 'refund');
-    await walletService.debit(user.user.id, 200, WALLET_TRANSACTION_REASONS.BOOKING_PAYMENT, null, 'paid');
+    await walletService.credit(
+      user.user.id,
+      500,
+      WALLET_TRANSACTION_REASONS.BOOKING_REFUND,
+      null,
+      'refund',
+    );
+    await walletService.debit(
+      user.user.id,
+      200,
+      WALLET_TRANSACTION_REASONS.BOOKING_PAYMENT,
+      null,
+      'paid',
+    );
 
     const after = await request(app)
       .get('/api/v1/wallet/me')
@@ -74,18 +86,11 @@ describe('wallet', () => {
 
   it('lets a super admin manually adjust a wallet', async () => {
     const user = await signupAndVerify(app, { role: 'USER' });
-    const admin = await signupAndVerify(app, { role: 'USER' });
-    const { UserModel } = await import('../../src/modules/users/user.schema.js');
-    await UserModel.updateOne({ _id: admin.user.id }, { role: 'SUPER_ADMIN' });
-    const adminLogin = await request(app)
-      .post('/api/v1/auth/login')
-      .send({ email: admin.payload.email, password: admin.payload.password })
-      .expect(200);
-    const adminToken = adminLogin.body.data.tokens.accessToken as string;
+    const admin = await createAdmin(app);
 
     const res = await request(app)
       .post(`/api/v1/wallet/admin/${user.user.id}/adjust`)
-      .set('Authorization', `Bearer ${adminToken}`)
+      .set('Authorization', `Bearer ${admin.accessToken}`)
       .send({ type: 'CREDIT', amount: 250, description: 'goodwill credit' });
 
     expect(res.status).toBe(200);

@@ -7,6 +7,7 @@ import { ROLES, type Role } from '../../common/constants/roles.js';
 import { petRepository } from '../pets/pet.repository.js';
 import { serviceRepository } from '../services/service.repository.js';
 import { providerRepository } from '../providers/provider.repository.js';
+import { couponService } from '../coupons/coupon.service.js';
 import { bookingRepository } from './booking.repository.js';
 import { toOwnerBookingView, toProviderBookingView } from './booking.mapper.js';
 import {
@@ -83,10 +84,23 @@ export const bookingService = {
     if (overlap)
       throw AppError.conflict('This provider is already booked during the selected time');
 
+    let discountAmount = 0;
+    let appliedCoupon: { couponId: string; code: string } | null = null;
+    if (input.couponCode) {
+      const validation = await couponService.validate(
+        input.couponCode,
+        userId,
+        service.price,
+        provider.providerType,
+      );
+      discountAmount = validation.discountAmount;
+      appliedCoupon = { couponId: validation.couponId, code: validation.code };
+    }
+
     const commissionPercent = provider.commissionPercent ?? env.DEFAULT_PLATFORM_COMMISSION_PERCENT;
     const { commissionAmount, providerPayoutAmount } = computeAmounts(
       service.price,
-      0,
+      discountAmount,
       commissionPercent,
     );
 
@@ -103,13 +117,30 @@ export const bookingService = {
       otpEnd: generateOtpCode(),
       price: service.price,
       currency: env.CURRENCY,
-      discountAmount: 0,
+      couponCode: appliedCoupon?.code ?? null,
+      discountAmount,
       commissionPercent,
       commissionAmount,
       providerPayoutAmount,
       paymentStatus: PAYMENT_STATUSES.PENDING,
       notes: input.notes,
     });
+
+    if (appliedCoupon) {
+      try {
+        await couponService.redeem(
+          appliedCoupon.couponId,
+          userId,
+          booking._id.toString(),
+          discountAmount,
+        );
+      } catch (err) {
+        // Coupon usage limit was hit in the moment between validation and redemption; the
+        // booking is rolled back rather than left honoring a discount that was never secured.
+        await bookingRepository.deleteById(booking._id.toString());
+        throw err;
+      }
+    }
 
     return toOwnerBookingView(booking);
   },

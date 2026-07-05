@@ -43,3 +43,19 @@ export async function signupAndVerify(app: Express, overrides: SignupOverrides =
     tokens: verifyRes.body.data.tokens as { accessToken: string; refreshToken: string },
   };
 }
+
+export async function createAdmin(app: Express) {
+  const admin = await signupAndVerify(app, { role: 'USER' });
+  const { UserModel } = await import('../../src/modules/users/user.schema.js');
+  await UserModel.updateOne({ _id: admin.user.id }, { role: 'SUPER_ADMIN' });
+
+  const loginRes = await request(app)
+    .post('/api/v1/auth/login')
+    .send({ email: admin.payload.email, password: admin.payload.password })
+    .expect(200);
+
+  return {
+    ...admin,
+    accessToken: loginRes.body.data.tokens.accessToken as string,
+  };
+}

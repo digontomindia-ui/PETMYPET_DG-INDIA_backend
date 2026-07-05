@@ -1,6 +1,6 @@
 import type { Express } from 'express';
 import request from 'supertest';
-import { signupAndVerify } from './auth.js';
+import { createAdmin, signupAndVerify } from './auth.js';
 
 export async function createApprovedProviderWithService(
   app: Express,
@@ -24,14 +24,8 @@ export async function createApprovedProviderWithService(
 
   const providerId = profileRes.body.data.id as string;
 
-  const { UserModel } = await import('../../src/modules/users/user.schema.js');
-  const admin = await signupAndVerify(app, { role: 'USER' });
-  await UserModel.updateOne({ _id: admin.user.id }, { role: 'SUPER_ADMIN' });
-  const adminLogin = await request(app)
-    .post('/api/v1/auth/login')
-    .send({ email: admin.payload.email, password: admin.payload.password })
-    .expect(200);
-  const adminToken = adminLogin.body.data.tokens.accessToken as string;
+  const admin = await createAdmin(app);
+  const adminToken = admin.accessToken;
 
   await request(app)
     .patch(`/api/v1/providers/${providerId}/kyc/approve`)

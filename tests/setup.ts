@@ -15,7 +15,9 @@ let mongoReplSet: MongoMemoryReplSet;
 beforeAll(async () => {
   // A (single-node) replica set, not a plain standalone server, because the wallet ledger uses
   // multi-document transactions, which MongoDB only permits on a replica set.
-  mongoReplSet = await MongoMemoryReplSet.create({ replSet: { count: 1, storageEngine: 'wiredTiger' } });
+  mongoReplSet = await MongoMemoryReplSet.create({
+    replSet: { count: 1, storageEngine: 'wiredTiger' },
+  });
   process.env.MONGO_URI = mongoReplSet.getUri('patmypets-test');
   await mongoose.connect(process.env.MONGO_URI);
 });
