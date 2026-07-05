@@ -17,6 +17,10 @@ import { productRoutes } from '../modules/marketplace/product.routes.js';
 import { cartRoutes } from '../modules/marketplace/cart.routes.js';
 import { wishlistRoutes } from '../modules/marketplace/wishlist.routes.js';
 import { orderRoutes } from '../modules/marketplace/order.routes.js';
+import { reviewRoutes } from '../modules/reviews/review.routes.js';
+import { supportRoutes } from '../modules/support/support.routes.js';
+import { blogRoutes } from '../modules/blogs/blog.routes.js';
+import { lostAndFoundRoutes } from '../modules/lost-and-found/lost-and-found.routes.js';
 
 export const apiRouter = Router();
 
@@ -39,6 +43,10 @@ apiRouter.use('/products', productRoutes);
 apiRouter.use('/cart', cartRoutes);
 apiRouter.use('/wishlist', wishlistRoutes);
 apiRouter.use('/orders', orderRoutes);
+apiRouter.use('/reviews', reviewRoutes);
+apiRouter.use('/support-tickets', supportRoutes);
+apiRouter.use('/blogs', blogRoutes);
+apiRouter.use('/lost-and-found', lostAndFoundRoutes);
 
 // Remaining module routers are mounted here incrementally as each module is implemented,
 // so the app remains buildable and runnable at the end of every phase.

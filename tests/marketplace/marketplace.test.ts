@@ -9,7 +9,11 @@ const { createAdmin, signupAndVerify } = await import('../helpers/auth.js');
 const { walletService } = await import('../../src/modules/wallet/wallet.service.js');
 const { WALLET_TRANSACTION_REASONS } = await import('../../src/modules/wallet/wallet.constants.js');
 
-async function createProduct(app: Awaited<ReturnType<typeof createApp>>, adminToken: string, overrides: Record<string, unknown> = {}) {
+async function createProduct(
+  app: Awaited<ReturnType<typeof createApp>>,
+  adminToken: string,
+  overrides: Record<string, unknown> = {},
+) {
   const res = await request(app)
     .post('/api/v1/products')
     .set('Authorization', `Bearer ${adminToken}`)
