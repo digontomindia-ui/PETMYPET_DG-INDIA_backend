@@ -1,0 +1,18 @@
+export const WALLET_MODEL_NAME = 'Wallet';
+export const WALLET_TRANSACTION_MODEL_NAME = 'WalletTransaction';
+
+export const WALLET_TRANSACTION_TYPES = { CREDIT: 'CREDIT', DEBIT: 'DEBIT' } as const;
+
+export type WalletTransactionType =
+  (typeof WALLET_TRANSACTION_TYPES)[keyof typeof WALLET_TRANSACTION_TYPES];
+
+export const WALLET_TRANSACTION_REASONS = {
+  BOOKING_PAYMENT: 'BOOKING_PAYMENT',
+  BOOKING_REFUND: 'BOOKING_REFUND',
+  BOOKING_PAYOUT: 'BOOKING_PAYOUT',
+  TOPUP: 'TOPUP',
+  ADMIN_ADJUSTMENT: 'ADMIN_ADJUSTMENT',
+} as const;
+
+export type WalletTransactionReason =
+  (typeof WALLET_TRANSACTION_REASONS)[keyof typeof WALLET_TRANSACTION_REASONS];
