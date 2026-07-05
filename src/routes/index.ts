@@ -11,6 +11,7 @@ import { walletRoutes } from '../modules/wallet/wallet.routes.js';
 import { couponRoutes } from '../modules/coupons/coupon.routes.js';
 import { paymentRoutes } from '../modules/payments/payment.routes.js';
 import { notificationRoutes } from '../modules/notifications/notification.routes.js';
+import { chatRoutes } from '../modules/chat/chat.routes.js';
 
 export const apiRouter = Router();
 
@@ -27,6 +28,7 @@ apiRouter.use('/wallet', walletRoutes);
 apiRouter.use('/coupons', couponRoutes);
 apiRouter.use('/payments', paymentRoutes);
 apiRouter.use('/notifications', notificationRoutes);
+apiRouter.use('/chat', chatRoutes);
 
 // Remaining module routers are mounted here incrementally as each module is implemented,
 // so the app remains buildable and runnable at the end of every phase.

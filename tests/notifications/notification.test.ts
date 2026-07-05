@@ -34,7 +34,9 @@ describe('notifications', () => {
       .get('/api/v1/notifications')
       .set('Authorization', `Bearer ${providerAccount.tokens.accessToken}`);
     // The provider also received a KYC_APPROVED notification when the helper approved them.
-    const providerNotificationList = providerNotifications.body.data.notifications as { type: string }[];
+    const providerNotificationList = providerNotifications.body.data.notifications as {
+      type: string;
+    }[];
     const types = providerNotificationList.map((n) => n.type);
     expect(types).toContain('BOOKING_CREATED');
     expect(types).toContain('KYC_APPROVED');
