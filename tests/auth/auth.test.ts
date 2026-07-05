@@ -113,7 +113,9 @@ describe('auth flow', () => {
     const logoutRes = await request(app).post('/api/v1/auth/logout').send({ refreshToken });
     expect(logoutRes.status).toBe(200);
 
-    const refreshAfterLogout = await request(app).post('/api/v1/auth/refresh').send({ refreshToken });
+    const refreshAfterLogout = await request(app)
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken });
     expect(refreshAfterLogout.status).toBe(401);
   });
 });

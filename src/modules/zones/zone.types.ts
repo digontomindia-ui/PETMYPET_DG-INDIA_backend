@@ -1,15 +1,6 @@
 import type { HydratedDocument, Types } from 'mongoose';
 import type { SoftDeletable } from '../../common/database/plugins/soft-delete.plugin.js';
-import type { WEEKDAYS } from './zone.constants.js';
-
-export type Weekday = (typeof WEEKDAYS)[number];
-
-export interface IWorkingHours {
-  day: Weekday;
-  openTime: string;
-  closeTime: string;
-  isClosed: boolean;
-}
+import type { IWorkingHours } from '../../common/schemas/working-hours.schema.js';
 
 export interface ICity extends SoftDeletable {
   _id: Types.ObjectId;

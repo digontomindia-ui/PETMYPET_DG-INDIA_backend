@@ -1,17 +1,8 @@
 import { model, Schema } from 'mongoose';
 import { softDeletePlugin } from '../../common/database/plugins/soft-delete.plugin.js';
-import { CITY_MODEL_NAME, WEEKDAYS, ZONE_MODEL_NAME } from './zone.constants.js';
-import type { ICity, IWorkingHours, IZone } from './zone.types.js';
-
-const workingHoursSchema = new Schema<IWorkingHours>(
-  {
-    day: { type: String, enum: WEEKDAYS, required: true },
-    openTime: { type: String, default: '09:00' },
-    closeTime: { type: String, default: '21:00' },
-    isClosed: { type: Boolean, default: false },
-  },
-  { _id: false },
-);
+import { workingHoursSchema } from '../../common/schemas/working-hours.schema.js';
+import { CITY_MODEL_NAME, ZONE_MODEL_NAME } from './zone.constants.js';
+import type { ICity, IZone } from './zone.types.js';
 
 const citySchema = new Schema<ICity>(
   {

@@ -1,18 +1,11 @@
 import { z } from 'zod';
-import { WEEKDAYS } from './zone.constants.js';
-
-export const workingHoursSchema = z.object({
-  day: z.enum(WEEKDAYS),
-  openTime: z.string().regex(/^\d{2}:\d{2}$/),
-  closeTime: z.string().regex(/^\d{2}:\d{2}$/),
-  isClosed: z.boolean().default(false),
-});
+import { workingHoursInputSchema } from '../../common/validators/working-hours.validator.js';
 
 export const createCitySchema = z.object({
   name: z.string().min(1).max(100),
   state: z.string().min(1).max(100),
   country: z.string().min(1).max(100).default('India'),
-  workingHours: z.array(workingHoursSchema).optional(),
+  workingHours: z.array(workingHoursInputSchema).optional(),
 });
 
 export const updateCitySchema = createCitySchema.partial().extend({
