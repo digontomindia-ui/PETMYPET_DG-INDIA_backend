@@ -3,6 +3,8 @@ import { AppError } from '../../common/errors/app-error.js';
 import { parsePagination } from '../../common/utils/pagination.js';
 import { ROLES } from '../../common/constants/roles.js';
 import { userRepository } from '../users/user.repository.js';
+import { notificationService } from '../notifications/notification.service.js';
+import { NOTIFICATION_TYPES } from '../notifications/notification.constants.js';
 import { providerRepository } from './provider.repository.js';
 import { toPublicProvider } from './provider.mapper.js';
 import { KYC_STATUSES } from './provider.constants.js';
@@ -160,6 +162,14 @@ export const providerService = {
       kycRejectionReason: null,
     });
     if (!provider) throw AppError.notFound('Provider not found');
+
+    await notificationService.notify({
+      userId: provider.userId.toString(),
+      type: NOTIFICATION_TYPES.KYC_APPROVED,
+      title: 'KYC approved',
+      body: 'Your provider account has been verified and is now live',
+    });
+
     return toPublicProvider(provider);
   },
 
@@ -169,6 +179,14 @@ export const providerService = {
       kycRejectionReason: input.reason,
     });
     if (!provider) throw AppError.notFound('Provider not found');
+
+    await notificationService.notify({
+      userId: provider.userId.toString(),
+      type: NOTIFICATION_TYPES.KYC_REJECTED,
+      title: 'KYC rejected',
+      body: input.reason,
+    });
+
     return toPublicProvider(provider);
   },
 

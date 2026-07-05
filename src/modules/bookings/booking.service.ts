@@ -8,6 +8,8 @@ import { petRepository } from '../pets/pet.repository.js';
 import { serviceRepository } from '../services/service.repository.js';
 import { providerRepository } from '../providers/provider.repository.js';
 import { couponService } from '../coupons/coupon.service.js';
+import { notificationService } from '../notifications/notification.service.js';
+import { NOTIFICATION_TYPES } from '../notifications/notification.constants.js';
 import { bookingRepository } from './booking.repository.js';
 import { toOwnerBookingView, toProviderBookingView } from './booking.mapper.js';
 import {
@@ -142,6 +144,14 @@ export const bookingService = {
       }
     }
 
+    await notificationService.notify({
+      userId: provider.userId.toString(),
+      type: NOTIFICATION_TYPES.BOOKING_CREATED,
+      title: 'New booking request',
+      body: `You have a new booking request for ${scheduledStart.toLocaleString()}`,
+      data: { bookingId: booking._id.toString() },
+    });
+
     return toOwnerBookingView(booking);
   },
 
@@ -185,6 +195,15 @@ export const bookingService = {
     assertTransition(booking.status, BOOKING_STATUSES.ACCEPTED);
     booking.status = BOOKING_STATUSES.ACCEPTED;
     await booking.save();
+
+    await notificationService.notify({
+      userId: booking.userId.toString(),
+      type: NOTIFICATION_TYPES.BOOKING_ACCEPTED,
+      title: 'Booking accepted',
+      body: 'Your booking has been accepted by the provider',
+      data: { bookingId: booking._id.toString() },
+    });
+
     return toProviderBookingView(booking);
   },
 
@@ -193,6 +212,15 @@ export const bookingService = {
     assertTransition(booking.status, BOOKING_STATUSES.ON_THE_WAY);
     booking.status = BOOKING_STATUSES.ON_THE_WAY;
     await booking.save();
+
+    await notificationService.notify({
+      userId: booking.userId.toString(),
+      type: NOTIFICATION_TYPES.BOOKING_ON_THE_WAY,
+      title: 'Provider is on the way',
+      body: 'Your service provider is on the way',
+      data: { bookingId: booking._id.toString() },
+    });
+
     return toProviderBookingView(booking);
   },
 
@@ -223,6 +251,15 @@ export const bookingService = {
     booking.commissionAmount = commissionAmount;
     booking.providerPayoutAmount = providerPayoutAmount;
     await booking.save();
+
+    await notificationService.notify({
+      userId: booking.userId.toString(),
+      type: NOTIFICATION_TYPES.BOOKING_COMPLETED,
+      title: 'Service completed',
+      body: 'Your service is complete. Please rate your experience.',
+      data: { bookingId: booking._id.toString() },
+    });
+
     return toProviderBookingView(booking);
   },
 
@@ -231,11 +268,12 @@ export const bookingService = {
     if (!booking) throw AppError.notFound('Booking not found');
 
     let cancelledBy: (typeof CANCELLED_BY)[keyof typeof CANCELLED_BY];
+    let provider = await providerRepository.findById(booking.providerId.toString());
 
     if (actorRole === ROLES.SUPER_ADMIN) {
       cancelledBy = CANCELLED_BY.ADMIN;
     } else if (actorRole === ROLES.SERVICE_PROVIDER) {
-      const provider = await requireProviderProfile(actorUserId);
+      provider = await requireProviderProfile(actorUserId);
       if (booking.providerId.toString() !== provider._id.toString()) {
         throw AppError.forbidden('This booking does not belong to your provider account');
       }
@@ -252,6 +290,23 @@ export const bookingService = {
     booking.cancelledBy = cancelledBy;
     booking.cancellationReason = input.reason;
     await booking.save();
+
+    const notifyUserIds = new Set([booking.userId.toString()]);
+    if (provider) notifyUserIds.add(provider.userId.toString());
+    notifyUserIds.delete(actorUserId);
+
+    await Promise.all(
+      [...notifyUserIds].map((userId) =>
+        notificationService.notify({
+          userId,
+          type: NOTIFICATION_TYPES.BOOKING_CANCELLED,
+          title: 'Booking cancelled',
+          body: `The booking was cancelled: ${input.reason}`,
+          data: { bookingId: booking._id.toString() },
+        }),
+      ),
+    );
+
     return toOwnerBookingView(booking);
   },
 

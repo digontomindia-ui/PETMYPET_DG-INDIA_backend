@@ -2,13 +2,14 @@ import 'dotenv/config';
 import { connectDatabase } from './common/database/mongoose.js';
 import { connectRedis } from './common/database/redis.js';
 import { logger } from './common/utils/logger.js';
-
-// Individual module workers (e.g. email, SMS, push notification, invoice) register
-// themselves here as each background-job-producing module is implemented.
+import { startNotificationWorkers } from './modules/notifications/notification.worker.js';
 
 async function bootstrap(): Promise<void> {
   await connectDatabase();
   await connectRedis();
+
+  startNotificationWorkers();
+
   logger.info('Background worker process started');
 }
 

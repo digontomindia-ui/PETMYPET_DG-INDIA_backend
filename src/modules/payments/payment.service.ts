@@ -10,6 +10,8 @@ import { BOOKING_STATUSES, PAYMENT_STATUSES } from '../bookings/booking.constant
 import { walletService } from '../wallet/wallet.service.js';
 import { WALLET_TRANSACTION_REASONS } from '../wallet/wallet.constants.js';
 import { providerRepository } from '../providers/provider.repository.js';
+import { notificationService } from '../notifications/notification.service.js';
+import { NOTIFICATION_TYPES } from '../notifications/notification.constants.js';
 import { paymentRepository } from './payment.repository.js';
 import { toPaymentDto } from './payment.mapper.js';
 import { PAYMENT_METHODS, PAYMENT_TRANSACTION_STATUSES } from './payment.constants.js';
@@ -194,6 +196,14 @@ export const paymentService = {
       paymentStatus: PAYMENT_STATUSES.PAID,
       paymentId: payment._id,
     });
+
+    await notificationService.notify({
+      userId: payment.userId.toString(),
+      type: NOTIFICATION_TYPES.PAYMENT_RECEIVED,
+      title: 'Payment received',
+      body: `We received your payment of ${payment.currency} ${payment.amount}`,
+      data: { bookingId: payment.bookingId.toString() },
+    });
   },
 
   async onPaymentFailed(razorpayOrderId: string, reason: string): Promise<void> {
@@ -206,6 +216,14 @@ export const paymentService = {
 
     await bookingRepository.updateById(payment.bookingId.toString(), {
       paymentStatus: PAYMENT_STATUSES.FAILED,
+    });
+
+    await notificationService.notify({
+      userId: payment.userId.toString(),
+      type: NOTIFICATION_TYPES.PAYMENT_FAILED,
+      title: 'Payment failed',
+      body: reason,
+      data: { bookingId: payment.bookingId.toString() },
     });
   },
 
@@ -236,6 +254,14 @@ export const paymentService = {
     await payment.save();
 
     await bookingService.markRefunded(bookingId);
+
+    await notificationService.notify({
+      userId: payment.userId.toString(),
+      type: NOTIFICATION_TYPES.REFUND_PROCESSED,
+      title: 'Refund processed',
+      body: `Your refund of ${payment.currency} ${payment.amount} has been processed`,
+      data: { bookingId },
+    });
 
     return payment;
   },
