@@ -1,0 +1,41 @@
+export const BOOKING_MODEL_NAME = 'Booking';
+
+export const BOOKING_STATUSES = {
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  ON_THE_WAY: 'ON_THE_WAY',
+  STARTED: 'STARTED',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  REFUNDED: 'REFUNDED',
+} as const;
+
+export type BookingStatus = (typeof BOOKING_STATUSES)[keyof typeof BOOKING_STATUSES];
+
+/** Finite state machine: only these forward transitions are ever allowed. */
+export const BOOKING_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
+  PENDING: [BOOKING_STATUSES.ACCEPTED, BOOKING_STATUSES.CANCELLED],
+  ACCEPTED: [BOOKING_STATUSES.ON_THE_WAY, BOOKING_STATUSES.CANCELLED],
+  ON_THE_WAY: [BOOKING_STATUSES.STARTED, BOOKING_STATUSES.CANCELLED],
+  STARTED: [BOOKING_STATUSES.COMPLETED],
+  COMPLETED: [BOOKING_STATUSES.REFUNDED],
+  CANCELLED: [BOOKING_STATUSES.REFUNDED],
+  REFUNDED: [],
+};
+
+export const CANCELLED_BY = {
+  USER: 'USER',
+  PROVIDER: 'PROVIDER',
+  ADMIN: 'ADMIN',
+} as const;
+
+export type CancelledBy = (typeof CANCELLED_BY)[keyof typeof CANCELLED_BY];
+
+export const PAYMENT_STATUSES = {
+  PENDING: 'PENDING',
+  PAID: 'PAID',
+  FAILED: 'FAILED',
+  REFUNDED: 'REFUNDED',
+} as const;
+
+export type BookingPaymentStatus = (typeof PAYMENT_STATUSES)[keyof typeof PAYMENT_STATUSES];
