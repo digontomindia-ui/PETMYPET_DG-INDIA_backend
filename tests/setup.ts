@@ -7,14 +7,16 @@ process.env.AUTH_RATE_LIMIT_MAX ??= '100000';
 process.env.LOG_LEVEL ??= 'silent';
 
 import { beforeAll, afterAll, afterEach } from 'vitest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 
-let mongoServer: MongoMemoryServer;
+let mongoReplSet: MongoMemoryReplSet;
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  process.env.MONGO_URI = mongoServer.getUri('patmypets-test');
+  // A (single-node) replica set, not a plain standalone server, because the wallet ledger uses
+  // multi-document transactions, which MongoDB only permits on a replica set.
+  mongoReplSet = await MongoMemoryReplSet.create({ replSet: { count: 1, storageEngine: 'wiredTiger' } });
+  process.env.MONGO_URI = mongoReplSet.getUri('patmypets-test');
   await mongoose.connect(process.env.MONGO_URI);
 });
 
@@ -25,5 +27,5 @@ afterEach(async () => {
 
 afterAll(async () => {
   await mongoose.disconnect();
-  await mongoServer.stop();
+  await mongoReplSet.stop();
 });
