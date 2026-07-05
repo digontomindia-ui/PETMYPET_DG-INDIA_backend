@@ -90,6 +90,9 @@ export function createApp(): Express {
   }
 
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.get('/api-docs.json', (_req, res) => {
+    res.json(swaggerSpec);
+  });
 
   app.use(`/api/${env.API_VERSION}`, apiRouter);
 

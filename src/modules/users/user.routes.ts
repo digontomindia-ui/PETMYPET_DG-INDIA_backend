@@ -43,22 +43,76 @@ userRoutes.put(
   userController.updateMe,
 );
 
+/**
+ * @openapi
+ * /users/me:
+ *   delete:
+ *     tags: [Users]
+ *     summary: Delete the authenticated user's account
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: Deleted }
+ */
 userRoutes.delete('/me', authenticate, userController.deleteMe);
 
+/**
+ * @openapi
+ * /users/me/addresses:
+ *   post:
+ *     tags: [Users]
+ *     summary: Add an address to the authenticated user's profile
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       201: { description: Address added }
+ */
 userRoutes.post(
   '/me/addresses',
   authenticate,
   validate({ body: addressSchema }),
   userController.addAddress,
 );
+
+/**
+ * @openapi
+ * /users/me/addresses/{addressId}:
+ *   delete:
+ *     tags: [Users]
+ *     summary: Remove an address from the authenticated user's profile
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: addressId, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Address removed }
+ */
 userRoutes.delete('/me/addresses/:addressId', authenticate, userController.removeAddress);
 
+/**
+ * @openapi
+ * /users/me/device-tokens:
+ *   post:
+ *     tags: [Users]
+ *     summary: Register a device token for push notifications
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       201: { description: Device token registered }
+ */
 userRoutes.post(
   '/me/device-tokens',
   authenticate,
   validate({ body: registerDeviceTokenSchema }),
   userController.registerDeviceToken,
 );
+
+/**
+ * @openapi
+ * /users/me/device-tokens:
+ *   delete:
+ *     tags: [Users]
+ *     summary: Remove a registered device token
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: Device token removed }
+ */
 userRoutes.delete(
   '/me/device-tokens',
   authenticate,
@@ -66,6 +120,21 @@ userRoutes.delete(
   userController.removeDeviceToken,
 );
 
+/**
+ * @openapi
+ * /users:
+ *   get:
+ *     tags: [Users]
+ *     summary: List users (SUPER_ADMIN only)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: page, in: query, required: false, schema: { type: string } }
+ *       - { name: limit, in: query, required: false, schema: { type: string } }
+ *       - { name: role, in: query, required: false, schema: { type: string } }
+ *       - { name: search, in: query, required: false, schema: { type: string } }
+ *     responses:
+ *       200: { description: OK }
+ */
 userRoutes.get(
   '/',
   authenticate,
@@ -74,6 +143,18 @@ userRoutes.get(
   userController.list,
 );
 
+/**
+ * @openapi
+ * /users/{id}:
+ *   get:
+ *     tags: [Users]
+ *     summary: Get a user by ID (SUPER_ADMIN only)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: OK }
+ */
 userRoutes.get(
   '/:id',
   authenticate,
@@ -82,6 +163,18 @@ userRoutes.get(
   userController.getById,
 );
 
+/**
+ * @openapi
+ * /users/{id}/block:
+ *   patch:
+ *     tags: [Users]
+ *     summary: Block a user (SUPER_ADMIN only)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: User blocked }
+ */
 userRoutes.patch(
   '/:id/block',
   authenticate,
@@ -90,6 +183,18 @@ userRoutes.patch(
   userController.block,
 );
 
+/**
+ * @openapi
+ * /users/{id}/unblock:
+ *   patch:
+ *     tags: [Users]
+ *     summary: Unblock a user (SUPER_ADMIN only)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: User unblocked }
+ */
 userRoutes.patch(
   '/:id/unblock',
   authenticate,
@@ -98,6 +203,18 @@ userRoutes.patch(
   userController.unblock,
 );
 
+/**
+ * @openapi
+ * /users/{id}:
+ *   delete:
+ *     tags: [Users]
+ *     summary: Delete a user by ID (SUPER_ADMIN only)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Deleted }
+ */
 userRoutes.delete(
   '/:id',
   authenticate,
