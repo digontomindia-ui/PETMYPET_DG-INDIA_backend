@@ -104,12 +104,13 @@ export const providerController = {
   }),
 
   approveKyc: asyncHandler(async (req: Request, res: Response) => {
-    const provider = await providerService.approveKyc(req.params.id as string);
+    const provider = await providerService.approveKyc(requireAuth(req), req.params.id as string);
     sendSuccess(res, HTTP_STATUS.OK, provider, 'Provider KYC approved');
   }),
 
   rejectKyc: asyncHandler(async (req: Request, res: Response) => {
     const provider = await providerService.rejectKyc(
+      requireAuth(req),
       req.params.id as string,
       req.body as RejectKycInput,
     );

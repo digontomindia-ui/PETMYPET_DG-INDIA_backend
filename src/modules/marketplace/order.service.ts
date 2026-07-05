@@ -5,6 +5,8 @@ import { walletService } from '../wallet/wallet.service.js';
 import { WALLET_TRANSACTION_REASONS } from '../wallet/wallet.constants.js';
 import { notificationService } from '../notifications/notification.service.js';
 import { NOTIFICATION_TYPES } from '../notifications/notification.constants.js';
+import { auditLogService } from '../admin/admin.service.js';
+import { AUDIT_ACTIONS } from '../admin/admin.constants.js';
 import { ProductModel } from './product.schema.js';
 import { cartRepository } from './cart.repository.js';
 import { orderRepository } from './order.repository.js';
@@ -99,7 +101,7 @@ export const orderService = {
     return { orders: items.map(toOrderDto), total, page, limit };
   },
 
-  async updateStatus(orderId: string, input: UpdateOrderStatusInput) {
+  async updateStatus(actorId: string, orderId: string, input: UpdateOrderStatusInput) {
     const order = await orderRepository.findById(orderId);
     if (!order) throw AppError.notFound('Order not found');
 
@@ -129,6 +131,11 @@ export const orderService = {
 
     order.status = input.status;
     await order.save();
+
+    await auditLogService.record(actorId, AUDIT_ACTIONS.ORDER_STATUS_CHANGED, 'Order', orderId, {
+      status: input.status,
+    });
+
     return toOrderDto(order);
   },
 

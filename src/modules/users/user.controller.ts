@@ -67,12 +67,14 @@ export const userController = {
   }),
 
   block: asyncHandler(async (req: Request, res: Response) => {
-    const user = await userService.blockUser(req.params.id as string, true);
+    const { userId } = requireAuth(req);
+    const user = await userService.blockUser(userId, req.params.id as string, true);
     sendSuccess(res, HTTP_STATUS.OK, user, 'User blocked');
   }),
 
   unblock: asyncHandler(async (req: Request, res: Response) => {
-    const user = await userService.blockUser(req.params.id as string, false);
+    const { userId } = requireAuth(req);
+    const user = await userService.blockUser(userId, req.params.id as string, false);
     sendSuccess(res, HTTP_STATUS.OK, user, 'User unblocked');
   }),
 

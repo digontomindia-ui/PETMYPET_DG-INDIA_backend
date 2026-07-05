@@ -5,6 +5,8 @@ import { ROLES } from '../../common/constants/roles.js';
 import { userRepository } from '../users/user.repository.js';
 import { notificationService } from '../notifications/notification.service.js';
 import { NOTIFICATION_TYPES } from '../notifications/notification.constants.js';
+import { auditLogService } from '../admin/admin.service.js';
+import { AUDIT_ACTIONS } from '../admin/admin.constants.js';
 import { providerRepository } from './provider.repository.js';
 import { toPublicProvider } from './provider.mapper.js';
 import { KYC_STATUSES } from './provider.constants.js';
@@ -156,7 +158,7 @@ export const providerService = {
     return { providers: providers.map(toPublicProvider), total, page, limit };
   },
 
-  async approveKyc(id: string) {
+  async approveKyc(actorId: string, id: string) {
     const provider = await providerRepository.updateById(id, {
       kycStatus: KYC_STATUSES.APPROVED,
       kycRejectionReason: null,
@@ -170,10 +172,12 @@ export const providerService = {
       body: 'Your provider account has been verified and is now live',
     });
 
+    await auditLogService.record(actorId, AUDIT_ACTIONS.PROVIDER_KYC_APPROVED, 'Provider', id);
+
     return toPublicProvider(provider);
   },
 
-  async rejectKyc(id: string, input: RejectKycInput) {
+  async rejectKyc(actorId: string, id: string, input: RejectKycInput) {
     const provider = await providerRepository.updateById(id, {
       kycStatus: KYC_STATUSES.REJECTED,
       kycRejectionReason: input.reason,
@@ -185,6 +189,10 @@ export const providerService = {
       type: NOTIFICATION_TYPES.KYC_REJECTED,
       title: 'KYC rejected',
       body: input.reason,
+    });
+
+    await auditLogService.record(actorId, AUDIT_ACTIONS.PROVIDER_KYC_REJECTED, 'Provider', id, {
+      reason: input.reason,
     });
 
     return toPublicProvider(provider);

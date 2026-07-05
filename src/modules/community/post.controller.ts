@@ -109,7 +109,9 @@ export const postController = {
   }),
 
   resolveReport: asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = requireAuth(req);
     const report = await postService.resolveReport(
+      userId,
       req.params.id as string,
       req.body as UpdateReportStatusInput,
     );

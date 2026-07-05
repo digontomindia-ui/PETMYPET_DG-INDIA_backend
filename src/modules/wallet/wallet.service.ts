@@ -1,4 +1,6 @@
 import { parsePagination } from '../../common/utils/pagination.js';
+import { auditLogService } from '../admin/admin.service.js';
+import { AUDIT_ACTIONS } from '../admin/admin.constants.js';
 import { walletRepository } from './wallet.repository.js';
 import { toWalletDto, toWalletTransactionDto } from './wallet.mapper.js';
 import { WALLET_TRANSACTION_REASONS, WALLET_TRANSACTION_TYPES } from './wallet.constants.js';
@@ -60,7 +62,7 @@ export const walletService = {
     return toWalletDto(wallet);
   },
 
-  async adminAdjust(userId: string, input: AdminAdjustWalletInput) {
+  async adminAdjust(actorId: string, userId: string, input: AdminAdjustWalletInput) {
     const wallet = await walletRepository.applyTransaction({
       userId,
       type: input.type,
@@ -68,6 +70,12 @@ export const walletService = {
       amount: input.amount,
       description: input.description,
     });
+
+    await auditLogService.record(actorId, AUDIT_ACTIONS.WALLET_ADJUSTED, 'Wallet', userId, {
+      type: input.type,
+      amount: input.amount,
+    });
+
     return toWalletDto(wallet);
   },
 };

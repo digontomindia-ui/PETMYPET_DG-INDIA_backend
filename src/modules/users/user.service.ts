@@ -1,5 +1,7 @@
 import { AppError } from '../../common/errors/app-error.js';
 import { parsePagination } from '../../common/utils/pagination.js';
+import { auditLogService } from '../admin/admin.service.js';
+import { AUDIT_ACTIONS } from '../admin/admin.constants.js';
 import { userRepository } from './user.repository.js';
 import { toPublicUser } from './user.mapper.js';
 import type { AddressInput, ListUsersQuery, UpdateProfileInput } from './user.dto.js';
@@ -99,9 +101,15 @@ export const userService = {
     return { users: users.map(toPublicUser), total, page, limit };
   },
 
-  async blockUser(userId: string, isBlocked: boolean): Promise<PublicUser> {
+  async blockUser(actorId: string, userId: string, isBlocked: boolean): Promise<PublicUser> {
     const user = await userRepository.updateById(userId, { isBlocked });
     if (!user) throw AppError.notFound('User not found');
+    await auditLogService.record(
+      actorId,
+      isBlocked ? AUDIT_ACTIONS.USER_BLOCKED : AUDIT_ACTIONS.USER_UNBLOCKED,
+      'User',
+      userId,
+    );
     return toPublicUser(user);
   },
 

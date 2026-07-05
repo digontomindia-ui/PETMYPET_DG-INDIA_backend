@@ -31,7 +31,9 @@ export const orderController = {
   }),
 
   updateStatus: asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = requireAuth(req);
     const order = await orderService.updateStatus(
+      userId,
       req.params.id as string,
       req.body as UpdateOrderStatusInput,
     );

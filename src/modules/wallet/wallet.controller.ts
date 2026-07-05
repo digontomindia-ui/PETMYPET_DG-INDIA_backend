@@ -33,6 +33,7 @@ export const walletController = {
 
   adminAdjust: asyncHandler(async (req: Request, res: Response) => {
     const wallet = await walletService.adminAdjust(
+      requireAuth(req),
       req.params.userId as string,
       req.body as AdminAdjustWalletInput,
     );

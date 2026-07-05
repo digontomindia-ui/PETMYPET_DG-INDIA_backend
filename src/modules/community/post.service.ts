@@ -2,6 +2,8 @@ import { Types } from 'mongoose';
 import { AppError } from '../../common/errors/app-error.js';
 import { parsePagination } from '../../common/utils/pagination.js';
 import { ROLES, type Role } from '../../common/constants/roles.js';
+import { auditLogService } from '../admin/admin.service.js';
+import { AUDIT_ACTIONS } from '../admin/admin.constants.js';
 import { postRepository } from './post.repository.js';
 import { LikeModel, PostModel } from './post.schema.js';
 import { toCommentDto, toPostDto, toReportDto } from './post.mapper.js';
@@ -125,9 +127,12 @@ export const postService = {
     return { reports: items.map(toReportDto), total, page, limit };
   },
 
-  async resolveReport(reportId: string, input: UpdateReportStatusInput) {
+  async resolveReport(actorId: string, reportId: string, input: UpdateReportStatusInput) {
     const report = await postRepository.updateReportStatus(reportId, input.status);
     if (!report) throw AppError.notFound('Report not found');
+    await auditLogService.record(actorId, AUDIT_ACTIONS.REPORT_RESOLVED, 'Report', reportId, {
+      status: input.status,
+    });
     return toReportDto(report);
   },
 

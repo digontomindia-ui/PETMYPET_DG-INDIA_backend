@@ -23,6 +23,11 @@ import { blogRoutes } from '../modules/blogs/blog.routes.js';
 import { lostAndFoundRoutes } from '../modules/lost-and-found/lost-and-found.routes.js';
 import { searchRoutes } from '../modules/search/search.routes.js';
 import { analyticsRoutes } from '../modules/analytics/analytics.routes.js';
+import {
+  adminRoutes,
+  publicBannerRoutes,
+  publicFeatureFlagRoutes,
+} from '../modules/admin/admin.routes.js';
 
 export const apiRouter = Router();
 
@@ -51,6 +56,6 @@ apiRouter.use('/blogs', blogRoutes);
 apiRouter.use('/lost-and-found', lostAndFoundRoutes);
 apiRouter.use('/search', searchRoutes);
 apiRouter.use('/analytics', analyticsRoutes);
-
-// Remaining module routers are mounted here incrementally as each module is implemented,
-// so the app remains buildable and runnable at the end of every phase.
+apiRouter.use('/admin', adminRoutes);
+apiRouter.use('/feature-flags', publicFeatureFlagRoutes);
+apiRouter.use('/banners', publicBannerRoutes);
