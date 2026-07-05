@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { env } from '../config/env.js';
 
 const SALT_ROUNDS = 10;

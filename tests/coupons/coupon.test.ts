@@ -13,7 +13,11 @@ function futureDate(hoursFromNow: number): string {
   return new Date(Date.now() + hoursFromNow * 60 * 60 * 1000).toISOString();
 }
 
-async function createCoupon(app: Express, adminToken: string, overrides: Record<string, unknown> = {}) {
+async function createCoupon(
+  app: Express,
+  adminToken: string,
+  overrides: Record<string, unknown> = {},
+) {
   const res = await request(app)
     .post('/api/v1/coupons')
     .set('Authorization', `Bearer ${adminToken}`)

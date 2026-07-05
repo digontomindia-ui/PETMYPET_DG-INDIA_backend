@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 FROM base AS deps
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 FROM deps AS build
 COPY tsconfig.json ./
@@ -11,7 +11,7 @@ COPY src ./src
 RUN npm run build
 
 FROM base AS production-deps
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --ignore-scripts
 
 FROM node:20-alpine AS runner
 WORKDIR /app

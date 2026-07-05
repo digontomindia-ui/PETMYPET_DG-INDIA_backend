@@ -9,6 +9,7 @@ import { serviceRoutes } from '../modules/services/service.routes.js';
 import { bookingRoutes } from '../modules/bookings/booking.routes.js';
 import { walletRoutes } from '../modules/wallet/wallet.routes.js';
 import { couponRoutes } from '../modules/coupons/coupon.routes.js';
+import { paymentRoutes } from '../modules/payments/payment.routes.js';
 
 export const apiRouter = Router();
 
@@ -23,6 +24,7 @@ apiRouter.use('/services', serviceRoutes);
 apiRouter.use('/bookings', bookingRoutes);
 apiRouter.use('/wallet', walletRoutes);
 apiRouter.use('/coupons', couponRoutes);
+apiRouter.use('/payments', paymentRoutes);
 
 // Remaining module routers are mounted here incrementally as each module is implemented,
 // so the app remains buildable and runnable at the end of every phase.
