@@ -1,4 +1,4 @@
-import type { FilterQuery, UpdateQuery } from 'mongoose';
+import type { FilterQuery, HydratedDocument, UpdateQuery } from 'mongoose';
 
 export interface FindManyOptions {
   skip?: number;
@@ -9,13 +9,14 @@ export interface FindManyOptions {
   includeDeleted?: boolean;
 }
 
-export interface IRepository<TDoc> {
-  create(data: Partial<TDoc>): Promise<TDoc>;
-  findById(id: string): Promise<TDoc | null>;
-  findOne(filter: FilterQuery<TDoc>): Promise<TDoc | null>;
-  findMany(filter: FilterQuery<TDoc>, options?: FindManyOptions): Promise<TDoc[]>;
-  count(filter: FilterQuery<TDoc>, includeDeleted?: boolean): Promise<number>;
-  updateById(id: string, update: UpdateQuery<TDoc>): Promise<TDoc | null>;
+/** TRaw is the plain schema interface (e.g. IUser); documents returned are HydratedDocument<TRaw>. */
+export interface IRepository<TRaw> {
+  create(data: Partial<TRaw>): Promise<HydratedDocument<TRaw>>;
+  findById(id: string): Promise<HydratedDocument<TRaw> | null>;
+  findOne(filter: FilterQuery<TRaw>): Promise<HydratedDocument<TRaw> | null>;
+  findMany(filter: FilterQuery<TRaw>, options?: FindManyOptions): Promise<HydratedDocument<TRaw>[]>;
+  count(filter: FilterQuery<TRaw>, includeDeleted?: boolean): Promise<number>;
+  updateById(id: string, update: UpdateQuery<TRaw>): Promise<HydratedDocument<TRaw> | null>;
   deleteById(id: string): Promise<boolean>;
   softDeleteById(id: string): Promise<boolean>;
 }
