@@ -28,6 +28,8 @@ import {
   publicBannerRoutes,
   publicFeatureFlagRoutes,
 } from '../modules/admin/admin.routes.js';
+import { uploadRoutes } from '../modules/uploads/upload.routes.js';
+import { availabilityRoutes } from '../modules/availability/availability.routes.js';
 
 export const apiRouter = Router();
 
@@ -59,3 +61,5 @@ apiRouter.use('/analytics', analyticsRoutes);
 apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/feature-flags', publicFeatureFlagRoutes);
 apiRouter.use('/banners', publicBannerRoutes);
+apiRouter.use('/uploads', uploadRoutes);
+apiRouter.use('/availability', availabilityRoutes);

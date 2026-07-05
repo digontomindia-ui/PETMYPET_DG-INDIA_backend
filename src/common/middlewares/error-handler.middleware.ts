@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { Error as MongooseError } from 'mongoose';
+import { MulterError } from 'multer';
 import { ZodError } from 'zod';
 import { AppError } from '../errors/app-error.js';
 import { HTTP_STATUS } from '../constants/http-status.js';
@@ -68,6 +69,10 @@ function normalizeError(err: unknown): AppError {
       'Validation failed',
       Object.values(err.errors).map((e) => ({ path: e.path, message: e.message })),
     );
+  }
+
+  if (err instanceof MulterError) {
+    return AppError.badRequest(err.message);
   }
 
   if (err instanceof MongooseError.CastError) {

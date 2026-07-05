@@ -28,6 +28,20 @@ export class BookingRepository extends BaseRepository<IBooking> {
     return overlapping !== null;
   }
 
+  /** Active bookings for a provider overlapping the given window, for computing free/busy slots. */
+  async findActiveBetween(providerId: string, rangeStart: Date, rangeEnd: Date) {
+    return this.model
+      .find({
+        providerId,
+        status: { $in: ACTIVE_STATUSES },
+        scheduledStart: { $lt: rangeEnd },
+        scheduledEnd: { $gt: rangeStart },
+      })
+      .select('scheduledStart scheduledEnd')
+      .sort({ scheduledStart: 1 })
+      .exec();
+  }
+
   async findForUser(userId: string, status: string | undefined, skip: number, limit: number) {
     const filter: Record<string, unknown> = { userId };
     if (status) filter.status = status;
