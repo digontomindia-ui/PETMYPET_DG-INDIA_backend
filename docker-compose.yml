@@ -4,8 +4,9 @@ services:
       context: .
       target: runner
     ports:
-      - '${PORT:-4000}:4000'
-    env_file: .env
+      - "${PORT:-4000}:4000"
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
       MONGO_URI: mongodb://mongo:27017/patmypets?replicaSet=rs0
@@ -15,15 +16,17 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks: [backend-net]
     restart: unless-stopped
+    networks:
+      - backend-net
 
   worker:
     build:
       context: .
       target: runner
-    command: ['node', 'dist/worker.js']
-    env_file: .env
+    command: ["node", "dist/worker.js"]
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
       MONGO_URI: mongodb://mongo:27017/patmypets?replicaSet=rs0
@@ -33,74 +36,69 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks: [backend-net]
     restart: unless-stopped
+    networks:
+      - backend-net
 
   mongo:
     image: mongo:7
-    command: ['--replSet', 'rs0', '--bind_ip_all']
+    command:
+      - --replSet
+      - rs0
+      - --bind_ip_all
+    ports:
+      - "27017:27017"
     volumes:
       - mongo-data:/data/db
-    ports:
-      - '27017:27017'
     healthcheck:
-      test: ['CMD', 'mongosh', '--eval', 'db.adminCommand("ping")']
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks: [backend-net]
+    restart: unless-stopped
+    networks:
+      - backend-net
 
-  # One-shot job: initializes the single-node replica set so the app can use multi-document
-  # transactions (required for atomic wallet ledger updates). Runs once and exits.
   mongo-init:
     image: mongo:7
     depends_on:
       mongo:
         condition: service_healthy
-    networks: [backend-net]
-    restart: 'no'
+    restart: "no"
     entrypoint:
       - bash
       - -c
-      - >
+      - |
         mongosh --host mongo --eval '
-          try {
-            rs.status();
-          } catch (e) {
-            rs.initiate({ _id: "rs0", members: [{ _id: 0, host: "mongo:27017" }] });
-          }
-        '
+        try {
+          rs.status();
+        } catch (e) {
+          rs.initiate({
+            _id: "rs0",
+            members: [{ _id: 0, host: "mongo:27017" }]
+          });
+        }'
+    networks:
+      - backend-net
 
   redis:
     image: redis:7-alpine
+    ports:
+      - "6379:6379"
     volumes:
       - redis-data:/data
-    ports:
-      - '6379:6379'
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks: [backend-net]
-
-  prometheus:
-    image: prom/prometheus:latest
-    volumes:
-      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - '9090:9090'
-    networks: [backend-net]
-
-  grafana:
-    image: grafana/grafana:latest
-    depends_on: [prometheus]
-    ports:
-      - '3001:3000'
-    networks: [backend-net]
+    restart: unless-stopped
+    networks:
+      - backend-net
 
 networks:
   backend-net:
+    driver: bridge
 
 volumes:
   mongo-data:
