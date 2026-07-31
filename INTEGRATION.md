@@ -71,14 +71,13 @@ All mounted under `/api/v1`:
 | `/uploads` | file upload — **needs Cloudinary creds, currently blank, fails cleanly now** |
 | `/availability` | provider open-slot lookup |
 
-## Known-broken flows (do not build against these yet)
+## Known-limited flows
 
-1. **Coupon redemption on `POST /bookings`, wallet admin credit/debit (`POST /wallet/admin/:userId/adjust`), and marketplace order placement (`POST /orders`) all return `500`.** Root cause: these use MongoDB multi-document transactions, but the deployed Mongo is a standalone instance, not a replica set. Needs an infra fix (Mongo reconfigured as at least a single-node replica set) before these three flows work. Bookings *without* a coupon, and cart/wishlist/product browsing, work fine — only the coupon-apply and final order/wallet-write steps fail.
-2. **Payments** (`/payments/*`, Razorpay order creation) are blocked until real Razorpay keys are added — fails cleanly with a 4xx now, not a crash.
-3. **Uploads** (`/uploads`) need real Cloudinary keys — fails cleanly with a 4xx now, not a crash.
-4. **Push notifications** (Firebase) and **real email/SMS** (SMTP/SMS) are unconfigured — in-app notification records still get created, just no external push/email/SMS actually sends.
+1. **Payments** (`/payments/*`, Razorpay order creation) are blocked until real Razorpay keys are added — fails cleanly with a 4xx now, not a crash.
+2. **Uploads** (`/uploads`) need real Cloudinary keys — fails cleanly with a 4xx now, not a crash.
+3. **Push notifications** (Firebase) and **real email/SMS** (SMTP/SMS) are unconfigured — in-app notification records still get created, just no external push/email/SMS actually sends.
 
-Everything else (auth, profile, catalog browsing, full booking lifecycle without a coupon, reviews, community, chat, support tickets, blogs, lost-and-found, search, analytics) was tested end-to-end against this prod deployment and works.
+Everything else — including coupon redemption on bookings, wallet admin credit/debit, and marketplace order placement — was tested end-to-end against this prod deployment and works. (Those three used to 500 on this standalone-MongoDB deployment because they relied on multi-document transactions; fixed by switching to atomic single-document updates with compensating rollback — see `CREDENTIALS.md` for detail.)
 
 ## Example: full booking flow (no coupon)
 
