@@ -1,5 +1,4 @@
-import mongoose, { Types } from 'mongoose';
-import type { HydratedDocument } from 'mongoose';
+import { Types } from 'mongoose';
 import { AppError } from '../../common/errors/app-error.js';
 import { BaseRepository } from '../../common/repositories/base.repository.js';
 import { ProductModel } from './product.schema.js';
@@ -29,43 +28,44 @@ export class OrderRepository extends BaseRepository<IOrder> {
     return { items, total };
   }
 
-  /** Atomically decrements stock for every line item and creates the order in one transaction. */
+  /**
+   * Decrements stock for every line item and creates the order.
+   * ponytail: this deployment's MongoDB is a standalone instance (no replica set), so
+   * multi-document transactions aren't available. Each stock decrement is atomic on its own
+   * (single-document findOneAndUpdate); if a later item is out of stock or the order insert
+   * fails, we compensate by restoring stock already decremented instead of wrapping the whole
+   * loop in a transaction. Upgrade back to session.withTransaction() if the deployment ever
+   * gains a replica set.
+   */
   async placeOrder(input: PlaceOrderInput) {
-    const session = await mongoose.startSession();
+    const decremented: { productId: IOrderItem['productId']; quantity: number }[] = [];
+
     try {
-      let order: HydratedDocument<IOrder> | undefined;
-
-      await session.withTransaction(async () => {
-        for (const item of input.items) {
-          const updated = await ProductModel.findOneAndUpdate(
-            { _id: item.productId, stock: { $gte: item.quantity } },
-            { $inc: { stock: -item.quantity } },
-            { session },
-          );
-          if (!updated) {
-            throw AppError.conflict(`Insufficient stock for product "${item.name}"`);
-          }
-        }
-
-        const created = await OrderModel.create(
-          [
-            {
-              userId: new Types.ObjectId(input.userId),
-              items: input.items,
-              totalAmount: input.totalAmount,
-              shippingAddress: input.shippingAddress,
-              paymentMethod: input.paymentMethod,
-            },
-          ],
-          { session },
+      for (const item of input.items) {
+        const updated = await ProductModel.findOneAndUpdate(
+          { _id: item.productId, stock: { $gte: item.quantity } },
+          { $inc: { stock: -item.quantity } },
         );
-        order = created[0];
-      });
+        if (!updated) {
+          throw AppError.conflict(`Insufficient stock for product "${item.name}"`);
+        }
+        decremented.push({ productId: item.productId, quantity: item.quantity });
+      }
 
-      if (!order) throw AppError.internal('Order placement did not complete');
-      return order;
-    } finally {
-      await session.endSession();
+      return await OrderModel.create({
+        userId: new Types.ObjectId(input.userId),
+        items: input.items,
+        totalAmount: input.totalAmount,
+        shippingAddress: input.shippingAddress,
+        paymentMethod: input.paymentMethod,
+      });
+    } catch (err) {
+      await Promise.all(
+        decremented.map((d) =>
+          ProductModel.updateOne({ _id: d.productId }, { $inc: { stock: d.quantity } }).exec(),
+        ),
+      );
+      throw err;
     }
   }
 }

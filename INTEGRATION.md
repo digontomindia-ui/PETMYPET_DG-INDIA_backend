@@ -1,0 +1,93 @@
+# Integration Guide — App / Website
+
+Base URL: `http://dxz8l4rvj5ckw3p10k6hwdf9.187.127.210.144.sslip.io`
+All routes are under `/api/v1/...` (e.g. `/api/v1/auth/login`).
+Swagger docs: `/api-docs` (spec JSON at `/api-docs.json`).
+Health check: `/health`.
+
+Ready-made test accounts and seeded IDs (city/category/service/provider/product/coupon/booking/etc.) are in `CREDENTIALS.md` (gitignored, local only) — use them instead of re-seeding.
+
+## Response envelope
+
+Every response is JSON:
+```json
+{ "success": true, "message": "Success", "data": { ... } }
+```
+List endpoints add pagination:
+```json
+{ "success": true, "message": "Success", "data": [...], "meta": { "page": 1, "limit": 20, "total": 0, "totalPages": 1 } }
+```
+Errors:
+```json
+{ "success": false, "error": "UNAUTHORIZED", "message": "Invalid email or password" }
+```
+Check `success`, not just HTTP status, when parsing responses.
+
+## Auth flow
+
+1. `POST /auth/signup` `{name, email, phone, password, role: "USER"|"SERVICE_PROVIDER"}` → `201`, account unverified.
+2. `POST /auth/signup/verify` `{identifier: email|phone, code}` → tokens issued, account verified.
+   - **OTP is currently always `123456`** in this environment (no SMTP/SMS creds configured yet — see CREDENTIALS.md). Same fixed code applies to login-OTP, password-reset OTP, and booking start/end OTPs. Switches to a real random OTP automatically once SMTP/SMS creds are added — no app-side change needed when that happens, just don't hardcode `123456` as if it's permanent.
+3. `POST /auth/login` `{email, password}` → `{user, tokens: {accessToken, refreshToken, expiresIn}}`.
+4. Send `Authorization: Bearer <accessToken>` on authenticated routes.
+5. **Access token expires in 15 minutes.** `POST /auth/refresh` `{refreshToken}` → new token pair before/when it expires. Refresh token lives 30 days.
+6. `POST /auth/logout` `{refreshToken}` invalidates one session; `POST /auth/logout-all` (authenticated) kills all sessions for the user.
+
+Roles: `USER`, `SERVICE_PROVIDER`, `SUPER_ADMIN`. `SUPER_ADMIN` can't be created via signup — only seeded directly (see CREDENTIALS.md for the test admin).
+
+### Rate limits to design around
+
+- General API: 100 req / 15 min per IP (`RATE_LIMIT_*`).
+- `/auth/*` specifically: 100 req / 15 min per IP as of this testing round (raised from the original 10 — see git history on `docker-compose.yml`). Build in exponential backoff / don't hammer login or OTP-resend in a tight loop, especially from a shared IP (office wifi, CI runner) where it adds up across testers.
+- OTP resend has its own per-identifier cooldown (`OTP_RESEND_COOLDOWN_SECONDS`, 60s) — expect `429 TOO_MANY_REQUESTS` if resent faster than that.
+
+## Module map
+
+All mounted under `/api/v1`:
+
+| Path | Covers |
+|---|---|
+| `/auth` | signup/login/OTP/refresh/logout/password reset |
+| `/users` | profile, addresses, admin user list/block/delete |
+| `/cities`, `/zones` | admin-managed geography (SUPER_ADMIN write, public read) |
+| `/providers` | service provider profile + KYC approval (admin) |
+| `/pets` | user's pets |
+| `/categories` | service categories (admin write, public read) |
+| `/services` | bookable services under a category (provider/admin write) |
+| `/bookings` | create/accept/on-the-way/OTP-start/OTP-end/complete lifecycle |
+| `/wallet` | balance, transactions, admin credit/debit — **admin adjust is currently broken, see below** |
+| `/coupons` | admin CRUD + validate — **redemption during booking is currently broken, see below** |
+| `/payments` | Razorpay order/verify/refund — **blocked, no Razorpay creds in this env** |
+| `/notifications` | user notification feed |
+| `/chat` | 1:1 rooms + messages |
+| `/posts` | community posts/comments/likes, moderation |
+| `/products`, `/cart`, `/wishlist`, `/orders` | marketplace — **order placement is currently broken, see below** |
+| `/reviews` | reviews on completed bookings |
+| `/support-tickets` | user support tickets, admin status updates |
+| `/blogs` | admin-authored, publicly readable |
+| `/lost-and-found` | user posts, admin approval gate |
+| `/search` | cross-entity search |
+| `/analytics`, `/admin` | SUPER_ADMIN dashboard/stats |
+| `/uploads` | file upload — **needs Cloudinary creds, currently blank, fails cleanly now** |
+| `/availability` | provider open-slot lookup |
+
+## Known-broken flows (do not build against these yet)
+
+1. **Coupon redemption on `POST /bookings`, wallet admin credit/debit (`POST /wallet/admin/:userId/adjust`), and marketplace order placement (`POST /orders`) all return `500`.** Root cause: these use MongoDB multi-document transactions, but the deployed Mongo is a standalone instance, not a replica set. Needs an infra fix (Mongo reconfigured as at least a single-node replica set) before these three flows work. Bookings *without* a coupon, and cart/wishlist/product browsing, work fine — only the coupon-apply and final order/wallet-write steps fail.
+2. **Payments** (`/payments/*`, Razorpay order creation) are blocked until real Razorpay keys are added — fails cleanly with a 4xx now, not a crash.
+3. **Uploads** (`/uploads`) need real Cloudinary keys — fails cleanly with a 4xx now, not a crash.
+4. **Push notifications** (Firebase) and **real email/SMS** (SMTP/SMS) are unconfigured — in-app notification records still get created, just no external push/email/SMS actually sends.
+
+Everything else (auth, profile, catalog browsing, full booking lifecycle without a coupon, reviews, community, chat, support tickets, blogs, lost-and-found, search, analytics) was tested end-to-end against this prod deployment and works.
+
+## Example: full booking flow (no coupon)
+
+```
+POST /bookings           {providerId, serviceId, scheduledStart, notes?}      → status PENDING
+PATCH /bookings/:id/accept                                                    (provider)
+PATCH /bookings/:id/on-the-way                                                (provider)
+POST  /bookings/:id/otp/start   {code}                                        (provider, code = 123456 in this env)
+POST  /bookings/:id/otp/end     {code}                                        (provider)
+POST  /reviews            {bookingId, rating, comment}                       (user)
+```
+Use the seeded provider/service/city/zone/category IDs in `CREDENTIALS.md` to skip re-seeding this chain yourself.

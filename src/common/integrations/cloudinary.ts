@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { env } from '../config/env.js';
+import { AppError } from '../errors/app-error.js';
 
 cloudinary.config({
   cloud_name: env.CLOUDINARY_CLOUD_NAME,
@@ -17,6 +18,9 @@ export interface UploadResult {
 }
 
 export async function uploadBuffer(buffer: Buffer, folder: string): Promise<UploadResult> {
+  if (!env.CLOUDINARY_CLOUD_NAME || !env.CLOUDINARY_API_KEY || !env.CLOUDINARY_API_SECRET) {
+    throw AppError.internal('Cloudinary is not configured');
+  }
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       { folder, resource_type: 'auto' },

@@ -1,4 +1,4 @@
-import mongoose, { Types } from 'mongoose';
+import { Types } from 'mongoose';
 import { AppError } from '../../common/errors/app-error.js';
 import { WalletModel, WalletTransactionModel } from './wallet.schema.js';
 import { WALLET_TRANSACTION_TYPES } from './wallet.constants.js';
@@ -27,7 +27,14 @@ export const walletRepository = {
     }
   },
 
-  /** Atomically applies a credit/debit and appends the matching ledger entry in one transaction. */
+  /**
+   * Applies a credit/debit and appends the matching ledger entry.
+   * ponytail: this deployment's MongoDB is a standalone instance (no replica set), so
+   * multi-document transactions aren't available. The balance update is atomic on its own
+   * (single-document findOneAndUpdate); if the ledger entry insert then fails, we compensate
+   * by reverting the balance instead of wrapping both in a transaction. Upgrade back to
+   * session.withTransaction() if the deployment ever gains a replica set.
+   */
   async applyTransaction(input: {
     userId: string;
     type: (typeof WALLET_TRANSACTION_TYPES)[keyof typeof WALLET_TRANSACTION_TYPES];
@@ -41,48 +48,37 @@ export const walletRepository = {
     const wallet = await this.getOrCreate(input.userId);
     const delta = input.type === WALLET_TRANSACTION_TYPES.CREDIT ? input.amount : -input.amount;
 
-    const session = await mongoose.startSession();
-    try {
-      let updatedWallet: WalletDocument | null = null;
-
-      await session.withTransaction(async () => {
-        const filter: Record<string, unknown> = { _id: wallet._id };
-        if (input.type === WALLET_TRANSACTION_TYPES.DEBIT) {
-          filter.balance = { $gte: input.amount };
-        }
-
-        updatedWallet = await WalletModel.findOneAndUpdate(
-          filter,
-          { $inc: { balance: delta } },
-          { new: true, session },
-        );
-
-        if (!updatedWallet) {
-          throw AppError.badRequest('Insufficient wallet balance');
-        }
-
-        await WalletTransactionModel.create(
-          [
-            {
-              walletId: wallet._id,
-              userId: new Types.ObjectId(input.userId),
-              type: input.type,
-              reason: input.reason,
-              amount: input.amount,
-              balanceAfter: updatedWallet.balance,
-              referenceId: input.referenceId ? new Types.ObjectId(input.referenceId) : null,
-              description: input.description ?? '',
-            },
-          ],
-          { session },
-        );
-      });
-
-      if (!updatedWallet) throw AppError.internal('Wallet transaction did not complete');
-      return updatedWallet;
-    } finally {
-      await session.endSession();
+    const filter: Record<string, unknown> = { _id: wallet._id };
+    if (input.type === WALLET_TRANSACTION_TYPES.DEBIT) {
+      filter.balance = { $gte: input.amount };
     }
+
+    const updatedWallet = await WalletModel.findOneAndUpdate(
+      filter,
+      { $inc: { balance: delta } },
+      { new: true },
+    );
+    if (!updatedWallet) {
+      throw AppError.badRequest('Insufficient wallet balance');
+    }
+
+    try {
+      await WalletTransactionModel.create({
+        walletId: wallet._id,
+        userId: new Types.ObjectId(input.userId),
+        type: input.type,
+        reason: input.reason,
+        amount: input.amount,
+        balanceAfter: updatedWallet.balance,
+        referenceId: input.referenceId ? new Types.ObjectId(input.referenceId) : null,
+        description: input.description ?? '',
+      });
+    } catch (err) {
+      await WalletModel.updateOne({ _id: wallet._id }, { $inc: { balance: -delta } }).exec();
+      throw err;
+    }
+
+    return updatedWallet;
   },
 
   async listTransactions(walletId: string, skip: number, limit: number) {

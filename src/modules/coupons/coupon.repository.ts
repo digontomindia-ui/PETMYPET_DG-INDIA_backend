@@ -1,4 +1,4 @@
-import mongoose, { Types } from 'mongoose';
+import { Types } from 'mongoose';
 import { BaseRepository } from '../../common/repositories/base.repository.js';
 import { CouponModel, CouponRedemptionModel } from './coupon.schema.js';
 import type { ICoupon } from './coupon.types.js';
@@ -16,51 +16,44 @@ export class CouponRepository extends BaseRepository<ICoupon> {
     return CouponRedemptionModel.countDocuments({ couponId, userId }).exec();
   }
 
-  /** Atomically bumps usageCount (only if still under any configured limit) and logs the redemption. */
+  /**
+   * Bumps usageCount (only if still under any configured limit) and logs the redemption.
+   * ponytail: this deployment's MongoDB is a standalone instance (no replica set), so
+   * multi-document transactions aren't available. The usageCount bump is atomic on its own
+   * (single-document findOneAndUpdate); if the redemption log insert then fails, we compensate
+   * by reverting the bump instead of wrapping both in a transaction. Upgrade back to
+   * session.withTransaction() if the deployment ever gains a replica set.
+   */
   async redeem(
     couponId: string,
     userId: string,
     bookingId: string,
     discountAmount: number,
   ): Promise<boolean> {
-    const session = await mongoose.startSession();
-    try {
-      let succeeded = false;
+    const coupon = await this.model.findById(couponId).exec();
+    if (!coupon) return false;
 
-      await session.withTransaction(async () => {
-        const filter: Record<string, unknown> = { _id: couponId };
-        const coupon = await this.model.findById(couponId).session(session);
-        if (!coupon) return;
-
-        if (coupon.usageLimit !== null) {
-          filter.usageCount = { $lt: coupon.usageLimit };
-        }
-
-        const updated = await this.model.findOneAndUpdate(
-          filter,
-          { $inc: { usageCount: 1 } },
-          { session },
-        );
-        if (!updated) return;
-
-        await CouponRedemptionModel.create(
-          [
-            {
-              couponId: new Types.ObjectId(couponId),
-              userId: new Types.ObjectId(userId),
-              bookingId: new Types.ObjectId(bookingId),
-              discountAmount,
-            },
-          ],
-          { session },
-        );
-        succeeded = true;
-      });
-
-      return succeeded;
-    } finally {
-      await session.endSession();
+    const filter: Record<string, unknown> = { _id: couponId };
+    if (coupon.usageLimit !== null) {
+      filter.usageCount = { $lt: coupon.usageLimit };
     }
+
+    const updated = await this.model.findOneAndUpdate(filter, { $inc: { usageCount: 1 } }).exec();
+    if (!updated) return false;
+
+    try {
+      await CouponRedemptionModel.create({
+        couponId: new Types.ObjectId(couponId),
+        userId: new Types.ObjectId(userId),
+        bookingId: new Types.ObjectId(bookingId),
+        discountAmount,
+      });
+    } catch (err) {
+      await this.model.updateOne({ _id: couponId }, { $inc: { usageCount: -1 } }).exec();
+      throw err;
+    }
+
+    return true;
   }
 }
 
