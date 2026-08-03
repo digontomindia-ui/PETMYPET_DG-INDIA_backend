@@ -39,7 +39,17 @@ export function createApp(): Express {
     }),
   );
 
-  app.use(helmet());
+  // upgradeInsecureRequests forces the browser to re-fetch every asset over HTTPS even when the
+  // page itself was served over plain HTTP; behind a proxy with no valid HTTPS termination that
+  // makes every CSS/JS/image request fail (ERR_CERT_AUTHORITY_INVALID) instead of degrading.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        useDefaults: true,
+        directives: { upgradeInsecureRequests: null },
+      },
+    }),
+  );
   app.use(
     cors({
       origin: corsOrigins.length > 0 ? corsOrigins : true,
