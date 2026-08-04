@@ -22,7 +22,55 @@ export const userRoutes = Router();
  *     summary: Get the authenticated user's profile
  *     security: [{ bearerAuth: [] }]
  *     responses:
- *       200: { description: OK }
+ *       200:
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data: { type: object }
+ *             example:
+ *               success: true
+ *               message: Success
+ *               data:
+ *                 id: "64f1a2b3c4d5e6f7a8b9c0d1"
+ *                 role: USER
+ *                 name: Ananya Sharma
+ *                 email: ananya.sharma@example.com
+ *                 phone: "+919876543210"
+ *                 avatarUrl: "https://res.cloudinary.com/patmypets/image/upload/v1699999999/avatars/ananya.jpg"
+ *                 isVerified: true
+ *                 isBlocked: false
+ *                 addresses:
+ *                   - _id: "64f1a2b3c4d5e6f7a8b9c0e2"
+ *                     label: Home
+ *                     addressLine1: 221B Baker Street
+ *                     addressLine2: Near Cyber Hub
+ *                     city: Gurugram
+ *                     state: Haryana
+ *                     postalCode: "122002"
+ *                     country: India
+ *                     location: { type: Point, coordinates: [77.0894, 28.4595] }
+ *                     isDefault: true
+ *                 preferences:
+ *                   language: en
+ *                   smsNotifications: true
+ *                   emailNotifications: true
+ *                   pushNotifications: true
+ *                 createdAt: "2024-01-15T10:30:00.000Z"
+ *                 updatedAt: "2024-06-20T08:15:00.000Z"
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Authentication required
  */
 userRoutes.get('/me', authenticate, userController.getMe);
 
@@ -33,8 +81,79 @@ userRoutes.get('/me', authenticate, userController.getMe);
  *     tags: [Users]
  *     summary: Update the authenticated user's profile
  *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: { type: string, maxLength: 120 }
+ *               avatarUrl: { type: string, format: uri }
+ *               preferences:
+ *                 type: object
+ *                 properties:
+ *                   language: { type: string }
+ *                   smsNotifications: { type: boolean }
+ *                   emailNotifications: { type: boolean }
+ *                   pushNotifications: { type: boolean }
+ *           example:
+ *             name: Ananya Sharma
+ *             avatarUrl: "https://res.cloudinary.com/patmypets/image/upload/v1699999999/avatars/ananya.jpg"
+ *             preferences:
+ *               language: en
+ *               smsNotifications: true
+ *               emailNotifications: false
+ *               pushNotifications: true
  *     responses:
- *       200: { description: Updated }
+ *       200:
+ *         description: Updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data: { type: object }
+ *             example:
+ *               success: true
+ *               message: Profile updated
+ *               data:
+ *                 id: "64f1a2b3c4d5e6f7a8b9c0d1"
+ *                 role: USER
+ *                 name: Ananya Sharma
+ *                 email: ananya.sharma@example.com
+ *                 phone: "+919876543210"
+ *                 avatarUrl: "https://res.cloudinary.com/patmypets/image/upload/v1699999999/avatars/ananya.jpg"
+ *                 isVerified: true
+ *                 isBlocked: false
+ *                 addresses: []
+ *                 preferences:
+ *                   language: en
+ *                   smsNotifications: true
+ *                   emailNotifications: false
+ *                   pushNotifications: true
+ *                 createdAt: "2024-01-15T10:30:00.000Z"
+ *                 updatedAt: "2024-06-21T09:00:00.000Z"
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: BAD_REQUEST
+ *               message: "avatarUrl: Invalid url"
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Authentication required
  */
 userRoutes.put(
   '/me',
@@ -51,7 +170,29 @@ userRoutes.put(
  *     summary: Delete the authenticated user's account
  *     security: [{ bearerAuth: [] }]
  *     responses:
- *       200: { description: Deleted }
+ *       200:
+ *         description: Deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data: { nullable: true }
+ *             example:
+ *               success: true
+ *               message: Account deleted
+ *               data: null
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Authentication required
  */
 userRoutes.delete('/me', authenticate, userController.deleteMe);
 
@@ -62,8 +203,97 @@ userRoutes.delete('/me', authenticate, userController.deleteMe);
  *     tags: [Users]
  *     summary: Add an address to the authenticated user's profile
  *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [label, addressLine1, city, state, postalCode, coordinates]
+ *             properties:
+ *               label: { type: string, maxLength: 40 }
+ *               addressLine1: { type: string, maxLength: 200 }
+ *               addressLine2: { type: string, maxLength: 200 }
+ *               city: { type: string, maxLength: 100 }
+ *               state: { type: string, maxLength: 100 }
+ *               postalCode: { type: string, maxLength: 20 }
+ *               country: { type: string, maxLength: 100, default: India }
+ *               coordinates:
+ *                 type: array
+ *                 items: { type: number }
+ *                 minItems: 2
+ *                 maxItems: 2
+ *                 description: "[longitude, latitude]"
+ *               isDefault: { type: boolean, default: false }
+ *           example:
+ *             label: Home
+ *             addressLine1: 221B Baker Street
+ *             addressLine2: Near Cyber Hub
+ *             city: Gurugram
+ *             state: Haryana
+ *             postalCode: "122002"
+ *             country: India
+ *             coordinates: [77.0894, 28.4595]
+ *             isDefault: true
  *     responses:
- *       201: { description: Address added }
+ *       201:
+ *         description: Address added
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data: { type: object }
+ *             example:
+ *               success: true
+ *               message: Address added
+ *               data:
+ *                 id: "64f1a2b3c4d5e6f7a8b9c0d1"
+ *                 role: USER
+ *                 name: Ananya Sharma
+ *                 email: ananya.sharma@example.com
+ *                 phone: "+919876543210"
+ *                 avatarUrl: null
+ *                 isVerified: true
+ *                 isBlocked: false
+ *                 addresses:
+ *                   - _id: "64f1a2b3c4d5e6f7a8b9c0e2"
+ *                     label: Home
+ *                     addressLine1: 221B Baker Street
+ *                     addressLine2: Near Cyber Hub
+ *                     city: Gurugram
+ *                     state: Haryana
+ *                     postalCode: "122002"
+ *                     country: India
+ *                     location: { type: Point, coordinates: [77.0894, 28.4595] }
+ *                     isDefault: true
+ *                 preferences:
+ *                   language: en
+ *                   smsNotifications: true
+ *                   emailNotifications: true
+ *                   pushNotifications: true
+ *                 createdAt: "2024-01-15T10:30:00.000Z"
+ *                 updatedAt: "2024-06-21T09:05:00.000Z"
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: BAD_REQUEST
+ *               message: "addressLine1: Required"
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Authentication required
  */
 userRoutes.post(
   '/me/addresses',
@@ -80,9 +310,47 @@ userRoutes.post(
  *     summary: Remove an address from the authenticated user's profile
  *     security: [{ bearerAuth: [] }]
  *     parameters:
- *       - { name: addressId, in: path, required: true, schema: { type: string } }
+ *       - { name: addressId, in: path, required: true, schema: { type: string }, example: "64f1a2b3c4d5e6f7a8b9c0e2" }
  *     responses:
- *       200: { description: Address removed }
+ *       200:
+ *         description: Address removed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data: { type: object }
+ *             example:
+ *               success: true
+ *               message: Address removed
+ *               data:
+ *                 id: "64f1a2b3c4d5e6f7a8b9c0d1"
+ *                 role: USER
+ *                 name: Ananya Sharma
+ *                 email: ananya.sharma@example.com
+ *                 phone: "+919876543210"
+ *                 avatarUrl: null
+ *                 isVerified: true
+ *                 isBlocked: false
+ *                 addresses: []
+ *                 preferences:
+ *                   language: en
+ *                   smsNotifications: true
+ *                   emailNotifications: true
+ *                   pushNotifications: true
+ *                 createdAt: "2024-01-15T10:30:00.000Z"
+ *                 updatedAt: "2024-06-21T09:10:00.000Z"
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Authentication required
  */
 userRoutes.delete('/me/addresses/:addressId', authenticate, userController.removeAddress);
 
@@ -93,8 +361,50 @@ userRoutes.delete('/me/addresses/:addressId', authenticate, userController.remov
  *     tags: [Users]
  *     summary: Register a device token for push notifications
  *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [deviceToken]
+ *             properties:
+ *               deviceToken: { type: string }
+ *           example:
+ *             deviceToken: "fcm-token-d3f1a2b3c4d5e6f7a8b9c0d1"
  *     responses:
- *       201: { description: Device token registered }
+ *       201:
+ *         description: Device token registered
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data: { nullable: true }
+ *             example:
+ *               success: true
+ *               message: Device registered
+ *               data: null
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: BAD_REQUEST
+ *               message: "deviceToken: String must contain at least 1 character(s)"
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Authentication required
  */
 userRoutes.post(
   '/me/device-tokens',
@@ -110,8 +420,50 @@ userRoutes.post(
  *     tags: [Users]
  *     summary: Remove a registered device token
  *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [deviceToken]
+ *             properties:
+ *               deviceToken: { type: string }
+ *           example:
+ *             deviceToken: "fcm-token-d3f1a2b3c4d5e6f7a8b9c0d1"
  *     responses:
- *       200: { description: Device token removed }
+ *       200:
+ *         description: Device token removed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data: { nullable: true }
+ *             example:
+ *               success: true
+ *               message: Device removed
+ *               data: null
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: BAD_REQUEST
+ *               message: "deviceToken: String must contain at least 1 character(s)"
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Authentication required
  */
 userRoutes.delete(
   '/me/device-tokens',
@@ -128,12 +480,71 @@ userRoutes.delete(
  *     summary: List users (SUPER_ADMIN only)
  *     security: [{ bearerAuth: [] }]
  *     parameters:
- *       - { name: page, in: query, required: false, schema: { type: string } }
- *       - { name: limit, in: query, required: false, schema: { type: string } }
- *       - { name: role, in: query, required: false, schema: { type: string } }
- *       - { name: search, in: query, required: false, schema: { type: string } }
+ *       - { name: page, in: query, required: false, schema: { type: string }, example: "1" }
+ *       - { name: limit, in: query, required: false, schema: { type: string }, example: "20" }
+ *       - { name: role, in: query, required: false, schema: { type: string }, example: USER }
+ *       - { name: search, in: query, required: false, schema: { type: string }, example: ananya }
  *     responses:
- *       200: { description: OK }
+ *       200:
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data: { type: array, items: { type: object } }
+ *                 meta:
+ *                   type: object
+ *                   properties:
+ *                     page: { type: integer }
+ *                     limit: { type: integer }
+ *                     total: { type: integer }
+ *                     totalPages: { type: integer }
+ *             example:
+ *               success: true
+ *               message: Success
+ *               data:
+ *                 - id: "64f1a2b3c4d5e6f7a8b9c0d1"
+ *                   role: USER
+ *                   name: Ananya Sharma
+ *                   email: ananya.sharma@example.com
+ *                   phone: "+919876543210"
+ *                   avatarUrl: null
+ *                   isVerified: true
+ *                   isBlocked: false
+ *                   addresses: []
+ *                   preferences:
+ *                     language: en
+ *                     smsNotifications: true
+ *                     emailNotifications: true
+ *                     pushNotifications: true
+ *                   createdAt: "2024-01-15T10:30:00.000Z"
+ *                   updatedAt: "2024-06-20T08:15:00.000Z"
+ *               meta:
+ *                 page: 1
+ *                 limit: 20
+ *                 total: 1
+ *                 totalPages: 1
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: BAD_REQUEST
+ *               message: "page: Invalid input"
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Authentication required
  */
 userRoutes.get(
   '/',
@@ -151,9 +562,56 @@ userRoutes.get(
  *     summary: Get a user by ID (SUPER_ADMIN only)
  *     security: [{ bearerAuth: [] }]
  *     parameters:
- *       - { name: id, in: path, required: true, schema: { type: string } }
+ *       - { name: id, in: path, required: true, schema: { type: string }, example: "64f1a2b3c4d5e6f7a8b9c0d1" }
  *     responses:
- *       200: { description: OK }
+ *       200:
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data: { type: object }
+ *             example:
+ *               success: true
+ *               message: Success
+ *               data:
+ *                 id: "64f1a2b3c4d5e6f7a8b9c0d1"
+ *                 role: USER
+ *                 name: Ananya Sharma
+ *                 email: ananya.sharma@example.com
+ *                 phone: "+919876543210"
+ *                 avatarUrl: null
+ *                 isVerified: true
+ *                 isBlocked: false
+ *                 addresses: []
+ *                 preferences:
+ *                   language: en
+ *                   smsNotifications: true
+ *                   emailNotifications: true
+ *                   pushNotifications: true
+ *                 createdAt: "2024-01-15T10:30:00.000Z"
+ *                 updatedAt: "2024-06-20T08:15:00.000Z"
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: BAD_REQUEST
+ *               message: Invalid user id
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Authentication required
  */
 userRoutes.get(
   '/:id',
@@ -171,9 +629,56 @@ userRoutes.get(
  *     summary: Block a user (SUPER_ADMIN only)
  *     security: [{ bearerAuth: [] }]
  *     parameters:
- *       - { name: id, in: path, required: true, schema: { type: string } }
+ *       - { name: id, in: path, required: true, schema: { type: string }, example: "64f1a2b3c4d5e6f7a8b9c0d1" }
  *     responses:
- *       200: { description: User blocked }
+ *       200:
+ *         description: User blocked
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data: { type: object }
+ *             example:
+ *               success: true
+ *               message: User blocked
+ *               data:
+ *                 id: "64f1a2b3c4d5e6f7a8b9c0d1"
+ *                 role: USER
+ *                 name: Ananya Sharma
+ *                 email: ananya.sharma@example.com
+ *                 phone: "+919876543210"
+ *                 avatarUrl: null
+ *                 isVerified: true
+ *                 isBlocked: true
+ *                 addresses: []
+ *                 preferences:
+ *                   language: en
+ *                   smsNotifications: true
+ *                   emailNotifications: true
+ *                   pushNotifications: true
+ *                 createdAt: "2024-01-15T10:30:00.000Z"
+ *                 updatedAt: "2024-06-21T09:20:00.000Z"
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: BAD_REQUEST
+ *               message: Invalid user id
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Authentication required
  */
 userRoutes.patch(
   '/:id/block',
@@ -191,9 +696,56 @@ userRoutes.patch(
  *     summary: Unblock a user (SUPER_ADMIN only)
  *     security: [{ bearerAuth: [] }]
  *     parameters:
- *       - { name: id, in: path, required: true, schema: { type: string } }
+ *       - { name: id, in: path, required: true, schema: { type: string }, example: "64f1a2b3c4d5e6f7a8b9c0d1" }
  *     responses:
- *       200: { description: User unblocked }
+ *       200:
+ *         description: User unblocked
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data: { type: object }
+ *             example:
+ *               success: true
+ *               message: User unblocked
+ *               data:
+ *                 id: "64f1a2b3c4d5e6f7a8b9c0d1"
+ *                 role: USER
+ *                 name: Ananya Sharma
+ *                 email: ananya.sharma@example.com
+ *                 phone: "+919876543210"
+ *                 avatarUrl: null
+ *                 isVerified: true
+ *                 isBlocked: false
+ *                 addresses: []
+ *                 preferences:
+ *                   language: en
+ *                   smsNotifications: true
+ *                   emailNotifications: true
+ *                   pushNotifications: true
+ *                 createdAt: "2024-01-15T10:30:00.000Z"
+ *                 updatedAt: "2024-06-21T09:25:00.000Z"
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: BAD_REQUEST
+ *               message: Invalid user id
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Authentication required
  */
 userRoutes.patch(
   '/:id/unblock',
@@ -211,9 +763,40 @@ userRoutes.patch(
  *     summary: Delete a user by ID (SUPER_ADMIN only)
  *     security: [{ bearerAuth: [] }]
  *     parameters:
- *       - { name: id, in: path, required: true, schema: { type: string } }
+ *       - { name: id, in: path, required: true, schema: { type: string }, example: "64f1a2b3c4d5e6f7a8b9c0d1" }
  *     responses:
- *       200: { description: Deleted }
+ *       200:
+ *         description: Deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data: { nullable: true }
+ *             example:
+ *               success: true
+ *               message: User deleted
+ *               data: null
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: BAD_REQUEST
+ *               message: Invalid user id
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Authentication required
  */
 userRoutes.delete(
   '/:id',
