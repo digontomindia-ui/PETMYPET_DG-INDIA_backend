@@ -52,7 +52,34 @@
         "summary": "List all cities",
         "responses": {
           "200": {
-            "description": "List of cities"
+            "description": "List of cities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0f1",
+                      "name": "Bengaluru",
+                      "state": "Karnataka",
+                      "country": "India",
+                      "isActive": true,
+                      "workingHours": [
+                        {
+                          "day": "MONDAY",
+                          "openTime": "09:00",
+                          "closeTime": "21:00"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
           }
         }
       },
@@ -66,9 +93,148 @@
             "bearerAuth": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "state"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "state": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "country": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "default": "India"
+                  },
+                  "workingHours": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "day": {
+                          "type": "string",
+                          "enum": [
+                            "MONDAY",
+                            "TUESDAY",
+                            "WEDNESDAY",
+                            "THURSDAY",
+                            "FRIDAY",
+                            "SATURDAY",
+                            "SUNDAY"
+                          ]
+                        },
+                        "openTime": {
+                          "type": "string",
+                          "example": "09:00"
+                        },
+                        "closeTime": {
+                          "type": "string",
+                          "example": "21:00"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "example": {
+                "name": "Bengaluru",
+                "state": "Karnataka",
+                "country": "India",
+                "workingHours": [
+                  {
+                    "day": "MONDAY",
+                    "openTime": "09:00",
+                    "closeTime": "21:00"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": "City created"
+            "description": "City created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "City created",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0f1",
+                    "name": "Bengaluru",
+                    "state": "Karnataka",
+                    "country": "India",
+                    "isActive": true,
+                    "workingHours": [
+                      {
+                        "day": "MONDAY",
+                        "openTime": "09:00",
+                        "closeTime": "21:00"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "name is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -86,12 +252,53 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0f1"
           }
         ],
         "responses": {
           "200": {
-            "description": "City details"
+            "description": "City details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0f1",
+                    "name": "Bengaluru",
+                    "state": "Karnataka",
+                    "country": "India",
+                    "isActive": true,
+                    "workingHours": [
+                      {
+                        "day": "MONDAY",
+                        "openTime": "09:00",
+                        "closeTime": "21:00"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id parameter or city not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "City not found"
+                }
+              }
+            }
           }
         }
       },
@@ -112,12 +319,113 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0f1"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "state": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "country": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "example": {
+                "isActive": false
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "City updated"
+            "description": "City updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "City updated",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0f1",
+                    "name": "Bengaluru",
+                    "state": "Karnataka",
+                    "country": "India",
+                    "isActive": false,
+                    "workingHours": [
+                      {
+                        "day": "MONDAY",
+                        "openTime": "09:00",
+                        "closeTime": "21:00"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or city not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "City not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       },
@@ -138,12 +446,55 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0f1"
           }
         ],
         "responses": {
           "200": {
-            "description": "City deleted"
+            "description": "City deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "City deleted",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -161,7 +512,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "12.9716"
           },
           {
             "name": "lng",
@@ -169,12 +521,52 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "77.5946"
           }
         ],
         "responses": {
           "200": {
-            "description": "List of nearby zones"
+            "description": "List of nearby zones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0f2",
+                      "name": "Indiranagar",
+                      "cityId": "64f1a2b3c4d5e6f7a8b9c0f1",
+                      "coordinates": [
+                        77.5946,
+                        12.9716
+                      ],
+                      "radiusMeters": 5000,
+                      "isActive": true
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid lat/lng query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "lat must be a number"
+                }
+              }
+            }
           }
         }
       }
@@ -185,9 +577,45 @@
           "Zones"
         ],
         "summary": "List all zones",
+        "parameters": [
+          {
+            "name": "cityId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0f1",
+            "description": "Optional filter to zones within a specific city"
+          }
+        ],
         "responses": {
           "200": {
-            "description": "List of zones"
+            "description": "List of zones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0f2",
+                      "name": "Indiranagar",
+                      "cityId": "64f1a2b3c4d5e6f7a8b9c0f1",
+                      "coordinates": [
+                        77.5946,
+                        12.9716
+                      ],
+                      "radiusMeters": 5000,
+                      "isActive": true
+                    }
+                  ]
+                }
+              }
+            }
           }
         }
       },
@@ -201,9 +629,125 @@
             "bearerAuth": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "cityId",
+                  "coordinates"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "cityId": {
+                    "type": "string",
+                    "description": "24-hex-char ObjectId of the parent city"
+                  },
+                  "coordinates": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "description": "[longitude, latitude]"
+                  },
+                  "radiusMeters": {
+                    "type": "number",
+                    "minimum": 100,
+                    "maximum": 100000,
+                    "default": 5000
+                  }
+                }
+              },
+              "example": {
+                "name": "Indiranagar",
+                "cityId": "64f1a2b3c4d5e6f7a8b9c0f1",
+                "coordinates": [
+                  77.5946,
+                  12.9716
+                ],
+                "radiusMeters": 5000
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": "Zone created"
+            "description": "Zone created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Zone created",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0f2",
+                    "name": "Indiranagar",
+                    "cityId": "64f1a2b3c4d5e6f7a8b9c0f1",
+                    "coordinates": [
+                      77.5946,
+                      12.9716
+                    ],
+                    "radiusMeters": 5000,
+                    "isActive": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "cityId: Invalid city id"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -221,12 +765,50 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0f2"
           }
         ],
         "responses": {
           "200": {
-            "description": "Zone details"
+            "description": "Zone details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0f2",
+                    "name": "Indiranagar",
+                    "cityId": "64f1a2b3c4d5e6f7a8b9c0f1",
+                    "coordinates": [
+                      77.5946,
+                      12.9716
+                    ],
+                    "radiusMeters": 5000,
+                    "isActive": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id parameter or zone not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Zone not found"
+                }
+              }
+            }
           }
         }
       },
@@ -247,12 +829,118 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0f2"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "cityId": {
+                    "type": "string"
+                  },
+                  "coordinates": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "minItems": 2,
+                    "maxItems": 2
+                  },
+                  "radiusMeters": {
+                    "type": "number",
+                    "minimum": 100,
+                    "maximum": 100000
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "example": {
+                "radiusMeters": 7500
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Zone updated"
+            "description": "Zone updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Zone updated",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0f2",
+                    "name": "Indiranagar",
+                    "cityId": "64f1a2b3c4d5e6f7a8b9c0f1",
+                    "coordinates": [
+                      77.5946,
+                      12.9716
+                    ],
+                    "radiusMeters": 7500,
+                    "isActive": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or zone not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Zone not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       },
@@ -273,12 +961,55 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0f2"
           }
         ],
         "responses": {
           "200": {
-            "description": "Zone deleted"
+            "description": "Zone deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Zone deleted",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -2098,9 +2829,97 @@
             "bearerAuth": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "subject",
+                  "message"
+                ],
+                "properties": {
+                  "subject": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "message": {
+                    "type": "string",
+                    "maxLength": 4000
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "LOW",
+                      "MEDIUM",
+                      "HIGH"
+                    ],
+                    "default": "MEDIUM"
+                  }
+                }
+              },
+              "example": {
+                "subject": "Refund not received for cancelled booking",
+                "message": "I cancelled my grooming booking 3 days ago but haven't received the refund yet.",
+                "priority": "HIGH"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": "Ticket created"
+            "description": "Ticket created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Support ticket created",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0f4",
+                    "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "subject": "Refund not received for cancelled booking",
+                    "status": "OPEN",
+                    "priority": "HIGH",
+                    "createdAt": "2026-08-04T12:00:00.000Z",
+                    "updatedAt": "2026-08-04T12:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "subject is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
           }
         }
       },
@@ -2120,29 +2939,83 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "enum": [
+                "OPEN",
+                "IN_PROGRESS",
+                "RESOLVED",
+                "CLOSED"
+              ]
+            },
+            "example": "OPEN"
           },
           {
             "name": "page",
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "default": "1"
+            },
+            "example": "1"
           },
           {
             "name": "limit",
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "default": "20"
+            },
+            "example": "20"
           }
         ],
         "responses": {
           "200": {
-            "description": "List of tickets"
+            "description": "List of tickets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0f4",
+                      "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                      "subject": "Refund not received for cancelled booking",
+                      "status": "OPEN",
+                      "priority": "HIGH",
+                      "createdAt": "2026-08-04T12:00:00.000Z",
+                      "updatedAt": "2026-08-04T12:00:00.000Z"
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 1,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
           }
         }
       }
@@ -2164,29 +3037,98 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "enum": [
+                "OPEN",
+                "IN_PROGRESS",
+                "RESOLVED",
+                "CLOSED"
+              ]
+            },
+            "example": "OPEN"
           },
           {
             "name": "page",
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "default": "1"
+            },
+            "example": "1"
           },
           {
             "name": "limit",
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "default": "20"
+            },
+            "example": "20"
           }
         ],
         "responses": {
           "200": {
-            "description": "List of all tickets"
+            "description": "List of all tickets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0f4",
+                      "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                      "subject": "Refund not received for cancelled booking",
+                      "status": "OPEN",
+                      "priority": "HIGH",
+                      "createdAt": "2026-08-04T12:00:00.000Z",
+                      "updatedAt": "2026-08-04T12:00:00.000Z"
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 1,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -2209,12 +3151,74 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0f4"
           }
         ],
         "responses": {
           "200": {
-            "description": "Ticket with messages"
+            "description": "Ticket with messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "ticket": {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0f4",
+                      "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                      "subject": "Refund not received for cancelled booking",
+                      "status": "OPEN",
+                      "priority": "HIGH",
+                      "createdAt": "2026-08-04T12:00:00.000Z",
+                      "updatedAt": "2026-08-04T12:00:00.000Z"
+                    },
+                    "messages": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0f5",
+                        "ticketId": "64f1a2b3c4d5e6f7a8b9c0f4",
+                        "senderId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                        "content": "I cancelled my grooming booking 3 days ago but haven't received the refund yet.",
+                        "createdAt": "2026-08-04T12:00:00.000Z"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id parameter or ticket not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Support ticket not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
           }
         }
       }
@@ -2237,12 +3241,83 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0f4"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "content"
+                ],
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "maxLength": 4000
+                  }
+                }
+              },
+              "example": {
+                "content": "Following up - any update on this refund?"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": "Message added"
+            "description": "Message added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Message added",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0f6",
+                    "ticketId": "64f1a2b3c4d5e6f7a8b9c0f4",
+                    "senderId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "content": "Following up - any update on this refund?",
+                    "createdAt": "2026-08-04T12:05:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, invalid id, or ticket not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Support ticket not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
           }
         }
       }
@@ -2265,12 +3340,105 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0f4"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "OPEN",
+                      "IN_PROGRESS",
+                      "RESOLVED",
+                      "CLOSED"
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "status": "RESOLVED"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Ticket status updated"
+            "description": "Ticket status updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Ticket status updated",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0f4",
+                    "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "subject": "Refund not received for cancelled booking",
+                    "status": "RESOLVED",
+                    "priority": "HIGH",
+                    "createdAt": "2026-08-04T12:00:00.000Z",
+                    "updatedAt": "2026-08-04T12:10:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or ticket not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Support ticket not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -2288,7 +3456,8 @@
             "required": false,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0c1"
           },
           {
             "name": "providerId",
@@ -2296,7 +3465,8 @@
             "required": false,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d3"
           },
           {
             "name": "q",
@@ -2304,7 +3474,8 @@
             "required": false,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "grooming"
           },
           {
             "name": "minPrice",
@@ -2312,7 +3483,8 @@
             "required": false,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "200"
           },
           {
             "name": "maxPrice",
@@ -2320,28 +3492,81 @@
             "required": false,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "1500"
           },
           {
             "name": "page",
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "default": "1"
+            },
+            "example": "1"
           },
           {
             "name": "limit",
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "default": "20"
+            },
+            "example": "20"
           }
         ],
         "responses": {
           "200": {
-            "description": "Services retrieved"
+            "description": "Services retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0a5",
+                      "providerId": "64f1a2b3c4d5e6f7a8b9c0d3",
+                      "categoryId": "64f1a2b3c4d5e6f7a8b9c0c1",
+                      "name": "Full Grooming Package",
+                      "description": "Bath, haircut, nail trim, and ear cleaning.",
+                      "price": 899,
+                      "durationMinutes": 60,
+                      "images": [
+                        "https://cdn.petmypet.in/services/grooming-package.jpg"
+                      ],
+                      "isActive": true,
+                      "createdAt": "2026-05-10T08:00:00.000Z"
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 1,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "categoryId: Invalid id"
+                }
+              }
+            }
           }
         }
       },
@@ -2355,9 +3580,136 @@
             "bearerAuth": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "categoryId",
+                  "name",
+                  "price",
+                  "durationMinutes"
+                ],
+                "properties": {
+                  "categoryId": {
+                    "type": "string",
+                    "description": "24-hex-char ObjectId of the service category"
+                  },
+                  "name": {
+                    "type": "string",
+                    "maxLength": 150
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 2000,
+                    "default": ""
+                  },
+                  "price": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "durationMinutes": {
+                    "type": "integer",
+                    "minimum": 5
+                  },
+                  "images": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "default": []
+                  }
+                }
+              },
+              "example": {
+                "categoryId": "64f1a2b3c4d5e6f7a8b9c0c1",
+                "name": "Full Grooming Package",
+                "description": "Bath, haircut, nail trim, and ear cleaning.",
+                "price": 899,
+                "durationMinutes": 60,
+                "images": [
+                  "https://cdn.petmypet.in/services/grooming-package.jpg"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": "Service created"
+            "description": "Service created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Service created",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0a5",
+                    "providerId": "64f1a2b3c4d5e6f7a8b9c0d3",
+                    "categoryId": "64f1a2b3c4d5e6f7a8b9c0c1",
+                    "name": "Full Grooming Package",
+                    "description": "Bath, haircut, nail trim, and ear cleaning.",
+                    "price": 899,
+                    "durationMinutes": 60,
+                    "images": [
+                      "https://cdn.petmypet.in/services/grooming-package.jpg"
+                    ],
+                    "isActive": true,
+                    "createdAt": "2026-08-04T12:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "price must be a positive number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -2375,12 +3727,53 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0a5"
           }
         ],
         "responses": {
           "200": {
-            "description": "Service retrieved"
+            "description": "Service retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0a5",
+                    "providerId": "64f1a2b3c4d5e6f7a8b9c0d3",
+                    "categoryId": "64f1a2b3c4d5e6f7a8b9c0c1",
+                    "name": "Full Grooming Package",
+                    "description": "Bath, haircut, nail trim, and ear cleaning.",
+                    "price": 899,
+                    "durationMinutes": 60,
+                    "images": [
+                      "https://cdn.petmypet.in/services/grooming-package.jpg"
+                    ],
+                    "isActive": true,
+                    "createdAt": "2026-05-10T08:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id parameter or service not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Service not found"
+                }
+              }
+            }
           }
         }
       },
@@ -2401,12 +3794,128 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0a5"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "categoryId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string",
+                    "maxLength": 150
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "price": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "durationMinutes": {
+                    "type": "integer",
+                    "minimum": 5
+                  },
+                  "images": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "example": {
+                "price": 949,
+                "durationMinutes": 75
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Service updated"
+            "description": "Service updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Service updated",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0a5",
+                    "providerId": "64f1a2b3c4d5e6f7a8b9c0d3",
+                    "categoryId": "64f1a2b3c4d5e6f7a8b9c0c1",
+                    "name": "Full Grooming Package",
+                    "description": "Bath, haircut, nail trim, and ear cleaning.",
+                    "price": 949,
+                    "durationMinutes": 75,
+                    "images": [
+                      "https://cdn.petmypet.in/services/grooming-package.jpg"
+                    ],
+                    "isActive": true,
+                    "createdAt": "2026-05-10T08:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or service not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Service not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       },
@@ -2427,12 +3936,70 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0a5"
           }
         ],
         "responses": {
           "200": {
-            "description": "Service deleted"
+            "description": "Service deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Service deleted",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Service not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Service not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -4955,12 +6522,102 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "maxLength": 150
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 2000,
+                    "default": ""
+                  },
+                  "fileUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                }
+              },
+              "example": {
+                "title": "Annual checkup",
+                "description": "Blood work normal, weight stable. Recommended dental cleaning next visit.",
+                "fileUrl": "https://cdn.petmypet.in/pets/records/bruno-checkup-2026.pdf"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": "Medical record added"
+            "description": "Medical record added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Medical record added",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "ownerId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "name": "Bruno",
+                    "medicalRecords": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0e9",
+                        "title": "Annual checkup",
+                        "description": "Blood work normal, weight stable. Recommended dental cleaning next visit.",
+                        "fileUrl": "https://cdn.petmypet.in/pets/records/bruno-checkup-2026.pdf",
+                        "createdAt": "2026-08-04T08:00:00.000Z"
+                      }
+                    ],
+                    "vaccinations": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body or id parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "title is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
           }
         }
       }
@@ -4983,12 +6640,107 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "administeredAt"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 150
+                  },
+                  "administeredAt": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "expiresAt": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "certificateUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                }
+              },
+              "example": {
+                "name": "Rabies",
+                "administeredAt": "2026-06-01",
+                "expiresAt": "2027-06-01",
+                "certificateUrl": "https://cdn.petmypet.in/pets/certificates/bruno-rabies-2026.pdf"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": "Vaccination record added"
+            "description": "Vaccination record added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Vaccination record added",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "ownerId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "name": "Bruno",
+                    "medicalRecords": [],
+                    "vaccinations": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0ea",
+                        "name": "Rabies",
+                        "administeredAt": "2026-06-01T00:00:00.000Z",
+                        "expiresAt": "2027-06-01T00:00:00.000Z",
+                        "certificateUrl": "https://cdn.petmypet.in/pets/certificates/bruno-rabies-2026.pdf"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body or id parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "administeredAt is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
           }
         }
       }
@@ -6107,55 +7859,121 @@
             "name": "category",
             "in": "query",
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "enum": [
+                "FOOD",
+                "PHARMACY",
+                "ACCESSORIES",
+                "GROOMING_SUPPLIES",
+                "TOYS",
+                "OTHER"
+              ]
+            },
+            "example": "FOOD"
           },
           {
             "name": "providerId",
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d3"
           },
           {
             "name": "q",
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "dog food"
           },
           {
             "name": "minPrice",
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "500"
           },
           {
             "name": "maxPrice",
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "2000"
           },
           {
             "name": "page",
             "in": "query",
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "default": "1"
+            },
+            "example": "1"
           },
           {
             "name": "limit",
             "in": "query",
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "default": "20"
+            },
+            "example": "20"
           }
         ],
         "responses": {
           "200": {
-            "description": "List of products"
+            "description": "List of products",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                      "providerId": "64f1a2b3c4d5e6f7a8b9c0d3",
+                      "name": "Royal Canin Adult Dog Food 3kg",
+                      "description": "Balanced nutrition for adult dogs.",
+                      "category": "FOOD",
+                      "price": 1499,
+                      "images": [
+                        "https://cdn.petmypet.in/products/royal-canin-3kg.jpg"
+                      ],
+                      "stock": 42,
+                      "sku": "RC-ADT-3KG",
+                      "isActive": true,
+                      "createdAt": "2026-04-01T08:00:00.000Z"
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 1,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "providerId: Invalid id"
+                }
+              }
+            }
           }
         }
       },
@@ -6169,9 +7987,154 @@
             "bearerAuth": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "category",
+                  "price",
+                  "sku"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 3000,
+                    "default": ""
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "FOOD",
+                      "PHARMACY",
+                      "ACCESSORIES",
+                      "GROOMING_SUPPLIES",
+                      "TOYS",
+                      "OTHER"
+                    ]
+                  },
+                  "price": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "images": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "default": []
+                  },
+                  "stock": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "default": 0
+                  },
+                  "sku": {
+                    "type": "string",
+                    "maxLength": 50
+                  },
+                  "providerId": {
+                    "type": "string",
+                    "description": "Optional, defaults to the authenticated provider"
+                  }
+                }
+              },
+              "example": {
+                "name": "Royal Canin Adult Dog Food 3kg",
+                "description": "Balanced nutrition for adult dogs.",
+                "category": "FOOD",
+                "price": 1499,
+                "images": [
+                  "https://cdn.petmypet.in/products/royal-canin-3kg.jpg"
+                ],
+                "stock": 50,
+                "sku": "RC-ADT-3KG"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": "Product created"
+            "description": "Product created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Product created",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "providerId": "64f1a2b3c4d5e6f7a8b9c0d3",
+                    "name": "Royal Canin Adult Dog Food 3kg",
+                    "description": "Balanced nutrition for adult dogs.",
+                    "category": "FOOD",
+                    "price": 1499,
+                    "images": [
+                      "https://cdn.petmypet.in/products/royal-canin-3kg.jpg"
+                    ],
+                    "stock": 50,
+                    "sku": "RC-ADT-3KG",
+                    "isActive": true,
+                    "createdAt": "2026-08-04T12:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "sku is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -6189,12 +8152,54 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
           }
         ],
         "responses": {
           "200": {
-            "description": "Product details"
+            "description": "Product details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "providerId": "64f1a2b3c4d5e6f7a8b9c0d3",
+                    "name": "Royal Canin Adult Dog Food 3kg",
+                    "description": "Balanced nutrition for adult dogs.",
+                    "category": "FOOD",
+                    "price": 1499,
+                    "images": [
+                      "https://cdn.petmypet.in/products/royal-canin-3kg.jpg"
+                    ],
+                    "stock": 42,
+                    "sku": "RC-ADT-3KG",
+                    "isActive": true,
+                    "createdAt": "2026-04-01T08:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id parameter or product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Product not found"
+                }
+              }
+            }
           }
         }
       },
@@ -6215,12 +8220,141 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 3000
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "FOOD",
+                      "PHARMACY",
+                      "ACCESSORIES",
+                      "GROOMING_SUPPLIES",
+                      "TOYS",
+                      "OTHER"
+                    ]
+                  },
+                  "price": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "images": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "stock": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "sku": {
+                    "type": "string",
+                    "maxLength": 50
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "example": {
+                "price": 1399,
+                "stock": 30
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Product updated"
+            "description": "Product updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Product updated",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "providerId": "64f1a2b3c4d5e6f7a8b9c0d3",
+                    "name": "Royal Canin Adult Dog Food 3kg",
+                    "description": "Balanced nutrition for adult dogs.",
+                    "category": "FOOD",
+                    "price": 1399,
+                    "images": [
+                      "https://cdn.petmypet.in/products/royal-canin-3kg.jpg"
+                    ],
+                    "stock": 30,
+                    "sku": "RC-ADT-3KG",
+                    "isActive": true,
+                    "createdAt": "2026-04-01T08:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Product not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       },
@@ -6241,12 +8375,70 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
           }
         ],
         "responses": {
           "200": {
-            "description": "Product deleted"
+            "description": "Product deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Product deleted",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Product not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -6262,9 +8454,146 @@
             "bearerAuth": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "shippingAddress",
+                  "paymentMethod"
+                ],
+                "properties": {
+                  "shippingAddress": {
+                    "type": "object",
+                    "required": [
+                      "addressLine1",
+                      "city",
+                      "state",
+                      "postalCode"
+                    ],
+                    "properties": {
+                      "addressLine1": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "addressLine2": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "city": {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      "state": {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      "postalCode": {
+                        "type": "string",
+                        "maxLength": 20
+                      },
+                      "country": {
+                        "type": "string",
+                        "maxLength": 100,
+                        "default": "India"
+                      }
+                    }
+                  },
+                  "paymentMethod": {
+                    "type": "string",
+                    "enum": [
+                      "WALLET",
+                      "CASH_ON_DELIVERY"
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "shippingAddress": {
+                  "addressLine1": "221B Baker Street",
+                  "addressLine2": "Near HSR Layout",
+                  "city": "Bengaluru",
+                  "state": "Karnataka",
+                  "postalCode": "560102",
+                  "country": "India"
+                },
+                "paymentMethod": "WALLET"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": "Order placed"
+            "description": "Order placed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Order placed",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0f9",
+                    "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "items": [
+                      {
+                        "productId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                        "name": "Royal Canin Adult Dog Food 3kg",
+                        "price": 1499,
+                        "quantity": 2
+                      }
+                    ],
+                    "totalAmount": 2998,
+                    "currency": "INR",
+                    "shippingAddress": {
+                      "addressLine1": "221B Baker Street",
+                      "addressLine2": "Near HSR Layout",
+                      "city": "Bengaluru",
+                      "state": "Karnataka",
+                      "postalCode": "560102",
+                      "country": "India"
+                    },
+                    "status": "PENDING",
+                    "paymentMethod": "WALLET",
+                    "paymentStatus": "PAID",
+                    "createdAt": "2026-08-04T12:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, empty cart, or insufficient wallet balance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Insufficient wallet balance"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
           }
         }
       },
@@ -6283,20 +8612,83 @@
             "name": "page",
             "in": "query",
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "default": "1"
+            },
+            "example": "1"
           },
           {
             "name": "limit",
             "in": "query",
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "default": "20"
+            },
+            "example": "20"
           }
         ],
         "responses": {
           "200": {
-            "description": "List of orders"
+            "description": "List of orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0f9",
+                      "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                      "items": [
+                        {
+                          "productId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                          "name": "Royal Canin Adult Dog Food 3kg",
+                          "price": 1499,
+                          "quantity": 2
+                        }
+                      ],
+                      "totalAmount": 2998,
+                      "currency": "INR",
+                      "shippingAddress": {
+                        "addressLine1": "221B Baker Street",
+                        "city": "Bengaluru",
+                        "state": "Karnataka",
+                        "postalCode": "560102",
+                        "country": "India"
+                      },
+                      "status": "PENDING",
+                      "paymentMethod": "WALLET",
+                      "paymentStatus": "PAID",
+                      "createdAt": "2026-08-04T12:00:00.000Z"
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 1,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
           }
         }
       }
@@ -6319,12 +8711,79 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0f9"
           }
         ],
         "responses": {
           "200": {
-            "description": "Order details"
+            "description": "Order details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0f9",
+                    "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "items": [
+                      {
+                        "productId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                        "name": "Royal Canin Adult Dog Food 3kg",
+                        "price": 1499,
+                        "quantity": 2
+                      }
+                    ],
+                    "totalAmount": 2998,
+                    "currency": "INR",
+                    "shippingAddress": {
+                      "addressLine1": "221B Baker Street",
+                      "city": "Bengaluru",
+                      "state": "Karnataka",
+                      "postalCode": "560102",
+                      "country": "India"
+                    },
+                    "status": "PENDING",
+                    "paymentMethod": "WALLET",
+                    "paymentStatus": "PAID",
+                    "createdAt": "2026-08-04T12:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id parameter or order not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Order not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
           }
         }
       }
@@ -6347,12 +8806,121 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0f9"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "CONFIRMED",
+                      "SHIPPED",
+                      "DELIVERED",
+                      "CANCELLED"
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "status": "SHIPPED"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Order status updated"
+            "description": "Order status updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Order status updated",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0f9",
+                    "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "items": [
+                      {
+                        "productId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                        "name": "Royal Canin Adult Dog Food 3kg",
+                        "price": 1499,
+                        "quantity": 2
+                      }
+                    ],
+                    "totalAmount": 2998,
+                    "currency": "INR",
+                    "shippingAddress": {
+                      "addressLine1": "221B Baker Street",
+                      "city": "Bengaluru",
+                      "state": "Karnataka",
+                      "postalCode": "560102",
+                      "country": "India"
+                    },
+                    "status": "SHIPPED",
+                    "paymentMethod": "WALLET",
+                    "paymentStatus": "PAID",
+                    "createdAt": "2026-08-04T12:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, order not found, or invalid status transition",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Order not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -6375,12 +8943,94 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0f9"
           }
         ],
         "responses": {
           "200": {
-            "description": "Order marked as paid"
+            "description": "Order marked as paid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Order marked as paid",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0f9",
+                    "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "items": [
+                      {
+                        "productId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                        "name": "Royal Canin Adult Dog Food 3kg",
+                        "price": 1499,
+                        "quantity": 2
+                      }
+                    ],
+                    "totalAmount": 2998,
+                    "currency": "INR",
+                    "shippingAddress": {
+                      "addressLine1": "221B Baker Street",
+                      "city": "Bengaluru",
+                      "state": "Karnataka",
+                      "postalCode": "560102",
+                      "country": "India"
+                    },
+                    "status": "DELIVERED",
+                    "paymentMethod": "CASH_ON_DELIVERY",
+                    "paymentStatus": "PAID",
+                    "createdAt": "2026-08-04T12:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Order not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Order not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -6398,7 +9048,49 @@
         ],
         "responses": {
           "200": {
-            "description": "Cart retrieved successfully"
+            "description": "Cart retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0e1",
+                    "items": [
+                      {
+                        "productId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                        "name": "Royal Canin Adult Dog Food 3kg",
+                        "price": 1499,
+                        "images": [
+                          "https://cdn.petmypet.in/products/royal-canin-3kg.jpg"
+                        ],
+                        "quantity": 2,
+                        "subtotal": 2998
+                      }
+                    ],
+                    "totalAmount": 2998
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
           }
         }
       },
@@ -6414,7 +9106,34 @@
         ],
         "responses": {
           "200": {
-            "description": "Cart cleared successfully"
+            "description": "Cart cleared successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Cart cleared",
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
           }
         }
       }
@@ -6430,9 +9149,94 @@
             "bearerAuth": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "productId"
+                ],
+                "properties": {
+                  "productId": {
+                    "type": "string",
+                    "description": "24-hex-char ObjectId of the product"
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 1
+                  }
+                }
+              },
+              "example": {
+                "productId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                "quantity": 2
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": "Item added to cart"
+            "description": "Item added to cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Item added to cart",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0e1",
+                    "items": [
+                      {
+                        "productId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                        "name": "Royal Canin Adult Dog Food 3kg",
+                        "price": 1499,
+                        "images": [
+                          "https://cdn.petmypet.in/products/royal-canin-3kg.jpg"
+                        ],
+                        "quantity": 2,
+                        "subtotal": 2998
+                      }
+                    ],
+                    "totalAmount": 2998
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Product not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
           }
         }
       }
@@ -6455,12 +9259,92 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "quantity"
+                ],
+                "properties": {
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              },
+              "example": {
+                "quantity": 3
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Cart item updated successfully"
+            "description": "Cart item updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Cart updated",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0e1",
+                    "items": [
+                      {
+                        "productId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                        "name": "Royal Canin Adult Dog Food 3kg",
+                        "price": 1499,
+                        "images": [
+                          "https://cdn.petmypet.in/products/royal-canin-3kg.jpg"
+                        ],
+                        "quantity": 3,
+                        "subtotal": 4497
+                      }
+                    ],
+                    "totalAmount": 4497
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or item not found in cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Item not found in cart"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
           }
         }
       },
@@ -6481,12 +9365,59 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
           }
         ],
         "responses": {
           "200": {
-            "description": "Cart item removed successfully"
+            "description": "Cart item removed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Item removed from cart",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0e1",
+                    "items": [],
+                    "totalAmount": 0
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Item not found in cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Item not found in cart"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
           }
         }
       }
@@ -11485,23 +14416,77 @@
         "summary": "List published blog posts",
         "parameters": [
           {
-            "name": "page",
+            "name": "tag",
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "grooming"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "monsoon"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "1"
+            },
+            "example": "1"
           },
           {
             "name": "limit",
             "in": "query",
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "default": "20"
+            },
+            "example": "20"
           }
         ],
         "responses": {
           "200": {
-            "description": "Blog posts listed"
+            "description": "Blog posts listed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0e5",
+                      "authorId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                      "title": "Monsoon Grooming Tips for Dogs",
+                      "slug": "monsoon-grooming-tips-for-dogs",
+                      "content": "Keep your dog's coat dry and mite-free this monsoon...",
+                      "coverImageUrl": "https://cdn.petmypet.in/blogs/monsoon-grooming.jpg",
+                      "tags": [
+                        "grooming",
+                        "monsoon"
+                      ],
+                      "isPublished": true,
+                      "publishedAt": "2026-07-15T09:00:00.000Z",
+                      "createdAt": "2026-07-14T18:30:00.000Z"
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 1,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
           }
         }
       },
@@ -11515,9 +14500,135 @@
             "bearerAuth": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title",
+                  "slug",
+                  "content"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "slug": {
+                    "type": "string",
+                    "maxLength": 200,
+                    "description": "Lowercase letters, numbers, and hyphens only"
+                  },
+                  "content": {
+                    "type": "string"
+                  },
+                  "coverImageUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": []
+                  },
+                  "isPublished": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              },
+              "example": {
+                "title": "Monsoon Grooming Tips for Dogs",
+                "slug": "monsoon-grooming-tips-for-dogs",
+                "content": "Keep your dog's coat dry and mite-free this monsoon...",
+                "coverImageUrl": "https://cdn.petmypet.in/blogs/monsoon-grooming.jpg",
+                "tags": [
+                  "grooming",
+                  "monsoon"
+                ],
+                "isPublished": true
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
-            "description": "Blog post created"
+            "description": "Blog post created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Blog post created",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0e5",
+                    "authorId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "title": "Monsoon Grooming Tips for Dogs",
+                    "slug": "monsoon-grooming-tips-for-dogs",
+                    "content": "Keep your dog's coat dry and mite-free this monsoon...",
+                    "coverImageUrl": "https://cdn.petmypet.in/blogs/monsoon-grooming.jpg",
+                    "tags": [
+                      "grooming",
+                      "monsoon"
+                    ],
+                    "isPublished": true,
+                    "publishedAt": "2026-08-04T12:00:00.000Z",
+                    "createdAt": "2026-08-04T12:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "slug: Slug must be lowercase letters, numbers, and hyphens"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -11535,12 +14646,54 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "monsoon-grooming-tips-for-dogs"
           }
         ],
         "responses": {
           "200": {
-            "description": "Blog post found"
+            "description": "Blog post found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0e5",
+                    "authorId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "title": "Monsoon Grooming Tips for Dogs",
+                    "slug": "monsoon-grooming-tips-for-dogs",
+                    "content": "Keep your dog's coat dry and mite-free this monsoon...",
+                    "coverImageUrl": "https://cdn.petmypet.in/blogs/monsoon-grooming.jpg",
+                    "tags": [
+                      "grooming",
+                      "monsoon"
+                    ],
+                    "isPublished": true,
+                    "publishedAt": "2026-07-15T09:00:00.000Z",
+                    "createdAt": "2026-07-14T18:30:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Blog post not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Blog post not found"
+                }
+              }
+            }
           }
         }
       }
@@ -11563,12 +14716,123 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0e5"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "slug": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "content": {
+                    "type": "string"
+                  },
+                  "coverImageUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "isPublished": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "example": {
+                "isPublished": true
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Blog post updated"
+            "description": "Blog post updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Blog post updated",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0e5",
+                    "authorId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "title": "Monsoon Grooming Tips for Dogs",
+                    "slug": "monsoon-grooming-tips-for-dogs",
+                    "content": "Keep your dog's coat dry and mite-free this monsoon...",
+                    "coverImageUrl": "https://cdn.petmypet.in/blogs/monsoon-grooming.jpg",
+                    "tags": [
+                      "grooming",
+                      "monsoon"
+                    ],
+                    "isPublished": true,
+                    "publishedAt": "2026-08-04T12:00:00.000Z",
+                    "createdAt": "2026-08-04T12:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or blog post not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Blog post not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       },
@@ -11589,12 +14853,70 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0e5"
           }
         ],
         "responses": {
           "200": {
-            "description": "Blog post deleted"
+            "description": "Blog post deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Blog post deleted",
+                  "data": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Blog post not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Blog post not found"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -12616,7 +15938,57 @@
         ],
         "responses": {
           "200": {
-            "description": "Overview stats retrieved"
+            "description": "Overview stats retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "totalUsers": 5420,
+                    "totalProviders": 312,
+                    "totalBookings": 8930,
+                    "activeBookings": 47,
+                    "completedBookings": 8210,
+                    "totalRevenue": 2145600,
+                    "totalOrders": 1560
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -12639,7 +16011,8 @@
             "required": false,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "2026-07-01"
           },
           {
             "name": "to",
@@ -12647,12 +16020,64 @@
             "required": false,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "2026-08-01"
           }
         ],
         "responses": {
           "200": {
-            "description": "Bookings by day retrieved"
+            "description": "Bookings by day retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "date": "2026-07-30",
+                      "count": 42
+                    },
+                    {
+                      "date": "2026-07-31",
+                      "count": 51
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -12675,7 +16100,8 @@
             "required": false,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "2026-07-01"
           },
           {
             "name": "to",
@@ -12683,12 +16109,64 @@
             "required": false,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "2026-08-01"
           }
         ],
         "responses": {
           "200": {
-            "description": "Revenue by day retrieved"
+            "description": "Revenue by day retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "date": "2026-07-30",
+                      "revenue": 48500
+                    },
+                    {
+                      "date": "2026-07-31",
+                      "revenue": 61200
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -12711,7 +16189,8 @@
             "required": false,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "2026-07-01"
           },
           {
             "name": "to",
@@ -12719,12 +16198,64 @@
             "required": false,
             "schema": {
               "type": "string"
-            }
+            },
+            "example": "2026-08-01"
           }
         ],
         "responses": {
           "200": {
-            "description": "User growth stats retrieved"
+            "description": "User growth stats retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "date": "2026-07-30",
+                      "newUsers": 18
+                    },
+                    {
+                      "date": "2026-07-31",
+                      "newUsers": 24
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -12746,13 +16277,70 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string"
-            }
+              "type": "string",
+              "default": "10"
+            },
+            "example": "5"
           }
         ],
         "responses": {
           "200": {
-            "description": "Top services retrieved"
+            "description": "Top services retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "serviceId": "64f1a2b3c4d5e6f7a8b9c0a5",
+                      "name": "Full Grooming Package",
+                      "price": 899,
+                      "bookingCount": 214
+                    },
+                    {
+                      "serviceId": "64f1a2b3c4d5e6f7a8b9c0a6",
+                      "name": "At-Home Vet Checkup",
+                      "price": 599,
+                      "bookingCount": 178
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }
@@ -12770,7 +16358,62 @@
         ],
         "responses": {
           "200": {
-            "description": "Zone performance stats retrieved"
+            "description": "Zone performance stats retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "zoneId": "64f1a2b3c4d5e6f7a8b9c0f2",
+                      "zoneName": "Indiranagar",
+                      "totalBookings": 412,
+                      "totalRevenue": 318500
+                    },
+                    {
+                      "zoneId": "64f1a2b3c4d5e6f7a8b9c0f3",
+                      "zoneName": "Koramangala",
+                      "totalBookings": 356,
+                      "totalRevenue": 271900
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "Insufficient permissions"
+                }
+              }
+            }
           }
         }
       }

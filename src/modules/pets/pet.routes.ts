@@ -288,9 +288,58 @@ petRoutes.delete('/:id', validate({ params: idParamSchema }), petController.remo
  *     summary: Add a medical record to a pet
  *     security: [{ bearerAuth: [] }]
  *     parameters:
- *       - { name: id, in: path, required: true, schema: { type: string } }
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: string }
+ *         example: 64f1a2b3c4d5e6f7a8b9c0d1
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title]
+ *             properties:
+ *               title: { type: string, maxLength: 150 }
+ *               description: { type: string, maxLength: 2000, default: "" }
+ *               fileUrl: { type: string, format: uri }
+ *           example:
+ *             title: Annual checkup
+ *             description: "Blood work normal, weight stable. Recommended dental cleaning next visit."
+ *             fileUrl: "https://cdn.petmypet.in/pets/records/bruno-checkup-2026.pdf"
  *     responses:
- *       201: { description: Medical record added }
+ *       201:
+ *         description: Medical record added
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *             example:
+ *               success: true
+ *               message: Medical record added
+ *               data:
+ *                 id: 64f1a2b3c4d5e6f7a8b9c0d1
+ *                 ownerId: 64f1a2b3c4d5e6f7a8b9c0d2
+ *                 name: Bruno
+ *                 medicalRecords:
+ *                   - id: 64f1a2b3c4d5e6f7a8b9c0e9
+ *                     title: Annual checkup
+ *                     description: "Blood work normal, weight stable. Recommended dental cleaning next visit."
+ *                     fileUrl: "https://cdn.petmypet.in/pets/records/bruno-checkup-2026.pdf"
+ *                     createdAt: "2026-08-04T08:00:00.000Z"
+ *                 vaccinations: []
+ *       400:
+ *         description: Invalid request body or id parameter
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: BAD_REQUEST, message: "title is required" }
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: UNAUTHORIZED, message: "Authentication required" }
  */
 petRoutes.post(
   '/:id/medical-records',
@@ -305,9 +354,60 @@ petRoutes.post(
  *     summary: Add a vaccination record to a pet
  *     security: [{ bearerAuth: [] }]
  *     parameters:
- *       - { name: id, in: path, required: true, schema: { type: string } }
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: string }
+ *         example: 64f1a2b3c4d5e6f7a8b9c0d1
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, administeredAt]
+ *             properties:
+ *               name: { type: string, maxLength: 150 }
+ *               administeredAt: { type: string, format: date }
+ *               expiresAt: { type: string, format: date }
+ *               certificateUrl: { type: string, format: uri }
+ *           example:
+ *             name: Rabies
+ *             administeredAt: "2026-06-01"
+ *             expiresAt: "2027-06-01"
+ *             certificateUrl: "https://cdn.petmypet.in/pets/certificates/bruno-rabies-2026.pdf"
  *     responses:
- *       201: { description: Vaccination record added }
+ *       201:
+ *         description: Vaccination record added
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *             example:
+ *               success: true
+ *               message: Vaccination record added
+ *               data:
+ *                 id: 64f1a2b3c4d5e6f7a8b9c0d1
+ *                 ownerId: 64f1a2b3c4d5e6f7a8b9c0d2
+ *                 name: Bruno
+ *                 medicalRecords: []
+ *                 vaccinations:
+ *                   - id: 64f1a2b3c4d5e6f7a8b9c0ea
+ *                     name: Rabies
+ *                     administeredAt: "2026-06-01T00:00:00.000Z"
+ *                     expiresAt: "2027-06-01T00:00:00.000Z"
+ *                     certificateUrl: "https://cdn.petmypet.in/pets/certificates/bruno-rabies-2026.pdf"
+ *       400:
+ *         description: Invalid request body or id parameter
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: BAD_REQUEST, message: "administeredAt is required" }
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: UNAUTHORIZED, message: "Authentication required" }
  */
 petRoutes.post(
   '/:id/vaccinations',
