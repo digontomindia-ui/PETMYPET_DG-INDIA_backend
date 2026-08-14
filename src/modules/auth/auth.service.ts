@@ -173,9 +173,9 @@ export const authService = {
   async login(
     input: LoginInput,
     deviceInfo: DeviceInfo,
-  ): Promise<{ user: PublicUser; tokens: AuthTokens }> {
+  ): Promise<{ isRegistered: boolean; user: PublicUser | null; tokens: AuthTokens | null }> {
     const user = await userRepository.findByEmail(input.email, true);
-    if (!user) throw AppError.unauthorized('Invalid email or password');
+    if (!user) return { isRegistered: false, user: null, tokens: null };
     if (user.isBlocked) throw AppError.forbidden('This account has been blocked');
 
     const passwordMatches = await comparePassword(input.password, user.passwordHash);
@@ -184,15 +184,16 @@ export const authService = {
     if (!user.isVerified) throw AppError.forbidden('Please verify your account before logging in');
 
     const tokens = await issueTokens(user, deviceInfo);
-    return { user: toPublicUser(user), tokens };
+    return { isRegistered: true, user: toPublicUser(user), tokens };
   },
 
-  async requestOtpLogin(input: RequestOtpLoginInput): Promise<void> {
+  async requestOtpLogin(input: RequestOtpLoginInput): Promise<{ isRegistered: boolean }> {
     const user = await findUserByIdentifier(input.identifier);
-    if (!user) throw AppError.notFound('No account found for this identifier');
+    if (!user) return { isRegistered: false };
     if (user.isBlocked) throw AppError.forbidden('This account has been blocked');
 
     await issueOtp(input.identifier, OTP_PURPOSES.LOGIN);
+    return { isRegistered: true };
   },
 
   async verifyOtpLogin(

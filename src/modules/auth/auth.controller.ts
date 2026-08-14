@@ -52,12 +52,22 @@ export const authController = {
 
   login: asyncHandler(async (req: Request, res: Response) => {
     const result = await authService.login(req.body as LoginInput, extractDeviceInfo(req));
-    sendSuccess(res, HTTP_STATUS.OK, result, 'Login successful');
+    sendSuccess(
+      res,
+      HTTP_STATUS.OK,
+      result,
+      result.isRegistered ? 'Login successful' : 'No account found for this email',
+    );
   }),
 
   requestOtpLogin: asyncHandler(async (req: Request, res: Response) => {
-    await authService.requestOtpLogin(req.body as RequestOtpLoginInput);
-    sendSuccess(res, HTTP_STATUS.OK, null, 'OTP sent');
+    const result = await authService.requestOtpLogin(req.body as RequestOtpLoginInput);
+    sendSuccess(
+      res,
+      HTTP_STATUS.OK,
+      result,
+      result.isRegistered ? 'OTP sent' : 'No account found for this identifier',
+    );
   }),
 
   verifyOtpLogin: asyncHandler(async (req: Request, res: Response) => {

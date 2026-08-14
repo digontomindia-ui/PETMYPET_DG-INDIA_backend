@@ -197,35 +197,48 @@ authRoutes.post('/otp/resend', validate({ body: resendOtpSchema }), authControll
  *             password: "P@ssw0rd123"
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: Login successful, or no account exists for this email (check `data.isRegistered` to decide whether to redirect to sign up)
  *         content:
  *           application/json:
  *             schema: { type: object }
- *             example:
- *               success: true
- *               message: "Login successful"
- *               data:
- *                 user:
- *                   id: "64f1a2b3c4d5e6f7a8b9c0d1"
- *                   role: "USER"
- *                   name: "Priya Sharma"
- *                   email: "priya.sharma@example.com"
- *                   phone: "+919876543210"
- *                   avatarUrl: null
- *                   isVerified: true
- *                   isBlocked: false
- *                   addresses: []
- *                   preferences:
- *                     language: "en"
- *                     smsNotifications: true
- *                     emailNotifications: true
- *                     pushNotifications: true
- *                   createdAt: "2026-08-01T10:15:00.000Z"
- *                   updatedAt: "2026-08-04T09:30:00.000Z"
- *                 tokens:
- *                   accessToken: "eyJhbGciOi...<truncated>"
- *                   refreshToken: "eyJhbGciOi...<truncated>"
- *                   expiresIn: "15m"
+ *             examples:
+ *               registered:
+ *                 summary: Account exists, credentials valid
+ *                 value:
+ *                   success: true
+ *                   message: "Login successful"
+ *                   data:
+ *                     isRegistered: true
+ *                     user:
+ *                       id: "64f1a2b3c4d5e6f7a8b9c0d1"
+ *                       role: "USER"
+ *                       name: "Priya Sharma"
+ *                       email: "priya.sharma@example.com"
+ *                       phone: "+919876543210"
+ *                       avatarUrl: null
+ *                       isVerified: true
+ *                       isBlocked: false
+ *                       addresses: []
+ *                       preferences:
+ *                         language: "en"
+ *                         smsNotifications: true
+ *                         emailNotifications: true
+ *                         pushNotifications: true
+ *                       createdAt: "2026-08-01T10:15:00.000Z"
+ *                       updatedAt: "2026-08-04T09:30:00.000Z"
+ *                     tokens:
+ *                       accessToken: "eyJhbGciOi...<truncated>"
+ *                       refreshToken: "eyJhbGciOi...<truncated>"
+ *                       expiresIn: "15m"
+ *               notRegistered:
+ *                 summary: No account exists for this email
+ *                 value:
+ *                   success: true
+ *                   message: "No account found for this email"
+ *                   data:
+ *                     isRegistered: false
+ *                     user: null
+ *                     tokens: null
  *       400:
  *         description: Validation error
  *         content:
@@ -235,6 +248,15 @@ authRoutes.post('/otp/resend', validate({ body: resendOtpSchema }), authControll
  *               success: false
  *               error: "BAD_REQUEST"
  *               message: "password is required"
+ *       401:
+ *         description: Incorrect password for an existing account
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: "UNAUTHORIZED"
+ *               message: "Invalid email or password"
  */
 authRoutes.post('/login', validate({ body: loginSchema }), authController.login);
 
@@ -257,14 +279,25 @@ authRoutes.post('/login', validate({ body: loginSchema }), authController.login)
  *             identifier: "+919876543210"
  *     responses:
  *       200:
- *         description: OTP sent
+ *         description: OTP sent, or no account exists for this identifier (check `data.isRegistered` to decide whether to redirect to sign up)
  *         content:
  *           application/json:
  *             schema: { type: object }
- *             example:
- *               success: true
- *               message: "OTP sent"
- *               data: null
+ *             examples:
+ *               registered:
+ *                 summary: Account exists, OTP sent
+ *                 value:
+ *                   success: true
+ *                   message: "OTP sent"
+ *                   data:
+ *                     isRegistered: true
+ *               notRegistered:
+ *                 summary: No account exists for this identifier
+ *                 value:
+ *                   success: true
+ *                   message: "No account found for this identifier"
+ *                   data:
+ *                     isRegistered: false
  *       400:
  *         description: Validation error
  *         content:
