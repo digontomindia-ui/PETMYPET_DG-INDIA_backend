@@ -14,11 +14,35 @@ and the flow, the OpenAPI spec gives you the exact types/validation rules).
 success; `{ success: false, error: "CODE", message }` on error. Check
 `success`, not just HTTP status.
 
-**Auth**: `Authorization: Bearer <accessToken>` from `/auth/login` or
-`/auth/*/verify`. Three roles share one system: `USER`, `SERVICE_PROVIDER`,
-`SUPER_ADMIN` — a service provider is a `USER`-table row with
-`role: SERVICE_PROVIDER` plus a separate `Provider` business-profile document
-(`POST /providers/me`).
+**Auth model — read this first.** The real LogIn screens (both apps) only
+ever collect a **phone number** — never an email, never a password. So the
+primary, and only, flow those screens need is:
+
+1. `POST /auth/login/otp/request {identifier: <phone>, referralCode?, role?}`
+   — this is ALSO the sign-up entry point. If the phone number has no
+   account yet, one is auto-created here (bare minimum: just the phone) and
+   sent an OTP exactly like a returning number would be. `role` (`USER` or
+   `SERVICE_PROVIDER`) only takes effect on that auto-created account —
+   pass it based on the provider app's "Select your role" step. Response:
+   `{isRegistered: boolean}` — `false` means brand new, route to onboarding
+   after verify; `true` means returning, route straight to Home.
+2. `POST /auth/login/otp/verify {identifier, code}` → `{user, tokens}`.
+3. If `isRegistered` was `false`: run onboarding (`PUT /users/me` for name/
+   email, `POST /pets` etc. — see section 1 below) to fill in the rest.
+
+`POST /auth/signup` (email+password) and `POST /auth/login` (identifier +
+password) still exist as a **secondary** path — this is what the provider
+app's `LogIn-1` screen's "Login with Password" button uses, for an account
+that has explicitly set a password via `/auth/reset-password` or
+`/auth/update-password`. `POST /auth/login`'s `identifier` field accepts
+either an email or a phone number.
+
+**Auth header**: `Authorization: Bearer <accessToken>`. Three roles share
+one system: `USER`, `SERVICE_PROVIDER`, `SUPER_ADMIN` — a service provider
+is a `USER`-table row with `role: SERVICE_PROVIDER` plus a separate
+`Provider` business-profile document (`POST /providers/me`, a distinct,
+later step from login/signup — a brand-new phone-only account has no
+business name yet).
 
 ---
 
@@ -29,11 +53,11 @@ success; `{ success: false, error: "CODE", message }` on error. Check
 | Screen | Endpoint(s) | Notes |
 |---|---|---|
 | `Splash screen` | — | Client-only; check stored token, route to Login or Home. |
-| `LogIn` | `POST /auth/signup` `{name, email, phone, password, role: "USER", referralCode?}` (new account) or `POST /auth/login` `{email, password}` (returning) | Response includes `isRegistered: boolean` — use it to route to signup-completion vs. straight to Home (see memory: this field was added specifically for that routing decision). `referralCode` is optional — if it matches an existing user's code, `referredBy` is set silently (bad code is ignored, doesn't fail signup). |
-| `LogIn OTP` | `POST /auth/signup/verify` `{identifier, code}` (new account) or `POST /auth/login/otp/request` → `POST /auth/login/otp/verify` `{identifier, code}` (OTP login) | `POST /auth/otp/resend` `{identifier, purpose}` for the resend-timer button. Both request-OTP endpoints also return `isRegistered`. |
-| `Your Profile` (onboarding step 1) | `PUT /users/me` `{name, avatarUrl}` then `POST /users/me/addresses` `{label, addressLine1, addressLine2?, city, state, postalCode, country?, coordinates:[lng,lat], isDefault}` | |
-| `Pet Profile` (onboarding step 2) | `POST /pets` `{name, species, breed?, gender?, dateOfBirth?, weightKg?, avatarUrl?, notes?}` per pet ("Add More Pet" repeats this call) | |
-| `Preferences` (onboarding step 3) | `PUT /users/me` `{preferences: {language?, smsNotifications?, emailNotifications?, pushNotifications?}}` | Service-interest chips (Grooming/Vet/etc.) are **not persisted anywhere** — no field exists for this. See Known Gaps. Emergency contact has no field either — see Known Gaps. |
+| `LogIn` | `POST /auth/login/otp/request {identifier: <phone>, referralCode?}` | See the auth model above — this single call handles both new and returning phone numbers. `referralCode` is optional — if it matches an existing user's code, `referredBy` is set silently (bad code is ignored, doesn't fail the call). |
+| `LogIn OTP` | `POST /auth/login/otp/verify {identifier, code}` → `{user, tokens}` | `POST /auth/otp/resend {identifier, purpose: "LOGIN"}` for the resend-timer button. |
+| `Your Profile` (onboarding step 1) | `PUT /users/me {name, email?, avatarUrl?}` then `POST /users/me/addresses {label, addressLine1, addressLine2?, city, state, postalCode, country?, coordinates:[lng,lat], isDefault}` | `email` on `PUT /users/me` is new this pass — previously there was no way to ever set it on a phone-only account; the screen's Email field now actually persists. Returns `409` if the email is already taken by another account. |
+| `Pet Profile` (onboarding step 2) | `POST /pets {name, species, breed?, gender?, dateOfBirth?, weightKg?, avatarUrl?, notes?}` per pet ("Add More Pet" repeats this call) | |
+| `Preferences` (onboarding step 3) | `PUT /users/me {serviceInterests: string[], emergencyContact: {name, phone}, preferences: {smsNotifications?, emailNotifications?, pushNotifications?}}` | `serviceInterests` and `emergencyContact` are new top-level fields this pass — previously nothing on this screen was persisted. |
 
 ## 2. Home / Discovery
 
@@ -45,8 +69,9 @@ endpoints** — there is no single "home feed" endpoint:
   `GET /services?categoryId=<id>` per category, or `GET
   /providers/nearby?lat=&lng=&providerType=` for provider-style tiles
   (Vet/Groomer/etc.)
-- "Your Bookings" card: `GET /bookings/me?status=PENDING` (or `ACCEPTED`),
-  take the soonest one
+- "Your Bookings" card: `GET /bookings/me?status=PENDING,ACCEPTED,ON_THE_WAY,STARTED`
+  (comma-separated status list = "Upcoming" bucket in one call), take the
+  soonest one
 - "Boardings near you": `GET /providers/nearby?providerType=BOARDING`
 - "Popular Vet Doctor": `GET /providers/nearby?providerType=VET` sorted by
   `rating` client-side (no server-side sort-by-rating param exists yet)
@@ -59,23 +84,30 @@ endpoints** — there is no single "home feed" endpoint:
 These three screens sets (`Pacakage*`, `Pet*` choose-pet, `Schedule*`,
 `Confirm*`) are the same 4-step flow re-skinned. There is no separate
 "packages" entity — a **Service document IS the package** (its `price`,
-`durationMinutes`, and now `addOnCatalog` cover what the screens call a
-"package"), scoped to a category and a provider.
+`originalPrice`, `durationMinutes`, and `addOnCatalog` cover what the
+screens call a "package"), scoped to a category and a provider.
 
 1. **Package select** (`Pacakage*`, `Pacakage details`) — `GET
    /categories` to find the right category id, then `GET
    /services?categoryId=<id>&providerId=<optional>` for the list; `GET
-   /services/{id}` for the detail modal.
+   /services/{id}` for the detail modal. `originalPrice` (struck-through
+   list price, new this pass) is present on the service DTO whenever a
+   discount applies — `null` otherwise.
 2. **Choose pet** (`Pet*`) — `GET /pets` (the caller's own).
 3. **Schedule** (`Schedule*`) — `GET
    /availability?providerId=&serviceId=&date=YYYY-MM-DD` → returns `{date,
-   slots: [{start, end, isAvailable}]}`. Consultation's Clinic/Online toggle
-   has no backend field — it's cosmetic only right now (no
-   `consultationType` on Booking). See Known Gaps.
-4. **Confirm** (`Confirm*`) — `POST /bookings` `{providerId, serviceId,
-   petId, scheduledStart, couponCode?, notes?, addOns?: [{name, price}]}`.
-   `addOns` must exactly match an entry in that service's `addOnCatalog`
-   (server rejects unknown name/price combos — prevents price tampering).
+   slots: [{start, end, isAvailable}]}` (a date the provider has marked
+   unavailable via `POST /providers/me/unavailable-dates` returns an empty
+   `slots` array). Consultation's Clinic/Online toggle → `consultationMode`
+   on the booking, see step 4.
+4. **Confirm** (`Confirm*`) — `POST /bookings {providerId, serviceId,
+   petId, scheduledStart, couponCode?, notes?, addOns?: [{name, price}],
+   consultationMode?: "CLINIC"|"ONLINE"}`. `addOns` must exactly match an
+   entry in that service's `addOnCatalog` (server rejects unknown
+   name/price combos — prevents price tampering). `consultationMode` is new
+   this pass — previously the Clinic/Online choice was never persisted, so
+   a provider couldn't tell from the booking whether to show up in person
+   or start a video call.
    Coupon: validate first with `POST /coupons/validate
    {code, bookingAmount, providerType?}` to show the discount before
    committing, then pass `couponCode` into the booking call itself (it
@@ -83,15 +115,25 @@ These three screens sets (`Pacakage*`, `Pet*` choose-pet, `Schedule*`,
    don't call `/payments/...` yet, booking is created with
    `paymentStatus: PENDING`; "Pay Now" = immediately follow with `POST
    /payments/bookings/{bookingId}/order {method: "RAZORPAY"}`.
+   ⚠️ "Add other pets" (multi-pet in one order) has no backing — `petId` is
+   a single optional field. Submit one `POST /bookings` per selected pet
+   (separate bookings, separate OTPs/prices) until a true multi-pet order
+   is built — see Known Gaps.
 
 ## 4. Dog Walking
 
 | Screen | Endpoint(s) |
 |---|---|
 | `Dog Walking` (landing) | `GET /providers/nearby?lat=&lng=&providerType=PET_WALKER` |
-| `Dog walk booking` | `GET /pets`, `GET /availability?...`, then `POST /bookings {..., durationDays: null, addOns: [{name:"Poo Pickup", price:49}, ...]}` — add-ons must be in the walker's service's `addOnCatalog`. |
-| `Walker Profile` | `GET /providers/{id}` (public summary — no KYC docs/bank info, that's owner-only), `GET /reviews?providerId={id}` |
+| `Dog walk booking` | `GET /pets`, `GET /availability?...`, then `POST /bookings {..., addOns: [{name:"Poo Pickup", price:49}, ...]}` — add-ons must be in the walker's service's `addOnCatalog`. ⚠️ The 30/45/60-minute duration tiers shown as one screen's radio choice are actually 3 separate `Service` documents (a `Service.durationMinutes` is fixed per service, not choosable per booking) — the walker must have created three services (or however many tiers they offer); tapping a duration card should set `serviceId`, not a booking-time field. Nothing enforces a walker actually has all 3, so an empty list for a tier is a real possible state to handle. |
+| `Walker Profile` | `GET /providers/{id}` (public summary — no KYC docs/bank info, that's owner-only; now also returns `experienceYears`, `languages`, `unavailableDates`) — `GET /reviews?providerId={id}` |
 | `Live Walk Tracker` | **Not implemented — see Known Gaps.** No GPS-ping ingestion or live-location read endpoint exists yet. |
+
+⚠️ **Add-on catalog is per-provider, not global.** The ₹79/₹49/₹29 chips on
+this screen are only bookable once the specific walker's `Service.addOnCatalog`
+contains an entry with that exact `name`+`price`. There's no seed data for
+this — it's real configuration each provider must set via `POST/PUT
+/services` before their add-on chips will actually work.
 
 ## 5. Boarding
 
@@ -99,26 +141,28 @@ These three screens sets (`Pacakage*`, `Pet*` choose-pet, `Schedule*`,
 |---|---|
 | `Boarding` / `No Boarding` | `GET /providers/nearby?providerType=BOARDING` — an empty `data: []` array is the "No Boarding" state (not an error), so render that screen on a zero-length success response, not on a 4xx. |
 | `Boarding Details` | `GET /providers/{id}`, `GET /reviews?providerId={id}` |
-| `Boarding Details-1` (booking form) | `POST /bookings {providerId, serviceId, petId, scheduledStart: <drop-off date+time>, durationDays: <N>, dropOffTime: "HH:mm", pickupTime: "HH:mm", addOns: [{name:"Extra Playtime", price:150}, ...]}` — `scheduledEnd` is computed server-side as `scheduledStart + durationDays`. |
+| `Boarding Details-1` (booking form) | `POST /bookings {providerId, serviceId, petId, scheduledStart: <drop-off date+time>, durationDays: <N, 1-15>, dropOffTime: "HH:mm", pickupTime: "HH:mm", addOns: [{name:"Extra Playtime", price:150}, ...]}` — `scheduledEnd` is computed server-side as `scheduledStart + durationDays`. `durationDays` is capped at 15 server-side, matching the screen's stated max (was uncapped, fixed this pass). |
 
 ## 6. Pet Companion
 
-Brand-new module this pass — a pet must opt in first.
-
 | Screen | Endpoint(s) |
 |---|---|
-| (profile setup, no dedicated screen captured) | `PUT /pets/{id}/companion-profile {isEnabled: true, bio, personalityTraits[], interests[], lookingFor[], activityLevel, temperament, getsAlongWith: {dogs, cats, kids, families}}` |
-| `Pet Companion` (swipe feed) | `GET /pet-companion/discover?petId=&lat=&lng=&radiusMeters=` |
+| profile setup | `PUT /pets/{id}/companion-profile {isEnabled: true, bio, personalityTraits[], interests[], lookingFor[], activityLevel, temperament, neutered: boolean, getsAlongWith: {dogs, cats, kids, families}}` — each `getsAlongWith` field is `"YES"\|"NO"\|"NEEDS_INTRODUCTION"` (tri-state, not boolean — matches the amber "Needs Introduction" badge on screen). `neutered` is new this pass. |
+| `Pet Companion` (swipe feed) | `GET /pet-companion/discover?petId=&lat=&lng=&radiusMeters=` — each candidate now includes `ownerName` and `dateOfBirth` (compute age client-side), matching the "Bruno, 2 years · Owner: Ananya S." card text. |
 | swipe action | `POST /pet-companion/swipe {swiperPetId, targetPetId, action: "LIKE"|"PASS"|"SUPERLIKE"}` → response includes `{matched: true, matchId, chatRoomId}` on mutual like |
 | `Pet Companion-1` (likes received) | `GET /pet-companion/likes-received?petId=` |
 | `Pet Companion-2` (match screen) | Triggered by the `matched: true` response above — no separate fetch needed |
-| `Pet Companion-3` (pet detail) | `GET /pets/{id}` (now includes `companionProfile`) |
-| `Pet Companion-4` (chat) | `GET /pet-companion/matches?petId=` for `chatRoomId`, then the existing chat module: `GET /chat/rooms/{roomId}/messages`, `POST /chat/rooms/{roomId}/messages {text}` |
+| `Pet Companion-3` (pet detail) | `GET /pets/{id}` (includes `companionProfile` with `neutered` and tri-state `getsAlongWith`) |
+| `Pet Companion-4` (chat) | `GET /pet-companion/matches?petId=` for `chatRoomId`, then the chat module: `GET /chat/rooms/{roomId}/messages`, `POST /chat/rooms/{roomId}/messages {text}` |
+
+⚠️ The "Safety & Verification" checklist (Identity/Vaccination/Mobile/Location
+verified) has no backing beyond `User.isVerified` (one generic flag, not four
+per-category ones) — see Known Gaps.
 
 ## 7. Pet Relocation
 
-Brand-new module — explicitly a **lead**, not an instant booking (no
-payment step, matches the screens' "our team will contact you" copy).
+Explicitly a **lead**, not an instant booking (no payment step, matches the
+screens' "our team will contact you" copy).
 
 - `POST /pet-relocation/requests {ownerName, ownerPhone, ownerEmail, petId,
   originAddress, destinationAddress, relocationDate, transportType:
@@ -128,8 +172,8 @@ payment step, matches the screens' "our team will contact you" copy).
 
 ## 8. Pet Taxi
 
-Brand-new module — single-screen flow, fixed pricing (₹499 one-way / ₹899
-round-trip, resolved server-side, never client-supplied).
+Single-screen flow, fixed pricing (₹499 one-way / ₹899 round-trip, resolved
+server-side, never client-supplied).
 
 - `POST /pet-taxi/bookings {tripType: "ONE_WAY"|"ROUND_TRIP", petIds:
   [...], pickupAddress, dropAddress, pickupDate, pickupTime}`
@@ -139,8 +183,8 @@ round-trip, resolved server-side, never client-supplied).
 ## 9. Vet / Clinic Consultation
 
 `Vets` (landing/search) → `GET /providers/nearby?providerType=VET`
-(Clinic/Online tab is a client-side filter — see the wizard's Schedule step
-note above about `consultationType` not being a real field yet). Booking
+(Clinic/Online tab is a client-side filter for browsing; the actual choice
+made during booking is `consultationMode`, see section 3 step 4). Booking
 flow = the generic wizard in section 3.
 
 ## 10. Dog Training
@@ -152,14 +196,15 @@ Walking if the trainer's service has an `addOnCatalog`.
 
 ## 11. Lost & Found
 
-Pre-existing module, screens map 1:1:
-
 - `Lost & Found` → `GET /lost-and-found?type=LOST|FOUND&lat=&lng=&radiusMeters=`
 - report flow → `POST /lost-and-found {type, petName?, species, breed?,
-  description, photoUrls[], coordinates:[lng,lat], contactPhone}` (upload
-  photos first via `POST /uploads` category `LOST_AND_FOUND`, pass the
-  returned `url`s here) — starts `PENDING`, needs admin approval before it's
-  publicly visible
+  age?, gender?, rewardAmount?, description, photoUrls[],
+  coordinates:[lng,lat], contactPhone}` (upload photos first via `POST
+  /uploads` category `LOST_AND_FOUND`, pass the returned `url`s here) —
+  starts `PENDING`, needs admin approval before it's publicly visible.
+  `age` (free text, e.g. "3 years"), `gender` (`MALE`/`FEMALE`/`UNKNOWN`),
+  and `rewardAmount` are new this pass — the screen's "3 years • Male" and
+  "Reward ₹5,000" had no backing field before.
 - `Lost & Found (Details)` → `GET /lost-and-found/{id}`, resolve via `PATCH
   /lost-and-found/{id}/resolve`
 
@@ -167,33 +212,36 @@ Pre-existing module, screens map 1:1:
 
 | Screen | Endpoint(s) |
 |---|---|
-| `Shopping & Pharmacy` | `GET /products?category=&q=&minPrice=&maxPrice=` |
+| `Shopping & Pharmacy` | `GET /products?category=&q=&minPrice=&maxPrice=` — each product now returns `mrp` (struck-through list price) and a computed `discountPercent`, matching the "₹1,299 ~~₹1,599~~ 19% OFF" cards. |
 | product "Add to Cart" | `POST /cart/items {productId, quantity}` |
-| Cart (in "My Bookings › Shopping › Carts" tab) | `GET /cart`, `PUT /cart/items/{productId} {quantity}`, `DELETE /cart/items/{productId}`, `POST /coupons/validate` for the coupon box, `POST /orders {shippingAddress, paymentMethod: "WALLET"|"CASH_ON_DELIVERY"}` on checkout |
-| Recent Orders | `GET /orders?page=&limit=` |
-| product rating (product cards showing "★") | `GET /reviews?productId=`, and after a purchase: `POST /reviews {productId, rating, comment}` — new this pass, previously reviews only existed for bookings |
+| Cart (in "My Bookings › Shopping › Carts" tab) | `GET /cart` → `{items, subtotal, discountAmount, couponCode, deliveryFee, totalAmount}` (full price breakdown, new this pass — previously only a flat `totalAmount` with no discount/delivery line existed). `PUT /cart/items/{productId} {quantity}`, `DELETE /cart/items/{productId}`. Coupon box: `POST /cart/apply-coupon {code}` (validates + stores the discount on the cart), `DELETE /cart/coupon` to remove it — changing cart contents auto-clears an applied coupon, re-apply after. Checkout: `POST /orders {shippingAddress, paymentMethod: "WALLET"|"CASH_ON_DELIVERY"}` — carries the cart's coupon/discount over onto the order and adds the flat delivery fee. |
+| Recent Orders | `GET /orders?page=&limit=` — each order includes `discountAmount`, `deliveryFee`, `couponCode` alongside `totalAmount`. |
+| product rating (product cards showing "★") | `GET /reviews?productId=`, and after a purchase: `POST /reviews {productId, rating, comment}` |
 | Wishlist | `GET /wishlist`, `POST /wishlist/{productId}`, `DELETE /wishlist/{productId}` |
 | "Scan Prescription" | **Not implemented — see Known Gaps.** No OCR/prescription-parsing endpoint exists; `POST /uploads` alone just stores the image. |
+
+⚠️ A cart-applied coupon's per-user usage limit is checked at apply-time
+only — it is **not** logged against the coupons module's redemption ledger
+the way booking coupons are (that ledger requires a `bookingId`, which an
+order doesn't have). See Known Gaps if cross-order coupon-limit enforcement
+becomes a requirement.
 
 ## 13. Wallet / Referrals
 
 - `Referrals` → `GET /referrals/me` (returns `referralCode`, `shareLink`,
   `totalReferrals`, `successfulReferrals`, `pendingReferrals`,
-  `rewardPointsEarned`), `GET /referrals/me/history`, `POST
-  /referrals/redeem` (converts earned points to wallet balance). Brand-new
-  module this pass — the referral-code field already visible on the Login
-  screen now actually does something.
+  `rewardPointsEarned`), `GET /referrals/me/history` (each row now includes
+  `refereeAvatarUrl` for the circular profile photo, new this pass), `POST
+  /referrals/redeem` (converts earned points to wallet balance).
 - Wallet balance (no dedicated screen captured, but referenced from
   Dashboard-style balance tiles): `GET /wallet/me`, `GET
-  /wallet/me/transactions`, and **new this pass** `POST /wallet/me/topup
-  {amount}` → returns a Razorpay order to complete client-side; wallet is
-  credited once the payment webhook confirms capture.
+  /wallet/me/transactions`, `POST /wallet/me/topup {amount}` → returns a
+  Razorpay order to complete client-side; wallet is credited once the
+  payment webhook confirms capture.
   ⚠️ See Known Gaps: booking-completion payouts do **not** currently credit
   a provider's wallet automatically.
 
 ## 14. Pet Insurance
-
-Brand-new module — `pet-insurance-form.png` maps directly:
 
 - `POST /pet-insurance/applications {ownerName, ownerEmail, ownerPhone,
   petName, petType, petAge, petBreed, previousIllness, illnessDocumentUrls[],
@@ -209,11 +257,15 @@ The "My Bookings" screen's two-axis tabs map to different endpoints
 entirely — it's a client-side composition, not one API call:
 
 - Shopping tab → section 12 above (`/cart`, `/orders`, `/wishlist`)
-- Services tab (Upcoming/Past) → `GET /bookings/me?status=` — response
-  includes `otpStart`/`otpEnd` fields (shown only while relevant to the
-  current status) for the "START OTP"/"END OTP" codes shown on ongoing
-  bookings, `addOns`, `photos` (provider-uploaded before/after shots),
-  `dropOffTime`/`pickupTime` for boarding
+- Services tab (Upcoming/Past) — "Upcoming" = `GET
+  /bookings/me?status=PENDING,ACCEPTED,ON_THE_WAY,STARTED` (comma-separated
+  status list, new this pass), "Past" = `?status=COMPLETED,CANCELLED,REFUNDED`.
+  Response includes `otpStart`/`otpEnd` (shown only while relevant to the
+  current status) for the "START OTP"/"END OTP" codes, `addOns`, `photos`
+  (provider-uploaded before/after shots), `dropOffTime`/`pickupTime` for
+  boarding, `consultationMode` for consultations.
+- Date-range filters (if the UI adds "This Week"/"Today" chips) → same
+  endpoint with `from=YYYY-MM-DD&to=YYYY-MM-DD`, new this pass.
 - Cancel → `PATCH /bookings/{id}/cancel {reason}`
 - Review → `POST /reviews {bookingId, rating, comment}`
 - Reschedule → **not implemented, see Known Gaps** (cancel + rebook is the
@@ -222,18 +274,17 @@ entirely — it's a client-side composition, not one API call:
 ## 16. My Account / Profile
 
 - `My Account` hub → `GET /users/me`
-- Personal info edit → `PUT /users/me`
-- Addresses → `POST /users/me/addresses`, **new this pass** `PUT
-  /users/me/addresses/{addressId}` (edit in place — previously delete +
-  recreate only), `DELETE /users/me/addresses/{addressId}`
+- Personal info edit → `PUT /users/me {name?, email?, avatarUrl?}`
+- Addresses → `POST /users/me/addresses`, `PUT
+  /users/me/addresses/{addressId}` (edit in place), `DELETE
+  /users/me/addresses/{addressId}`
 - My Pets → `GET /pets`, `PUT /pets/{id}`, `DELETE /pets/{id}`,
-  medical records/vaccinations: `POST /pets/{id}/medical-records`, **new
-  this pass** `DELETE /pets/{id}/medical-records/{recordId}` (same pattern
-  for `/vaccinations`)
+  medical records/vaccinations: `POST /pets/{id}/medical-records`, `DELETE
+  /pets/{id}/medical-records/{recordId}` (same pattern for `/vaccinations`)
 - Notification settings → `PUT /users/me {preferences}`
+- Emergency Contact → `PUT /users/me {emergencyContact: {name, phone}}`
 - Device push token registration → `POST /users/me/device-tokens
   {deviceToken}`, `DELETE /users/me/device-tokens {deviceToken}`
-- Emergency Contact → **not implemented, see Known Gaps**
 
 ---
 
@@ -246,23 +297,22 @@ created a `Provider` business profile.
 
 | Screen | Endpoint(s) |
 |---|---|
-| `Select your role` | Client-side only — the 7 role cards map to `providerType` enum values (`GROOMER`, `VET`/`CLINIC` → `VET`, `BOARDING` → `BOARDING`, `TRAINER`, `PET_WALKER`, `OTHER` for sitter) used in the next step. |
-| `LogIn`, `LogIn OTP`, `LogIn-1` | Same `/auth/*` endpoints as the end-user app, with `role: "SERVICE_PROVIDER"` on signup. |
-| (post-login, first time) | `POST /providers/me {providerType, businessName, description?, coordinates:[lng,lat], address, zoneIds?, workingHours?, metadata?}` — creates the business profile, `kycStatus` starts `PENDING`. |
-| KYC upload | `POST /providers/me/kyc-documents {type, url}` (upload file via `/uploads` category `KYC_DOCUMENT` first). **Fixed this pass**: `GET /providers/me` now actually returns the uploaded `kycDocuments` list — previously a provider could upload but never see what they'd uploaded. |
+| `Select your role` | Client-side only — the 7 role cards map to `providerType` enum values: `GROOMER`, `VET` (both "Pet Clinics" and "Vets" cards map to `VET` — no separate distinction exists), `BOARDING`, `TRAINER`, `PET_WALKER`, `PET_SITTER` (added this pass — was previously missing, so selecting "Pet Sitter" would 400 on profile creation), `OTHER`. Pass the chosen role into `POST /auth/login/otp/request`'s `role` field. |
+| `LogIn`, `LogIn OTP` | `POST /auth/login/otp/request {identifier: <phone>, role}` → `POST /auth/login/otp/verify` — same auto-signup flow as the end-user app, see the Auth model note at the top of this doc. |
+| `LogIn-1` ("Login with Password" option) | `POST /auth/login {identifier, password}` — secondary path, only works once a password has been set via reset/update-password. |
+| (post-login, first time) | `POST /providers/me {providerType, businessName, description?, experienceYears?, languages?, coordinates:[lng,lat], address, zoneIds?, workingHours?, metadata?}` — creates the business profile, `kycStatus` starts `PENDING`. `experienceYears`/`languages` are new this pass (the "12+ Years Experience"/"Eng, Hindi, Ben" profile fields had no field before). |
+| KYC upload | `POST /providers/me/kyc-documents {type, url}` (upload file via `/uploads` category `KYC_DOCUMENT` first). `GET /providers/me` returns the uploaded `kycDocuments` list. |
 | `Start Otp` / `End otp` (mid-booking, not login) | `POST /bookings/{id}/otp/start {code}`, `POST /bookings/{id}/otp/end {code}` |
 
 ## 2. Dashboard / Home
 
 Composed client-side, same as the end-user Home:
 
-- `GET /providers/me` (identity card, `isActive` toggle state, KYC status)
+- `GET /providers/me` (identity card, `isActive` toggle state, KYC status,
+  `experienceYears`, `languages`)
 - `PATCH /providers/me/active {isActive}` (Available/Offline toggle)
-- **New this pass** `GET /providers/me/analytics?range=week|month` — returns
-  `earningsByDay`, `bookingCount`, `ratingBreakdown`, `repeatClientPercent`.
-  This is the single biggest fix here: previously `/analytics/*` was
-  `SUPER_ADMIN`-only, so a provider's own Dashboard had nothing to call for
-  earnings/rating data.
+- `GET /providers/me/analytics?range=week|month` — see section 3, this is
+  the one call the whole Dashboard earnings/rating section needs.
 - `GET /bookings/provider/me?status=PENDING` (today's/upcoming visits list)
 - `GET /reviews?providerId=<own id>` (Recent Reviews)
 - Wallet balance tile → `GET /wallet/me` — ⚠️ see Known Gaps, this won't
@@ -270,31 +320,47 @@ Composed client-side, same as the end-user Home:
 
 ## 3. Analytics / Earnings
 
-`GET /providers/me/analytics?range=week` (or `month`) — the one call this
-whole screen needs (Weekly Earnings chart, Sessions/Hours/Repeat-Client
-stats, Ratings Breakdown bars all come from this single response).
+`GET /providers/me/analytics?range=week` (or `month`) returns everything
+this screen needs:
+
+- `earningsByDay`, `bookingCount`, `ratingBreakdown`, `repeatClientPercent`
+  (retention rate)
+- `caseMix: [{categoryId, categoryName, count, percent}]` — powers the
+  "Case Mix" donut (new this pass)
+- `topServices: [{serviceId, name, price, bookingCount}]` — powers the
+  "Top-Rated Services" list (ranked by booking volume, not a per-service
+  rating — Reviews aren't linked to a specific service, only to the
+  provider as a whole; new this pass)
+- `avgServiceDurationMinutes` — powers "Avg Consult Time" (new this pass)
+- `satisfactionScore` — weighted average rating, powers "Satisfaction
+  Score" as a single number rather than the star-breakdown (new this pass)
+- `previousPeriodEarnings` — compute "Monthly Growth %" client-side as
+  `(earningsByDay.sum - previousPeriodEarnings) / previousPeriodEarnings`
+  (new this pass)
+
+No "Activity Pulse" daily-intensity time series exists — see Known Gaps if
+that sparkline needs real data.
 
 ## 4. Appointments / Bookings Management
 
-- List/filter → `GET /bookings/provider/me?status=PENDING|ACCEPTED|...`
+- List/filter → `GET /bookings/provider/me?status=PENDING,ACCEPTED,ON_THE_WAY,STARTED`
+  for "Upcoming" (comma-separated status list, new this pass), plus
+  `from=YYYY-MM-DD&to=YYYY-MM-DD` for "Today"/"This Week" chips (new this
+  pass — previously neither was possible in one call).
 - Accept → `PATCH /bookings/{id}/accept`
 - Mark en route → `PATCH /bookings/{id}/on-the-way`
 - Cancel → `PATCH /bookings/{id}/cancel {reason}`
 
 ## 5. Live Service Execution (Start → In Progress → Complete)
 
-This is the clearest end-to-end lifecycle, and the one most extended this
-pass:
-
 1. **Start Service** (booking detail before arrival) → `GET
    /bookings/{id}` for customer/pet/package info.
 2. **Verify Start OTP** → `POST /bookings/{id}/otp/start {code}` — status
    becomes `STARTED`.
-3. **Grooming In Progress** → **new this pass**: `PATCH
-   /bookings/{id}/notes {notes}` for the free-text special-instructions
-   box, `POST /bookings/{id}/photos {url, phase: "BEFORE"}` per uploaded
-   photo (upload via `/uploads` first, category `PROVIDER_PORTFOLIO`, then
-   attach the URL here).
+3. **Grooming In Progress** → `PATCH /bookings/{id}/notes {notes}` for the
+   free-text special-instructions box, `POST /bookings/{id}/photos {url,
+   phase: "BEFORE"}` per uploaded photo (upload via `/uploads` first,
+   category `PROVIDER_PORTFOLIO`, then attach the URL here).
 4. **Complete Service** → `POST /bookings/{id}/otp/end {code}` — status
    becomes `COMPLETED`; upload after-photos the same way with `phase:
    "AFTER"`.
@@ -306,62 +372,78 @@ not just the customer's) — **not implemented, see Known Gaps**.
 
 ## 6. Messages
 
-Same `chat` module as Pet Companion chat: `GET /chat/rooms`, `GET
-/chat/rooms/{roomId}/messages`, `POST /chat/rooms/{roomId}/messages`,
-`PATCH /chat/rooms/{roomId}/read`. The "Emergency" filter pill has no
-backend priority field — client-side filtering only (see Known Gaps if this
-needs to be a real flag later).
+`GET /chat/rooms?isUrgent=true` for the "Emergency" filter pill (new this
+pass — was cosmetic/client-side only before), `GET /chat/rooms` for "All
+Chats", `GET /chat/rooms/{roomId}/messages`, `POST
+/chat/rooms/{roomId}/messages`, `PATCH /chat/rooms/{roomId}/read`. Flag a
+room urgent (e.g. from a keyword or manual triage): `PATCH
+/chat/rooms/{roomId}/urgent {isUrgent: true}` (new this pass).
 
 ## 7. Profile / Account Management
 
-- `GET /providers/me` / `PUT /providers/me` (business info, working hours,
-  metadata)
+- `GET /providers/me` / `PUT /providers/me` (business info, `experienceYears`,
+  `languages`, working hours, metadata)
 - `PUT /providers/me/bank-account {accountHolderName, accountNumber,
-  ifscCode, bankName}` — **fixed this pass**: the response (via `GET
-  /providers/me`) now returns a masked `{accountHolderName, bankName,
-  last4}` so the provider can confirm what's on file, instead of nothing.
-- **New this pass** `GET /providers/me/attendance` — full check-in/check-out
-  history (the check-in/out endpoints already existed, there was just no
-  way to read the history back).
-- Attendance/Holidays screens beyond simple check-in/out, Staff Management
-  (Boarding Center Profile-1 screen), Packages management (Groomer
-  Profile-2 screen) → **not implemented, see Known Gaps**.
+  ifscCode, bankName}` — the response (via `GET /providers/me`) returns a
+  masked `{accountHolderName, bankName, last4}`.
+- `GET /providers/me/attendance` — full check-in/check-out history.
+- **Holidays** → `POST /providers/me/unavailable-dates {date}`, `DELETE
+  /providers/me/unavailable-dates/{date}` (new this pass — this menu item
+  had no backend at all before; blocked dates are excluded from `GET
+  /availability`'s bookable slots automatically).
+- Staff Management (Boarding Center `Profile-1` screen), Packages
+  management (Groomer `Profile-2` screen) → **not implemented, see Known
+  Gaps** — no screen shows their actual contents beyond the menu label, so
+  there's nothing concrete to build against yet.
 
 ⚠️ **Privacy note**: `kycDocuments`, `kycRejectionReason`, `bankAccount`, and
 `attendance` are only ever returned on `GET/PUT /providers/me` (the
 provider's own authenticated view) or admin routes — the public `GET
 /providers/{id}` and `GET /providers/nearby` (used by the end-user app to
-browse providers) deliberately omit all four. Don't expect them there.
+browse providers) deliberately omit all four (`experienceYears`,
+`languages`, and `unavailableDates` ARE public, since customers benefit
+from seeing them before booking).
 
 ---
 
 # Known Gaps / Backlog
 
-Not built this pass — either no screen shows enough detail to build
-against, or it needs a product/business decision first:
+Not built — either no screen shows enough detail to build against, or it
+needs a product/business decision first:
 
 - **Live GPS walk tracking** (`Live Walk Tracker`) — no location-ping
   ingestion or live-read endpoint. Needs a decision on transport (WebSocket
   vs. polling) and whether steps/calories are device-computed or
   server-computed.
+- **Multi-pet single order** (Confirm screen's "Add other pets") — `POST
+  /bookings` takes one `petId`. Needs a product decision: separate bookings
+  per pet (current workaround) vs. a true multi-pet order with its own
+  pricing/OTP model.
 - **Reschedule a booking** — only cancel exists. Needs a decision on
   reschedule limits/fees.
 - **Partial refunds** — `refundBooking` always refunds in full. Needs a
   business rule for partial-refund eligibility.
 - **Prescription OCR scan** (`Shopping & Pharmacy`'s "Scan Prescription") —
   `/uploads` stores the image only, nothing parses it.
-- **Service-interest preferences & emergency contact** (onboarding
-  `Preferences` screen) — no fields exist on the User model for either.
-- **Consultation delivery mode** (Clinic vs. Online, `Schedule-2`/`Confirm
-  *consultation` screens) — cosmetic only, no `consultationType` field on
-  Booking.
 - **Group chat / message edit-delete** — chat is 1:1 only, no edit/delete.
+- **Per-category "Safety & Verification" flags** (Pet Companion) — only one
+  generic `User.isVerified` boolean exists, not separate identity/
+  vaccination/mobile/location verification flags.
+- **Cross-order coupon usage limits** — a cart-applied coupon's
+  `perUserLimit` is checked at apply-time but not logged to the coupons
+  module's redemption ledger (that ledger requires a `bookingId`); a
+  determined user could reapply the same single-use coupon across multiple
+  orders. Needs either a generic reference-id on `CouponRedemption` or a
+  parallel ledger for marketplace redemptions.
 - **Admin draft-blog / inactive-category listings** — an admin can create a
   draft or deactivate a category but has no endpoint to list/recover it
   without already knowing its id.
-- **Boarding Center Staff Management, Groomer Packages/Holidays** — menu
-  items exist in the Profile screens, no screen shows their actual contents,
+- **Boarding Center Staff Management, Groomer "My Packages"** — menu items
+  exist in the Profile screens, no screen shows their actual contents,
   nothing to build against yet.
+- **Provider Analytics "Activity Pulse"** (daily intensity sparkline) — no
+  time-series endpoint for this exists; the other Analytics fields
+  (earnings, case mix, top services, satisfaction) are all covered.
 - **Provider wallet payouts are not automatic.** `providerPayoutAmount` is
   computed and stored on each completed Booking, and `WALLET_TRANSACTION_
   REASONS.BOOKING_PAYOUT` exists as an enum value, but nothing currently
@@ -369,6 +451,15 @@ against, or it needs a product/business decision first:
   will not reflect completed bookings until this is wired up (likely a
   scheduled payout job or a hook on booking completion, whichever the
   business prefers).
+- **Add-on catalogs are empty by default.** The specific add-on chips shown
+  on Dog Walking/Boarding screens (₹79 "Extra 15 Min", ₹150 "Extra
+  Playtime", etc.) only work once each provider's `Service.addOnCatalog`
+  is configured with matching name+price entries — this is real per-provider
+  setup, not a platform-wide constant, and there's no seed data for it.
+- **Fixed-duration Services for tiered pricing** (Dog Walking's 30/45/60-min
+  cards) — each duration+price tier needs its own `Service` document per
+  provider; a provider who only creates one "Dog Walking" service can't
+  offer all three tiers as shown.
 - **Razorpay/Firebase credentials are blank** in `docker-compose.yml` (both
   `app` and `worker` services) — `POST /payments/bookings/{id}/order`,
   `POST /wallet/me/topup`, and push notifications will fail against

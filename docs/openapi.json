@@ -3,11 +3,145 @@
   "info": {
     "title": "Patmypets API",
     "version": "1.0.0",
-    "description": "Production REST API for the Patmypets multi-service pet care platform."
+    "description": "\nProduction REST API for Patmypets, a multi-service pet-care marketplace with\n**two client apps** sharing this one backend:\n\n- **End-user app** — pet owners book services, buy marketplace products, manage pets.\n- **Service-provider app** — vets/groomers/walkers/trainers/etc. manage bookings, earnings, and their own profile.\n\nSee `SCREEN_TO_API_GUIDE.md` in the repo root for a screen-by-screen map of every UI screen to the exact endpoint(s) below.\n\n## Master flow — how the sections below connect\n\n```\n                                   ┌─────────────────────┐\n                                   │   Auth (phone+OTP)   │\n                                   │  self-registering    │\n                                   └──────────┬───────────┘\n                                              │ tokens issued\n                       ┌──────────────────────┼───────────────────────┐\n                       │                      │                       │\n                new USER account      new SERVICE_PROVIDER      returning user/provider\n                       │                account                       │\n                       ▼                      ▼                       ▼\n              Users → Pets            Providers (KYC →           Home / Dashboard\n              (onboarding)             admin approve)            (role-specific)\n                       │                      │\n                       ▼                      ▼\n         ┌─────────────────────┐   ┌──────────────────────┐\n         │ Categories/Services │   │ Availability (slots)  │\n         │ Providers (browse)  │──▶│ minus unavailable-dates│\n         └─────────────────────┘   └───────────┬───────────┘\n                                                │\n                                                ▼\n                                    Bookings (create → accept →\n                                    on-the-way → OTP-start →\n                                    notes/photos → OTP-end →\n                                    completed) ──▶ Payments / Wallet\n                                                │\n                                                ▼\n                                     Reviews, Referrals, Chat\n\n  Marketplace (Products → Cart → Coupon → Orders) is a parallel track that\n  only touches Wallet at checkout — it never goes through Bookings.\n\n  Pet Companion, Pet Taxi, Pet Relocation, Pet Insurance, Lost & Found are\n  self-contained side flows off the Pets/Users modules — see their own\n  section descriptions below for each one's diagram.\n```\n\n## Response envelope\n\nEvery success response: `{ success: true, message, data, meta? }` (`meta` on\nlist endpoints only: `{page, limit, total, totalPages}`). Every error:\n`{ success: false, error: \"CODE\", message }`. Always check `success`, not\njust HTTP status.\n\n## Auth model\n\n`Authorization: Bearer <accessToken>`, issued by the `Auth` section below.\nThree roles share one system: `USER`, `SERVICE_PROVIDER`, `SUPER_ADMIN` — a\nservice provider is a `USER`-role account that has *also* created a separate\n`Provider` business profile (see the **Providers** section).\n"
   },
   "servers": [
     {
       "url": "/api/v1"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "\n**Primary flow (both apps) — phone + OTP, self-registering:**\n\n```\nLogIn screen (phone number only)\n        │\n        ▼\nPOST /auth/login/otp/request {identifier, referralCode?, role?}\n        │  no account yet? one is auto-created here (phone only)\n        │  returns { isRegistered }\n        ▼\nLogIn OTP screen\n        │\n        ▼\nPOST /auth/login/otp/verify {identifier, code}  ──▶  { user, tokens }\n        │\n        ├── isRegistered:false ──▶ onboarding (Users → Pets → Preferences)\n        └── isRegistered:true  ──▶ Home / Dashboard\n```\n\n**Secondary flow** — email/phone + password (the provider app's \"Login with\nPassword\" option, or any account that has explicitly set a password):\n`POST /auth/signup` → `POST /auth/signup/verify` (new account), or\n`POST /auth/login {identifier, password}` (existing). `400` if the account\nis phone-only with no password set — fall back to the OTP flow above.\n\n**Session management:** `POST /auth/refresh` rotates the token pair (access\ntoken expires in 15m); `POST /auth/logout` / `/logout-all` revoke sessions;\n`POST /auth/forgot-password` → `/auth/reset-password` for account recovery.\n"
+    },
+    {
+      "name": "Users",
+      "description": "Profile (name, email, avatar, service-interest tags, emergency contact), saved addresses, notification preferences, push-notification device tokens. Admin: list/search/block/delete any user."
+    },
+    {
+      "name": "Pets",
+      "description": "A pet owner's pets: profile, medical records, vaccinations, and the optional Pet Companion social profile (`PUT /pets/{id}/companion-profile`) that feeds the **PetCompanion** section below."
+    },
+    {
+      "name": "Providers",
+      "description": "\n```\nPOST /providers/me (create business profile)\n        │  kycStatus: PENDING\n        ▼\nPOST /providers/me/kyc-documents  (repeat per document)\n        │\n        ▼\nAdmin: GET /providers/pending-kyc → PATCH /providers/{id}/kyc/approve|reject\n        │\n        ▼\nPATCH /providers/me/active {isActive}  ──▶  now bookable via Providers/nearby\n```\n\nAlso: bank account (masked on read), attendance check-in/out, holiday/\nblocked dates (`unavailable-dates`, excluded from **Availability** slots),\nand self-serve performance analytics (`GET /providers/me/analytics`).\n"
+    },
+    {
+      "name": "Categories",
+      "description": "Service-provider category taxonomy (Grooming, Veterinary, etc.) used to classify Providers/Services. Admin write, public read."
+    },
+    {
+      "name": "Services",
+      "description": "A Service IS the \"package\" shown in the app (price, optional struck-through `originalPrice`, duration, `addOnCatalog`), scoped to one provider + category. Booked via the **Bookings** section."
+    },
+    {
+      "name": "Availability",
+      "description": "Computes bookable time slots for a provider+service+date from the provider's weekly `workingHours`, minus already-booked windows and any date the provider has marked unavailable (see **Providers**)."
+    },
+    {
+      "name": "Bookings",
+      "description": "\nThe core service lifecycle, shared by every vertical (grooming, boarding,\nwalking, consultation, training):\n\n```\nPOST /bookings {providerId, serviceId, petId?, scheduledStart, addOns?,\n                 durationDays?, consultationMode?, couponCode?}\n        │  status: PENDING, OTPs generated\n        ▼\nPATCH /bookings/{id}/accept          (provider)\n        ▼\nPATCH /bookings/{id}/on-the-way      (provider, optional)\n        ▼\nPOST /bookings/{id}/otp/start {code} (provider verifies customer's code)\n        │  status: STARTED — provider can now log session data:\n        │    PATCH /bookings/{id}/notes   (special instructions)\n        │    POST  /bookings/{id}/photos  (before/after)\n        ▼\nPOST /bookings/{id}/otp/end {code}   (provider verifies completion code)\n        │  status: COMPLETED, payout computed\n        ▼\nPOST /reviews {bookingId, rating, comment}   (customer)\n```\n\nEither party can `PATCH /bookings/{id}/cancel` while still pending/active.\n`GET /bookings/me` and `/bookings/provider/me` accept a comma-separated\n`status` list (e.g. `PENDING,ACCEPTED,ON_THE_WAY,STARTED` for an \"Upcoming\"\nbucket) and `from`/`to` date-range filters.\n"
+    },
+    {
+      "name": "Payments",
+      "description": "Razorpay order creation for a booking (`POST /payments/bookings/{id}/order`), the payment-gateway webhook, cash-on-delivery/cash-collected marking, and admin refunds. Wallet-based booking payments skip Razorpay entirely (see **Wallet**)."
+    },
+    {
+      "name": "Wallet",
+      "description": "Balance + transaction ledger, used as a payment method for both Bookings and Marketplace Orders. Self-serve top-up (`POST /wallet/me/topup`) creates a Razorpay order the same way a booking payment does; credited on webhook capture. Admin can manually adjust any user's balance."
+    },
+    {
+      "name": "Coupons",
+      "description": "Admin-managed discount codes. `POST /coupons/validate` checks eligibility + computes the discount without consuming it; actually applying one happens inside `POST /bookings` (via `couponCode`) or `POST /cart/apply-coupon` (Marketplace)."
+    },
+    {
+      "name": "Reviews",
+      "description": "One review per completed booking (`bookingId`) OR one per purchased product (`productId`) — exactly one of the two, never both. `GET /reviews` filters by `providerId` or `productId`."
+    },
+    {
+      "name": "Products",
+      "description": "Marketplace product catalog (pharmacy/food/accessories/etc). `mrp` + computed `discountPercent` power the struck-through-price UI. Feeds into **Cart**, **Wishlist**, and **Orders**."
+    },
+    {
+      "name": "Cart",
+      "description": "\n```\nPOST /cart/items {productId, quantity}   (repeat per product)\n        ▼\nPOST /cart/apply-coupon {code}   (optional — validates + stores the discount)\n        │  GET /cart returns {items, subtotal, discountAmount, deliveryFee, totalAmount}\n        ▼\nPOST /orders {shippingAddress, paymentMethod}   ──▶  see Orders\n```\nEditing cart contents (add/update/remove) automatically clears an applied\ncoupon — re-apply after changing quantities.\n"
+    },
+    {
+      "name": "Orders",
+      "description": "Created from the current cart (`POST /orders`) — carries over the cart's coupon discount and adds a flat delivery fee. Admin transitions status `PENDING → CONFIRMED → SHIPPED → DELIVERED` (or `CANCELLED`, which restocks and refunds)."
+    },
+    {
+      "name": "Wishlist",
+      "description": "Saved-for-later product list, independent of the cart."
+    },
+    {
+      "name": "Chat",
+      "description": "1:1 messaging between any two users (customer↔provider, or matched Pet Companion owners). Rooms can be flagged `isUrgent` for a provider-app \"Emergency\" inbox filter. Real-time delivery also available over Socket.IO for connected clients."
+    },
+    {
+      "name": "Notifications",
+      "description": "Server-generated notification feed (booking status changes, payments, KYC, new messages). Read-only from the client's side — nothing here is client-created."
+    },
+    {
+      "name": "LostAndFound",
+      "description": "\n```\nPOST /lost-and-found {type: LOST|FOUND, ..., rewardAmount?}\n        │  approvalStatus: PENDING\n        ▼\nAdmin: PATCH /lost-and-found/{id}/approve|reject\n        │\n        ▼\nGET /lost-and-found  (public feed, approved only)\n        ▼\nPATCH /lost-and-found/{id}/resolve   (reporter or admin, once found/returned)\n```\n"
+    },
+    {
+      "name": "PetCompanion",
+      "description": "\nOpt-in pet \"social\" matching, layered on top of a **Pets** record:\n\n```\nPUT /pets/{id}/companion-profile {isEnabled: true, ...}\n        ▼\nGET /pet-companion/discover?petId=&lat=&lng=   (swipe feed, geo-based)\n        ▼\nPOST /pet-companion/swipe {swiperPetId, targetPetId, action}\n        │\n        ├── mutual LIKE ──▶ { matched: true, chatRoomId } ──▶ see Chat\n        └── one-sided     ──▶ shows up in the other pet's\n                               GET /pet-companion/likes-received\n```\n"
+    },
+    {
+      "name": "PetTaxi",
+      "description": "Simple fixed-price trip booking (`POST /pet-taxi/bookings`) — price resolved server-side from trip type (one-way/round-trip), never client-supplied."
+    },
+    {
+      "name": "PetRelocation",
+      "description": "A **lead**, not an instant booking — `POST /pet-relocation/requests` starts `SUBMITTED`; ops manually progresses it through `CONTACTED → CONFIRMED` via the admin status endpoint. No payment step."
+    },
+    {
+      "name": "PetInsurance",
+      "description": "Insurance application intake (`POST /pet-insurance/applications`) with conditional medical-history document uploads; admin reviews and moves it through `UNDER_REVIEW → APPROVED/REJECTED`."
+    },
+    {
+      "name": "Referrals",
+      "description": "Each user gets a lazily-generated referral code (`GET /referrals/me`). A new signup with a valid `referralCode` is tracked as `PENDING`, then rewarded (both sides) once the referee completes their first booking. `POST /referrals/redeem` converts earned points to wallet balance."
+    },
+    {
+      "name": "Support",
+      "description": "Support tickets with a threaded message history (`POST /support-tickets/{id}/messages`). Status changes (`OPEN → IN_PROGRESS → RESOLVED/CLOSED`) are admin-only."
+    },
+    {
+      "name": "Blogs",
+      "description": "Simple CMS for pet-care articles. Admin write, public read (published posts only)."
+    },
+    {
+      "name": "Zones",
+      "description": "Cities and geo-zones used to scope providers/pricing. Admin write, public read."
+    },
+    {
+      "name": "Cities",
+      "description": "See **Zones** — cities and zones are managed together as one geography module."
+    },
+    {
+      "name": "Search",
+      "description": "Cross-entity search (providers, services, products, etc.) plus autocomplete suggestions."
+    },
+    {
+      "name": "Analytics",
+      "description": "Platform-wide dashboards for SUPER_ADMIN (revenue, bookings, user growth, zone performance). A provider's own performance data is separate — see **Providers**' `/me/analytics`."
+    },
+    {
+      "name": "Admin",
+      "description": "Platform operations: dashboard summary, feature flags, banners, and audit log of admin actions (KYC decisions, order status changes, etc.)."
+    },
+    {
+      "name": "Uploads",
+      "description": "Generic Cloudinary-backed file upload, used as a first step by many other flows (KYC documents, pet photos, lost-and-found photos, chat attachments, booking session photos) — upload here first, then pass the returned URL into the relevant endpoint."
+    },
+    {
+      "name": "Community",
+      "description": "Social feed: posts, comments, likes, bookmarks, and moderation/reporting."
     }
   ],
   "components": {
@@ -23058,6 +23192,5 @@
         }
       }
     }
-  },
-  "tags": []
+  }
 }

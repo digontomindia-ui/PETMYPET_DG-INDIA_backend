@@ -25,13 +25,45 @@ Check `success`, not just HTTP status, when parsing responses.
 
 ## Auth flow
 
-1. `POST /auth/signup` `{name, email, phone, password, role: "USER"|"SERVICE_PROVIDER"}` → `201`, account unverified.
-2. `POST /auth/signup/verify` `{identifier: email|phone, code}` → tokens issued, account verified.
-   - **OTP is currently always `123456`** in this environment (no SMTP/SMS creds configured yet — see CREDENTIALS.md). Same fixed code applies to login-OTP, password-reset OTP, and booking start/end OTPs. Switches to a real random OTP automatically once SMTP/SMS creds are added — no app-side change needed when that happens, just don't hardcode `123456` as if it's permanent.
-3. `POST /auth/login` `{email, password}` → `{user, tokens: {accessToken, refreshToken, expiresIn}}`.
-4. Send `Authorization: Bearer <accessToken>` on authenticated routes.
-5. **Access token expires in 15 minutes.** `POST /auth/refresh` `{refreshToken}` → new token pair before/when it expires. Refresh token lives 30 days.
-6. `POST /auth/logout` `{refreshToken}` invalidates one session; `POST /auth/logout-all` (authenticated) kills all sessions for the user.
+**Primary flow (both apps — this is what the actual LogIn screens use):**
+phone number + OTP, self-registering. There is no separate signup form for
+this path; a new phone number is auto-created on first OTP request.
+
+1. `POST /auth/login/otp/request {identifier: <phone>, referralCode?, role?}`
+   → `200`, `{isRegistered: boolean}`. If the phone has no account yet, one
+   is created here (bare-minimum row) and sent an OTP exactly like a
+   returning number. `role` (`USER`|`SERVICE_PROVIDER`) only applies to that
+   auto-created account. `isRegistered: false` means route the client to
+   onboarding after verify; `true` means route straight to Home.
+2. `POST /auth/login/otp/verify {identifier, code}` → `{user, tokens}`,
+   account marked verified.
+   - **OTP is currently always `123456`** in this environment (no SMTP/SMS
+     creds configured yet — see CREDENTIALS.md). Switches to a real random
+     OTP automatically once SMTP/SMS creds are added.
+3. New accounts (`isRegistered` was `false`): finish onboarding via `PUT
+   /users/me {name, email?}` and whatever else the onboarding screens
+   collect (pets, address, preferences) — none of it is required up front.
+
+**Secondary flow** (email/phone + password — used by the provider app's
+"Login with Password" option, or any account that has explicitly set a
+password via reset/update-password):
+
+- `POST /auth/signup {name, email, phone, password, role}` → `201`, account
+  unverified, then `POST /auth/signup/verify {identifier: email, code}` to
+  activate it. This is a distinct path from the OTP flow above — use it only
+  for an explicit email+password signup form, not the real mobile LogIn
+  screens.
+- `POST /auth/login {identifier: email|phone, password}` → `{isRegistered,
+  user, tokens}`. `400` if the account has no password set (phone-only
+  accounts) — direct the client to the OTP flow instead.
+
+**Common to both:**
+
+- Send `Authorization: Bearer <accessToken>` on authenticated routes.
+- **Access token expires in 15 minutes.** `POST /auth/refresh {refreshToken}`
+  → new token pair before/when it expires. Refresh token lives 30 days.
+- `POST /auth/logout {refreshToken}` invalidates one session;
+  `POST /auth/logout-all` (authenticated) kills all sessions for the user.
 
 Roles: `USER`, `SERVICE_PROVIDER`, `SUPER_ADMIN`. `SUPER_ADMIN` can't be created via signup — only seeded directly (see CREDENTIALS.md for the test admin).
 
