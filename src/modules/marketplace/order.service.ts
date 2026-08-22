@@ -12,6 +12,7 @@ import { cartRepository } from './cart.repository.js';
 import { orderRepository } from './order.repository.js';
 import { toOrderDto } from './order.mapper.js';
 import {
+  DEFAULT_DELIVERY_FEE,
   ORDER_PAYMENT_METHODS,
   ORDER_PAYMENT_STATUSES,
   ORDER_STATUSES,
@@ -45,13 +46,20 @@ export const orderService = {
       } as IOrderItem);
     }
 
-    const totalAmount =
+    const itemsSubtotal =
       Math.round(items.reduce((sum, item) => sum + item.price * item.quantity, 0) * 100) / 100;
+    const discountAmount = cart.discountAmount;
+    const couponCode = cart.couponCode;
+    const deliveryFee = DEFAULT_DELIVERY_FEE;
+    const totalAmount = Math.max(0, itemsSubtotal - discountAmount + deliveryFee);
 
     const order = await orderRepository.placeOrder({
       userId,
       items,
       totalAmount,
+      discountAmount,
+      deliveryFee,
+      couponCode,
       shippingAddress: input.shippingAddress,
       paymentMethod: input.paymentMethod,
     });

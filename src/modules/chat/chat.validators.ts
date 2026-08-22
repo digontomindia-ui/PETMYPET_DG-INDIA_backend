@@ -24,6 +24,11 @@ export const listMessagesQuerySchema = z.object({
 export const listRoomsQuerySchema = z.object({
   page: z.string().optional(),
   limit: z.string().optional(),
+  isUrgent: z.enum(['true', 'false']).optional(),
+});
+
+export const updateUrgentSchema = z.object({
+  isUrgent: z.boolean(),
 });
 
 export const roomIdParamSchema = z.object({ roomId: objectIdSchema });

@@ -24,6 +24,7 @@ function toBaseBooking(booking: BookingDocument): PublicBookingBase {
     durationDays: booking.durationDays,
     dropOffTime: booking.dropOffTime,
     pickupTime: booking.pickupTime,
+    consultationMode: booking.consultationMode,
     providerNotes: booking.providerNotes,
     photos: booking.photos,
     createdAt: booking.createdAt,

@@ -10,6 +10,8 @@ import { AUDIT_ACTIONS } from '../admin/admin.constants.js';
 import { BookingModel } from '../bookings/booking.schema.js';
 import { BOOKING_STATUSES, PAYMENT_STATUSES } from '../bookings/booking.constants.js';
 import { ReviewModel } from '../reviews/review.schema.js';
+import { ServiceModel } from '../services/service.schema.js';
+import { CategoryModel } from '../categories/category.schema.js';
 import { providerRepository } from './provider.repository.js';
 import { mapAttendanceEntry, toPublicProvider, toPublicProviderSummary } from './provider.mapper.js';
 import { KYC_STATUSES } from './provider.constants.js';
@@ -52,6 +54,8 @@ export const providerService = {
       providerType: input.providerType,
       businessName: input.businessName,
       description: input.description,
+      experienceYears: input.experienceYears ?? null,
+      languages: input.languages,
       zoneIds: input.zoneIds.map((id) => new Types.ObjectId(id)),
       location: { type: 'Point', coordinates: input.coordinates },
       address: input.address,
@@ -72,6 +76,8 @@ export const providerService = {
 
     if (input.businessName !== undefined) provider.businessName = input.businessName;
     if (input.description !== undefined) provider.description = input.description;
+    if (input.experienceYears !== undefined) provider.experienceYears = input.experienceYears;
+    if (input.languages !== undefined) provider.languages = input.languages;
     if (input.address !== undefined) provider.address = input.address;
     if (input.workingHours !== undefined) provider.workingHours = input.workingHours;
     if (input.zoneIds !== undefined)
@@ -155,6 +161,28 @@ export const providerService = {
     return toPublicProvider(provider);
   },
 
+  async addUnavailableDate(userId: string, date: Date) {
+    const provider = await requireOwnProvider(userId);
+    const dayKey = date.toISOString().slice(0, 10);
+    const alreadyPresent = provider.unavailableDates.some(
+      (existing) => existing.toISOString().slice(0, 10) === dayKey,
+    );
+    if (!alreadyPresent) {
+      provider.unavailableDates.push(new Date(`${dayKey}T00:00:00.000Z`));
+      await provider.save();
+    }
+    return toPublicProvider(provider);
+  },
+
+  async removeUnavailableDate(userId: string, dayKey: string) {
+    const provider = await requireOwnProvider(userId);
+    provider.unavailableDates = provider.unavailableDates.filter(
+      (existing) => existing.toISOString().slice(0, 10) !== dayKey,
+    );
+    await provider.save();
+    return toPublicProvider(provider);
+  },
+
   async listPendingKyc(query: { page?: string; limit?: string }) {
     const { page, limit, skip } = parsePagination(query);
     const filter = { kycStatus: KYC_STATUSES.PENDING };
@@ -223,9 +251,17 @@ export const providerService = {
     const providerId = provider._id;
 
     const to = new Date();
-    const from = new Date(to.getTime() - RANGE_DAYS[query.range ?? 'week'] * DAY_MS);
+    const rangeWidthMs = RANGE_DAYS[query.range ?? 'week'] * DAY_MS;
+    const from = new Date(to.getTime() - rangeWidthMs);
+    const previousFrom = new Date(from.getTime() - rangeWidthMs);
 
-    const [earningsByDay, bookingsInRange, ratingAgg] = await Promise.all([
+    const [
+      earningsByDay,
+      bookingsInRange,
+      ratingAgg,
+      caseMixAndTopServices,
+      previousPeriodAgg,
+    ] = await Promise.all([
       BookingModel.aggregate<{ date: string; amount: number }>([
         {
           $match: {
@@ -249,6 +285,52 @@ export const providerService = {
       ReviewModel.aggregate<{ _id: number; count: number }>([
         { $match: { providerId } },
         { $group: { _id: '$rating', count: { $sum: 1 } } },
+      ]),
+      BookingModel.aggregate<{
+        caseMix: { _id: Types.ObjectId; count: number }[];
+        topServices: { _id: Types.ObjectId; name: string; price: number; bookingCount: number }[];
+        avgDuration: { _id: null; avg: number }[];
+      }>([
+        { $match: { providerId, createdAt: { $gte: from, $lte: to } } },
+        {
+          $lookup: {
+            from: ServiceModel.collection.name,
+            localField: 'serviceId',
+            foreignField: '_id',
+            as: 'service',
+          },
+        },
+        { $unwind: '$service' },
+        {
+          $facet: {
+            caseMix: [{ $group: { _id: '$service.categoryId', count: { $sum: 1 } } }],
+            topServices: [
+              {
+                $group: {
+                  _id: '$serviceId',
+                  name: { $first: '$service.name' },
+                  price: { $first: '$service.price' },
+                  bookingCount: { $sum: 1 },
+                },
+              },
+              { $sort: { bookingCount: -1 } },
+              { $limit: 5 },
+            ],
+            avgDuration: [{ $group: { _id: null, avg: { $avg: '$service.durationMinutes' } } }],
+          },
+        },
+      ]),
+      BookingModel.aggregate<{ _id: null; total: number }>([
+        {
+          $match: {
+            providerId,
+            paymentStatus: PAYMENT_STATUSES.PAID,
+            createdAt: { $gte: previousFrom, $lt: from },
+          },
+        },
+        {
+          $group: { _id: null, total: { $sum: { $subtract: ['$price', '$discountAmount'] } } },
+        },
       ]),
     ]);
 
@@ -279,7 +361,48 @@ export const providerService = {
       }
     }
 
-    return { earningsByDay, bookingCount, ratingBreakdown, repeatClientPercent };
+    const satisfactionScore =
+      totalRatings > 0
+        ? Math.round(
+            (ratingAgg.reduce((sum, r) => sum + r._id * r.count, 0) / totalRatings) * 100,
+          ) / 100
+        : 0;
+
+    const facet = caseMixAndTopServices[0] ?? { caseMix: [], topServices: [], avgDuration: [] };
+    const caseMixTotal = facet.caseMix.reduce((sum, c) => sum + c.count, 0);
+    const categoryIds = facet.caseMix.map((c) => c._id);
+    const categories = await CategoryModel.find({ _id: { $in: categoryIds } })
+      .select('name')
+      .lean();
+    const categoryNameById = new Map(categories.map((c) => [c._id.toString(), c.name]));
+    const caseMix = facet.caseMix.map((c) => ({
+      categoryId: c._id.toString(),
+      categoryName: categoryNameById.get(c._id.toString()) ?? 'Unknown',
+      count: c.count,
+      percent: caseMixTotal > 0 ? Math.round((c.count / caseMixTotal) * 1000) / 10 : 0,
+    }));
+
+    const topServices = facet.topServices.map((s) => ({
+      serviceId: s._id.toString(),
+      name: s.name,
+      price: s.price,
+      bookingCount: s.bookingCount,
+    }));
+
+    const avgServiceDurationMinutes = Math.round(facet.avgDuration[0]?.avg ?? 0);
+    const previousPeriodEarnings = previousPeriodAgg[0]?.total ?? 0;
+
+    return {
+      earningsByDay,
+      bookingCount,
+      ratingBreakdown,
+      repeatClientPercent,
+      caseMix,
+      topServices,
+      avgServiceDurationMinutes,
+      satisfactionScore,
+      previousPeriodEarnings,
+    };
   },
 
   async getMyAttendance(userId: string, query: AttendanceQuery) {

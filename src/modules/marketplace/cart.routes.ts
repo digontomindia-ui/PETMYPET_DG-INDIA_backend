@@ -2,7 +2,12 @@ import { Router } from 'express';
 import { authenticate } from '../../common/middlewares/auth.middleware.js';
 import { validate } from '../../common/middlewares/validate.middleware.js';
 import { cartController } from './cart.controller.js';
-import { addToCartSchema, productIdParamSchema, updateCartItemSchema } from './cart.validators.js';
+import {
+  addToCartSchema,
+  applyCartCouponSchema,
+  productIdParamSchema,
+  updateCartItemSchema,
+} from './cart.validators.js';
 
 export const cartRoutes = Router();
 
@@ -21,7 +26,7 @@ cartRoutes.use(authenticate);
  *         content:
  *           application/json:
  *             schema: { type: object }
- *             example: { success: true, message: Success, data: { id: "64f1a2b3c4d5e6f7a8b9c0e1", items: [{ productId: "64f1a2b3c4d5e6f7a8b9c0d1", name: "Royal Canin Adult Dog Food 3kg", price: 1499, images: ["https://cdn.petmypet.in/products/royal-canin-3kg.jpg"], quantity: 2, subtotal: 2998 }], totalAmount: 2998 } }
+ *             example: { success: true, message: Success, data: { id: "64f1a2b3c4d5e6f7a8b9c0e1", items: [{ productId: "64f1a2b3c4d5e6f7a8b9c0d1", name: "Royal Canin Adult Dog Food 3kg", price: 1499, images: ["https://cdn.petmypet.in/products/royal-canin-3kg.jpg"], quantity: 2, subtotal: 2998 }], subtotal: 2998, discountAmount: 0, couponCode: null, deliveryFee: 40, totalAmount: 3038 } }
  *       401:
  *         description: Authentication required
  *         content:
@@ -56,7 +61,7 @@ cartRoutes.get('/', cartController.getCart);
  *         content:
  *           application/json:
  *             schema: { type: object }
- *             example: { success: true, message: Item added to cart, data: { id: "64f1a2b3c4d5e6f7a8b9c0e1", items: [{ productId: "64f1a2b3c4d5e6f7a8b9c0d1", name: "Royal Canin Adult Dog Food 3kg", price: 1499, images: ["https://cdn.petmypet.in/products/royal-canin-3kg.jpg"], quantity: 2, subtotal: 2998 }], totalAmount: 2998 } }
+ *             example: { success: true, message: Item added to cart, data: { id: "64f1a2b3c4d5e6f7a8b9c0e1", items: [{ productId: "64f1a2b3c4d5e6f7a8b9c0d1", name: "Royal Canin Adult Dog Food 3kg", price: 1499, images: ["https://cdn.petmypet.in/products/royal-canin-3kg.jpg"], quantity: 2, subtotal: 2998 }], subtotal: 2998, discountAmount: 0, couponCode: null, deliveryFee: 40, totalAmount: 3038 } }
  *       400:
  *         description: Validation error or product not found
  *         content:
@@ -101,7 +106,7 @@ cartRoutes.post('/items', validate({ body: addToCartSchema }), cartController.ad
  *         content:
  *           application/json:
  *             schema: { type: object }
- *             example: { success: true, message: Cart updated, data: { id: "64f1a2b3c4d5e6f7a8b9c0e1", items: [{ productId: "64f1a2b3c4d5e6f7a8b9c0d1", name: "Royal Canin Adult Dog Food 3kg", price: 1499, images: ["https://cdn.petmypet.in/products/royal-canin-3kg.jpg"], quantity: 3, subtotal: 4497 }], totalAmount: 4497 } }
+ *             example: { success: true, message: Cart updated, data: { id: "64f1a2b3c4d5e6f7a8b9c0e1", items: [{ productId: "64f1a2b3c4d5e6f7a8b9c0d1", name: "Royal Canin Adult Dog Food 3kg", price: 1499, images: ["https://cdn.petmypet.in/products/royal-canin-3kg.jpg"], quantity: 3, subtotal: 4497 }], subtotal: 4497, discountAmount: 0, couponCode: null, deliveryFee: 40, totalAmount: 4537 } }
  *       400:
  *         description: Validation error or item not found in cart
  *         content:
@@ -139,7 +144,7 @@ cartRoutes.put(
  *         content:
  *           application/json:
  *             schema: { type: object }
- *             example: { success: true, message: Item removed from cart, data: { id: "64f1a2b3c4d5e6f7a8b9c0e1", items: [], totalAmount: 0 } }
+ *             example: { success: true, message: Item removed from cart, data: { id: "64f1a2b3c4d5e6f7a8b9c0e1", items: [], subtotal: 0, discountAmount: 0, couponCode: null, deliveryFee: 0, totalAmount: 0 } }
  *       400:
  *         description: Item not found in cart
  *         content:
@@ -180,3 +185,76 @@ cartRoutes.delete(
  *             example: { success: false, error: UNAUTHORIZED, message: "Authentication required" }
  */
 cartRoutes.delete('/', cartController.clearCart);
+
+/**
+ * @openapi
+ * /cart/apply-coupon:
+ *   post:
+ *     tags: [Cart]
+ *     summary: Apply a coupon code to the current cart
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [code]
+ *             properties:
+ *               code: { type: string, example: WELCOME10 }
+ *           example:
+ *             code: WELCOME10
+ *     responses:
+ *       200:
+ *         description: Coupon applied
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *             example: { success: true, message: Coupon applied, data: { id: "64f1a2b3c4d5e6f7a8b9c0e1", items: [{ productId: "64f1a2b3c4d5e6f7a8b9c0d1", name: "Royal Canin Adult Dog Food 3kg", price: 1499, images: ["https://cdn.petmypet.in/products/royal-canin-3kg.jpg"], quantity: 2, subtotal: 2998 }], subtotal: 2998, discountAmount: 300, couponCode: WELCOME10, deliveryFee: 40, totalAmount: 2738 } }
+ *       400:
+ *         description: Cart is empty, or the coupon is invalid/ineligible
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: BAD_REQUEST, message: "Coupon requires a minimum booking amount of 3000" }
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: UNAUTHORIZED, message: "Authentication required" }
+ *       404:
+ *         description: Coupon not found or inactive
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: NOT_FOUND, message: "Coupon not found or inactive" }
+ */
+cartRoutes.post(
+  '/apply-coupon',
+  validate({ body: applyCartCouponSchema }),
+  cartController.applyCoupon,
+);
+
+/**
+ * @openapi
+ * /cart/coupon:
+ *   delete:
+ *     tags: [Cart]
+ *     summary: Remove the coupon applied to the current cart
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200:
+ *         description: Coupon removed
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *             example: { success: true, message: Coupon removed, data: { id: "64f1a2b3c4d5e6f7a8b9c0e1", items: [{ productId: "64f1a2b3c4d5e6f7a8b9c0d1", name: "Royal Canin Adult Dog Food 3kg", price: 1499, images: ["https://cdn.petmypet.in/products/royal-canin-3kg.jpg"], quantity: 2, subtotal: 2998 }], subtotal: 2998, discountAmount: 0, couponCode: null, deliveryFee: 40, totalAmount: 3038 } }
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: UNAUTHORIZED, message: "Authentication required" }
+ */
+cartRoutes.delete('/coupon', cartController.removeCoupon);

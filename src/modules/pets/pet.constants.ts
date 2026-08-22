@@ -19,3 +19,12 @@ export const COMPANION_ACTIVITY_LEVELS = { LOW: 'LOW', MEDIUM: 'MEDIUM', HIGH: '
 
 export type CompanionActivityLevel =
   (typeof COMPANION_ACTIVITY_LEVELS)[keyof typeof COMPANION_ACTIVITY_LEVELS];
+
+export const GETS_ALONG_WITH_STATUS = {
+  YES: 'YES',
+  NO: 'NO',
+  NEEDS_INTRODUCTION: 'NEEDS_INTRODUCTION',
+} as const;
+
+export type GetsAlongWithStatus =
+  (typeof GETS_ALONG_WITH_STATUS)[keyof typeof GETS_ALONG_WITH_STATUS];

@@ -1,6 +1,11 @@
 import type { HydratedDocument, Types } from 'mongoose';
 import type { SoftDeletable } from '../../common/database/plugins/soft-delete.plugin.js';
-import type { CompanionActivityLevel, PetGender, PetSpecies } from './pet.constants.js';
+import type {
+  CompanionActivityLevel,
+  GetsAlongWithStatus,
+  PetGender,
+  PetSpecies,
+} from './pet.constants.js';
 
 export interface IMedicalRecord {
   _id: Types.ObjectId;
@@ -21,10 +26,10 @@ export interface IVaccination {
 }
 
 export interface ICompanionGetsAlongWith {
-  dogs: boolean;
-  cats: boolean;
-  kids: boolean;
-  families: boolean;
+  dogs: GetsAlongWithStatus;
+  cats: GetsAlongWithStatus;
+  kids: GetsAlongWithStatus;
+  families: GetsAlongWithStatus;
 }
 
 export interface ICompanionProfile {
@@ -35,6 +40,7 @@ export interface ICompanionProfile {
   lookingFor: string[];
   activityLevel: CompanionActivityLevel;
   temperament: string;
+  neutered: boolean;
   getsAlongWith: ICompanionGetsAlongWith;
 }
 

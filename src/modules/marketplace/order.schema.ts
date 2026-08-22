@@ -2,6 +2,7 @@ import { model, Schema } from 'mongoose';
 import { USER_MODEL_NAME } from '../users/user.constants.js';
 import { PRODUCT_MODEL_NAME } from './product.constants.js';
 import {
+  DEFAULT_DELIVERY_FEE,
   ORDER_MODEL_NAME,
   ORDER_PAYMENT_METHODS,
   ORDER_PAYMENT_STATUSES,
@@ -36,6 +37,9 @@ const orderSchema = new Schema<IOrder>(
     userId: { type: Schema.Types.ObjectId, ref: USER_MODEL_NAME, required: true },
     items: { type: [orderItemSchema], required: true },
     totalAmount: { type: Number, required: true, min: 0 },
+    discountAmount: { type: Number, default: 0, min: 0 },
+    deliveryFee: { type: Number, default: DEFAULT_DELIVERY_FEE, min: 0 },
+    couponCode: { type: String, default: null },
     currency: { type: String, required: true, default: 'INR' },
     shippingAddress: { type: shippingAddressSchema, required: true },
     status: { type: String, enum: Object.values(ORDER_STATUSES), default: ORDER_STATUSES.PENDING },

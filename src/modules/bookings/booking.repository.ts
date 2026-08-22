@@ -42,9 +42,14 @@ export class BookingRepository extends BaseRepository<IBooking> {
       .exec();
   }
 
-  async findForUser(userId: string, status: string | undefined, skip: number, limit: number) {
-    const filter: Record<string, unknown> = { userId };
-    if (status) filter.status = status;
+  async findForUser(
+    userId: string,
+    statuses: string[] | undefined,
+    dateRange: { from?: Date; to?: Date },
+    skip: number,
+    limit: number,
+  ) {
+    const filter = buildStatusDateFilter({ userId }, statuses, dateRange);
     const [items, total] = await Promise.all([
       this.model.find(filter).sort({ scheduledStart: -1 }).skip(skip).limit(limit).exec(),
       this.model.countDocuments(filter).exec(),
@@ -54,18 +59,36 @@ export class BookingRepository extends BaseRepository<IBooking> {
 
   async findForProvider(
     providerId: string,
-    status: string | undefined,
+    statuses: string[] | undefined,
+    dateRange: { from?: Date; to?: Date },
     skip: number,
     limit: number,
   ) {
-    const filter: Record<string, unknown> = { providerId };
-    if (status) filter.status = status;
+    const filter = buildStatusDateFilter({ providerId }, statuses, dateRange);
     const [items, total] = await Promise.all([
       this.model.find(filter).sort({ scheduledStart: 1 }).skip(skip).limit(limit).exec(),
       this.model.countDocuments(filter).exec(),
     ]);
     return { items, total };
   }
+}
+
+function buildStatusDateFilter(
+  base: Record<string, unknown>,
+  statuses: string[] | undefined,
+  dateRange: { from?: Date; to?: Date },
+): Record<string, unknown> {
+  const filter: Record<string, unknown> = { ...base };
+  if (statuses && statuses.length > 0) {
+    filter.status = statuses.length === 1 ? statuses[0] : { $in: statuses };
+  }
+  if (dateRange.from || dateRange.to) {
+    const scheduledStart: Record<string, Date> = {};
+    if (dateRange.from) scheduledStart.$gte = dateRange.from;
+    if (dateRange.to) scheduledStart.$lte = dateRange.to;
+    filter.scheduledStart = scheduledStart;
+  }
+  return filter;
 }
 
 export const bookingRepository = new BookingRepository();

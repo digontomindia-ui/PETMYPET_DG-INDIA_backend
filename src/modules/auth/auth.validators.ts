@@ -37,6 +37,9 @@ export const loginSchema = z.object({
 export const requestOtpLoginSchema = z.object({
   identifier: identifierSchema,
   referralCode: z.string().min(1).max(20).optional(),
+  // Only used when this identifier has no account yet (auto-signup) — ignored for an
+  // existing account so a login call can never silently change someone's role.
+  role: z.enum([ROLES.USER, ROLES.SERVICE_PROVIDER]).optional(),
 });
 
 export const verifyOtpLoginSchema = z.object({

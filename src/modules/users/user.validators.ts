@@ -14,6 +14,7 @@ export const addressSchema = z.object({
 
 export const updateProfileSchema = z.object({
   name: z.string().min(1).max(120).optional(),
+  email: z.string().email().optional(),
   avatarUrl: z.string().url().optional(),
   preferences: z
     .object({
@@ -21,6 +22,13 @@ export const updateProfileSchema = z.object({
       smsNotifications: z.boolean().optional(),
       emailNotifications: z.boolean().optional(),
       pushNotifications: z.boolean().optional(),
+    })
+    .optional(),
+  serviceInterests: z.array(z.string()).optional(),
+  emergencyContact: z
+    .object({
+      name: z.string().min(1).max(120),
+      phone: z.string().regex(/^\+?[0-9]{7,15}$/),
     })
     .optional(),
 });

@@ -8,6 +8,7 @@ import {
   listRoomsQuerySchema,
   roomIdParamSchema,
   sendMessageSchema,
+  updateUrgentSchema,
 } from './chat.validators.js';
 
 export const chatRoutes = Router();
@@ -54,6 +55,7 @@ chatRoutes.use(authenticate);
  *                 bookingId: "64f1a2b3c4d5e6f7a8b9c0a1"
  *                 lastMessageAt: null
  *                 lastMessagePreview: ""
+ *                 isUrgent: false
  *                 unreadCount: 0
  *       400:
  *         description: Validation error
@@ -91,6 +93,11 @@ chatRoutes.post('/rooms', validate({ body: createRoomSchema }), chatController.c
  *         name: limit
  *         schema: { type: string }
  *         example: "20"
+ *       - in: query
+ *         name: isUrgent
+ *         schema: { type: string, enum: ["true", "false"] }
+ *         description: Filter to only urgent (or only non-urgent) rooms — backs the "Emergency" filter pill
+ *         example: "true"
  *     responses:
  *       200:
  *         description: List of chat rooms
@@ -118,6 +125,7 @@ chatRoutes.post('/rooms', validate({ body: createRoomSchema }), chatController.c
  *                   bookingId: "64f1a2b3c4d5e6f7a8b9c0a1"
  *                   lastMessageAt: "2024-06-21T10:15:00.000Z"
  *                   lastMessagePreview: "Sure, see you at 5pm!"
+ *                   isUrgent: false
  *                   unreadCount: 2
  *               meta:
  *                 page: 1
@@ -341,4 +349,84 @@ chatRoutes.patch(
   '/rooms/:roomId/read',
   validate({ params: roomIdParamSchema }),
   chatController.markRead,
+);
+
+/**
+ * @openapi
+ * /chat/rooms/{roomId}/urgent:
+ *   patch:
+ *     tags: [Chat]
+ *     summary: Flag or unflag a chat room as urgent/emergency
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: roomId
+ *         required: true
+ *         schema: { type: string }
+ *         example: "64f1a2b3c4d5e6f7a8b9c0b1"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [isUrgent]
+ *             properties:
+ *               isUrgent: { type: boolean }
+ *           example:
+ *             isUrgent: true
+ *     responses:
+ *       200:
+ *         description: Room updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data: { type: object }
+ *             example:
+ *               success: true
+ *               message: Room updated
+ *               data:
+ *                 id: "64f1a2b3c4d5e6f7a8b9c0b1"
+ *                 otherParticipantId: "64f1a2b3c4d5e6f7a8b9c0d2"
+ *                 bookingId: null
+ *                 lastMessageAt: "2024-06-21T10:15:00.000Z"
+ *                 lastMessagePreview: "Bunny isn't eating, please call me!"
+ *                 isUrgent: true
+ *                 unreadCount: 1
+ *       400:
+ *         description: Validation error or invalid id
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: BAD_REQUEST
+ *               message: Invalid id
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Authentication required
+ *       403:
+ *         description: Not a participant in this room
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: FORBIDDEN
+ *               message: You are not a participant in this chat room
+ */
+chatRoutes.patch(
+  '/rooms/:roomId/urgent',
+  validate({ params: roomIdParamSchema, body: updateUrgentSchema }),
+  chatController.setUrgent,
 );

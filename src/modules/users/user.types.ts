@@ -25,6 +25,11 @@ export interface IUserPreferences {
   pushNotifications: boolean;
 }
 
+export interface IEmergencyContact {
+  name: string;
+  phone: string;
+}
+
 export interface IUser extends SoftDeletable {
   _id: Types.ObjectId;
   role: Role;
@@ -38,6 +43,8 @@ export interface IUser extends SoftDeletable {
   addresses: Types.DocumentArray<IAddress>;
   preferences: IUserPreferences;
   deviceTokens: string[];
+  serviceInterests: string[];
+  emergencyContact: IEmergencyContact | null;
   referralCode: string | null;
   referredBy: Types.ObjectId | null;
   createdAt: Date;
@@ -57,6 +64,8 @@ export interface PublicUser {
   isBlocked: boolean;
   addresses: IAddress[];
   preferences: IUserPreferences;
+  serviceInterests: string[];
+  emergencyContact: IEmergencyContact | null;
   referralCode: string | null;
   createdAt: Date;
   updatedAt: Date;

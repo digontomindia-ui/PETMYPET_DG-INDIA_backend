@@ -1,5 +1,10 @@
 import type { HydratedDocument, Types } from 'mongoose';
-import type { BookingPaymentStatus, BookingStatus, CancelledBy } from './booking.constants.js';
+import type {
+  BookingPaymentStatus,
+  BookingStatus,
+  CancelledBy,
+  ConsultationMode,
+} from './booking.constants.js';
 
 export interface IBookingAddOn {
   name: string;
@@ -49,6 +54,7 @@ export interface IBooking {
   durationDays: number | null;
   dropOffTime: string | null;
   pickupTime: string | null;
+  consultationMode: ConsultationMode | null;
   providerNotes: string;
   photos: IBookingPhoto[];
   createdAt: Date;
@@ -79,6 +85,7 @@ export interface PublicBookingBase {
   durationDays: number | null;
   dropOffTime: string | null;
   pickupTime: string | null;
+  consultationMode: ConsultationMode | null;
   /** Provider-only session notes; present here because this same shape is the provider's view. */
   providerNotes: string;
   photos: IBookingPhoto[];

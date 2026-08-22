@@ -54,6 +54,7 @@ bookingRoutes.use(authenticate);
  *               durationDays: { type: integer, minimum: 1, description: 'Multi-day stay (e.g. boarding); when set, scheduledEnd = scheduledStart + durationDays' }
  *               dropOffTime: { type: string, pattern: '^\d{2}:\d{2}$', description: 'HH:mm, only meaningful when durationDays is set' }
  *               pickupTime: { type: string, pattern: '^\d{2}:\d{2}$', description: 'HH:mm, only meaningful when durationDays is set' }
+ *               consultationMode: { type: string, enum: [CLINIC, ONLINE], description: 'Only meaningful for consultation-type services' }
  *           example:
  *             providerId: 64f1a2b3c4d5e6f7a8b9c0d4
  *             serviceId: 64f1a2b3c4d5e6f7a8b9c0d5
@@ -100,6 +101,7 @@ bookingRoutes.use(authenticate);
  *                 durationDays: 3
  *                 dropOffTime: '09:00'
  *                 pickupTime: '18:00'
+ *                 consultationMode: null
  *                 providerNotes: ''
  *                 photos: []
  *                 createdAt: '2026-08-04T06:30:00.000Z'
@@ -139,7 +141,9 @@ bookingRoutes.post(
  *     summary: List bookings for the current user
  *     security: [{ bearerAuth: [] }]
  *     parameters:
- *       - { name: status, in: query, required: false, schema: { type: string }, example: ACCEPTED }
+ *       - { name: status, in: query, required: false, schema: { type: string }, description: 'Single status, or comma-separated list e.g. PENDING,ACCEPTED,ON_THE_WAY,STARTED for an "Upcoming" bucket', example: 'PENDING,ACCEPTED,ON_THE_WAY,STARTED' }
+ *       - { name: from, in: query, required: false, schema: { type: string }, description: 'YYYY-MM-DD, filters by scheduledStart', example: '2026-08-01' }
+ *       - { name: to, in: query, required: false, schema: { type: string }, description: 'YYYY-MM-DD, filters by scheduledStart', example: '2026-08-31' }
  *       - { name: page, in: query, required: false, schema: { type: string }, example: '1' }
  *       - { name: limit, in: query, required: false, schema: { type: string }, example: '20' }
  *     responses:
@@ -205,7 +209,9 @@ bookingRoutes.get('/me', validate({ query: listBookingsQuerySchema }), bookingCo
  *     summary: List bookings for the current service provider (service provider only)
  *     security: [{ bearerAuth: [] }]
  *     parameters:
- *       - { name: status, in: query, required: false, schema: { type: string }, example: PENDING }
+ *       - { name: status, in: query, required: false, schema: { type: string }, description: 'Single status, or comma-separated list e.g. PENDING,ACCEPTED,ON_THE_WAY,STARTED for an "Upcoming" bucket', example: 'PENDING,ACCEPTED,ON_THE_WAY,STARTED' }
+ *       - { name: from, in: query, required: false, schema: { type: string }, description: 'YYYY-MM-DD, filters by scheduledStart', example: '2026-08-01' }
+ *       - { name: to, in: query, required: false, schema: { type: string }, description: 'YYYY-MM-DD, filters by scheduledStart', example: '2026-08-31' }
  *       - { name: page, in: query, required: false, schema: { type: string }, example: '1' }
  *       - { name: limit, in: query, required: false, schema: { type: string }, example: '20' }
  *     responses:
@@ -308,6 +314,7 @@ bookingRoutes.get(
  *                 durationDays: null
  *                 dropOffTime: null
  *                 pickupTime: null
+ *                 consultationMode: null
  *                 providerNotes: 'Pet was calm during the walk, drank plenty of water.'
  *                 photos:
  *                   - { url: 'https://cdn.petmypet.in/bookings/before-1.jpg', phase: BEFORE, uploadedAt: '2026-08-10T09:05:00.000Z' }
@@ -661,6 +668,7 @@ bookingRoutes.post(
  *                 durationDays: null
  *                 dropOffTime: null
  *                 pickupTime: null
+ *                 consultationMode: null
  *                 providerNotes: 'Pet was calm during the walk, drank plenty of water.'
  *                 photos: []
  *                 createdAt: '2026-08-04T06:30:00.000Z'
@@ -755,6 +763,7 @@ bookingRoutes.patch(
  *                 durationDays: null
  *                 dropOffTime: null
  *                 pickupTime: null
+ *                 consultationMode: null
  *                 providerNotes: ''
  *                 photos:
  *                   - { url: 'https://cdn.petmypet.in/bookings/before-1.jpg', phase: BEFORE, uploadedAt: '2026-08-10T09:05:00.000Z' }

@@ -24,10 +24,20 @@ export const userService = {
     if (!user) throw AppError.notFound('User not found');
 
     if (input.name !== undefined) user.name = input.name;
+    if (input.email !== undefined) {
+      const email = input.email.toLowerCase();
+      const existing = await userRepository.findByEmail(email);
+      if (existing && existing._id.toString() !== userId) {
+        throw AppError.conflict('An account with this email already exists');
+      }
+      user.email = email;
+    }
     if (input.avatarUrl !== undefined) user.avatarUrl = input.avatarUrl;
     if (input.preferences) {
       user.preferences = { ...user.preferences, ...input.preferences };
     }
+    if (input.serviceInterests !== undefined) user.serviceInterests = input.serviceInterests;
+    if (input.emergencyContact !== undefined) user.emergencyContact = input.emergencyContact;
 
     await user.save();
     return toPublicUser(user);

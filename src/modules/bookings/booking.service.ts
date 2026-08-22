@@ -57,6 +57,32 @@ function assertAddOnsInCatalog(addOns: IBookingAddOn[], catalog: IBookingAddOn[]
   }
 }
 
+const ALL_STATUSES: string[] = Object.values(BOOKING_STATUSES);
+
+/** Parses the "status" query param (single value or comma-separated list, e.g. an "Upcoming"
+ * filter sent as "PENDING,ACCEPTED,ON_THE_WAY,STARTED") and the from/to date-range params shared
+ * by both `GET /bookings/me` and `GET /bookings/provider/me`. */
+function parseBookingListQuery(query: ListBookingsQuery): {
+  statuses: string[] | undefined;
+  dateRange: { from?: Date; to?: Date };
+} {
+  let statuses: string[] | undefined;
+  if (query.status) {
+    statuses = query.status.split(',').map((value) => value.trim());
+    for (const value of statuses) {
+      if (!ALL_STATUSES.includes(value)) {
+        throw AppError.badRequest(`Invalid status "${value}"`);
+      }
+    }
+  }
+
+  const dateRange: { from?: Date; to?: Date } = {};
+  if (query.from) dateRange.from = new Date(`${query.from}T00:00:00.000Z`);
+  if (query.to) dateRange.to = new Date(`${query.to}T23:59:59.999Z`);
+
+  return { statuses, dateRange };
+}
+
 function assertBookingEditableByProvider(status: BookingStatus): void {
   if (!PROVIDER_EDITABLE_STATUSES.includes(status)) {
     throw AppError.badRequest(`Cannot update booking while it is ${status}`);
@@ -171,6 +197,7 @@ export const bookingService = {
       durationDays: input.durationDays ?? null,
       dropOffTime: input.dropOffTime ?? null,
       pickupTime: input.pickupTime ?? null,
+      consultationMode: input.consultationMode ?? null,
     });
 
     if (appliedCoupon) {
@@ -219,16 +246,25 @@ export const bookingService = {
 
   async listMine(userId: string, query: ListBookingsQuery) {
     const { page, limit, skip } = parsePagination(query);
-    const { items, total } = await bookingRepository.findForUser(userId, query.status, skip, limit);
+    const { statuses, dateRange } = parseBookingListQuery(query);
+    const { items, total } = await bookingRepository.findForUser(
+      userId,
+      statuses,
+      dateRange,
+      skip,
+      limit,
+    );
     return { bookings: items.map(toOwnerBookingView), total, page, limit };
   },
 
   async listForProvider(providerUserId: string, query: ListBookingsQuery) {
     const provider = await requireProviderProfile(providerUserId);
     const { page, limit, skip } = parsePagination(query);
+    const { statuses, dateRange } = parseBookingListQuery(query);
     const { items, total } = await bookingRepository.findForProvider(
       provider._id.toString(),
-      query.status,
+      statuses,
+      dateRange,
       skip,
       limit,
     );

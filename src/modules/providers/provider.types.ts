@@ -54,6 +54,9 @@ export interface IProviderMetadata {
   petWalker?: {
     maxPetsPerWalk: number;
   };
+  petSitter?: {
+    maxPetsAtOnce: number;
+  };
   pharmacy?: {
     licenseNumber: string;
   };
@@ -68,6 +71,8 @@ export interface IProvider extends SoftDeletable {
   providerType: ProviderType;
   businessName: string;
   description: string;
+  experienceYears: number | null;
+  languages: string[];
   kycStatus: KycStatus;
   kycRejectionReason: string | null;
   kycDocuments: Types.DocumentArray<IKycDocument>;
@@ -75,6 +80,7 @@ export interface IProvider extends SoftDeletable {
   location: { type: 'Point'; coordinates: [number, number] };
   address: string;
   workingHours: IWorkingHours[];
+  unavailableDates: Date[];
   metadata: IProviderMetadata;
   bankAccount: IBankAccount | null;
   commissionPercent: number | null;
@@ -114,6 +120,8 @@ export interface PublicProvider {
   providerType: ProviderType;
   businessName: string;
   description: string;
+  experienceYears: number | null;
+  languages: string[];
   kycStatus: KycStatus;
   kycRejectionReason: string | null;
   kycDocuments: PublicKycDocument[];
@@ -121,6 +129,7 @@ export interface PublicProvider {
   location: { type: 'Point'; coordinates: [number, number] };
   address: string;
   workingHours: IWorkingHours[];
+  unavailableDates: string[];
   metadata: IProviderMetadata;
   bankAccount: PublicBankAccount | null;
   commissionPercent: number | null;
@@ -146,4 +155,14 @@ export interface ProviderAnalytics {
   bookingCount: number;
   ratingBreakdown: { 5: number; 4: number; 3: number; 2: number; 1: number };
   repeatClientPercent: number;
+  /** Booking count grouped by service category, for a "case mix" breakdown. */
+  caseMix: { categoryId: string; categoryName: string; count: number; percent: number }[];
+  /** This provider's own services ranked by booking count (Review has no serviceId, so
+   * booking volume is the ranking signal here, not per-service rating). */
+  topServices: { serviceId: string; name: string; price: number; bookingCount: number }[];
+  avgServiceDurationMinutes: number;
+  /** Weighted average rating: Σ(rating × count) / Σ(count) across all-time reviews. */
+  satisfactionScore: number;
+  /** Same-width period immediately preceding the current range, for a growth % on the client. */
+  previousPeriodEarnings: number;
 }

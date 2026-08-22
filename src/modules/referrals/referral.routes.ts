@@ -69,11 +69,13 @@ referralRoutes.get('/me', referralController.getMe);
  *               data:
  *                 - id: 64f1a2b3c4d5e6f7a8b9c0d1
  *                   refereeName: Priya Sharma
+ *                   refereeAvatarUrl: "https://cdn.patmypets.app/avatars/priya.jpg"
  *                   status: REWARDED
  *                   rewardPoints: 100
  *                   createdAt: "2026-08-01T10:30:00.000Z"
  *                 - id: 64f1a2b3c4d5e6f7a8b9c0d2
  *                   refereeName: Rohan Mehta
+ *                   refereeAvatarUrl: null
  *                   status: PENDING
  *                   rewardPoints: 100
  *                   createdAt: "2026-08-10T14:00:00.000Z"

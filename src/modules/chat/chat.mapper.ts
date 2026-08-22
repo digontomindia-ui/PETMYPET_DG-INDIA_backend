@@ -8,6 +8,7 @@ export function toRoomDto(room: ChatRoomDocument, viewerId: string, unreadCount:
     bookingId: room.bookingId ? room.bookingId.toString() : null,
     lastMessageAt: room.lastMessageAt,
     lastMessagePreview: room.lastMessagePreview,
+    isUrgent: room.isUrgent,
     unreadCount,
   };
 }

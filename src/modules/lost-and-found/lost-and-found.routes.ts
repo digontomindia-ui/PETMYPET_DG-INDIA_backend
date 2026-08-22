@@ -63,6 +63,9 @@ export const lostAndFoundRoutes = Router();
  *                   petName: Bruno
  *                   species: Dog
  *                   breed: Labrador Retriever
+ *                   age: 3 years
+ *                   gender: MALE
+ *                   rewardAmount: 5000
  *                   description: Last seen near Cubbon Park wearing a red collar.
  *                   photoUrls: ["https://cdn.petmypet.in/lost-and-found/bruno-1.jpg"]
  *                   lastSeenLocation: { type: Point, coordinates: [77.5946, 12.9716] }
@@ -117,6 +120,9 @@ lostAndFoundRoutes.get(
  *                   petName: ""
  *                   species: Cat
  *                   breed: Indie
+ *                   age: 1 year
+ *                   gender: UNKNOWN
+ *                   rewardAmount: null
  *                   description: Found a friendly cat wandering near Indiranagar metro station.
  *                   photoUrls: ["https://cdn.petmypet.in/lost-and-found/cat-1.jpg"]
  *                   lastSeenLocation: { type: Point, coordinates: [77.6408, 12.9784] }
@@ -174,6 +180,9 @@ lostAndFoundRoutes.get(
  *                 petName: Bruno
  *                 species: Dog
  *                 breed: Labrador Retriever
+ *                 age: 3 years
+ *                 gender: MALE
+ *                 rewardAmount: 5000
  *                 description: Last seen near Cubbon Park wearing a red collar.
  *                 photoUrls: ["https://cdn.petmypet.in/lost-and-found/bruno-1.jpg"]
  *                 lastSeenLocation: { type: Point, coordinates: [77.5946, 12.9716] }
@@ -208,6 +217,9 @@ lostAndFoundRoutes.get('/:id', validate({ params: idParamSchema }), lostAndFound
  *               petName: { type: string, maxLength: 100 }
  *               species: { type: string, maxLength: 50 }
  *               breed: { type: string, maxLength: 100 }
+ *               age: { type: string, maxLength: 30, nullable: true, example: "3 years" }
+ *               gender: { type: string, enum: [MALE, FEMALE, UNKNOWN], nullable: true }
+ *               rewardAmount: { type: number, minimum: 0, nullable: true, example: 5000 }
  *               description: { type: string, maxLength: 2000 }
  *               photoUrls: { type: array, items: { type: string, format: uri }, maxItems: 10 }
  *               coordinates:
@@ -222,6 +234,9 @@ lostAndFoundRoutes.get('/:id', validate({ params: idParamSchema }), lostAndFound
  *             petName: Bruno
  *             species: Dog
  *             breed: Labrador Retriever
+ *             age: 3 years
+ *             gender: MALE
+ *             rewardAmount: 5000
  *             description: Last seen near Cubbon Park wearing a red collar.
  *             photoUrls: ["https://cdn.petmypet.in/lost-and-found/bruno-1.jpg"]
  *             coordinates: [77.5946, 12.9716]
@@ -242,6 +257,9 @@ lostAndFoundRoutes.get('/:id', validate({ params: idParamSchema }), lostAndFound
  *                 petName: Bruno
  *                 species: Dog
  *                 breed: Labrador Retriever
+ *                 age: 3 years
+ *                 gender: MALE
+ *                 rewardAmount: 5000
  *                 description: Last seen near Cubbon Park wearing a red collar.
  *                 photoUrls: ["https://cdn.petmypet.in/lost-and-found/bruno-1.jpg"]
  *                 lastSeenLocation: { type: Point, coordinates: [77.5946, 12.9716] }
@@ -298,6 +316,9 @@ lostAndFoundRoutes.post(
  *                 petName: Bruno
  *                 species: Dog
  *                 breed: Labrador Retriever
+ *                 age: 3 years
+ *                 gender: MALE
+ *                 rewardAmount: 5000
  *                 description: Last seen near Cubbon Park wearing a red collar.
  *                 photoUrls: ["https://cdn.petmypet.in/lost-and-found/bruno-1.jpg"]
  *                 lastSeenLocation: { type: Point, coordinates: [77.5946, 12.9716] }
@@ -397,6 +418,9 @@ lostAndFoundRoutes.delete(
  *                 petName: ""
  *                 species: Cat
  *                 breed: Indie
+ *                 age: 1 year
+ *                 gender: UNKNOWN
+ *                 rewardAmount: null
  *                 description: Found a friendly cat wandering near Indiranagar metro station.
  *                 photoUrls: ["https://cdn.petmypet.in/lost-and-found/cat-1.jpg"]
  *                 lastSeenLocation: { type: Point, coordinates: [77.6408, 12.9784] }
@@ -463,6 +487,9 @@ lostAndFoundRoutes.patch(
  *                 petName: ""
  *                 species: Cat
  *                 breed: Indie
+ *                 age: 1 year
+ *                 gender: UNKNOWN
+ *                 rewardAmount: null
  *                 description: Found a friendly cat wandering near Indiranagar metro station.
  *                 photoUrls: ["https://cdn.petmypet.in/lost-and-found/cat-1.jpg"]
  *                 lastSeenLocation: { type: Point, coordinates: [77.6408, 12.9784] }

@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import type {
+  addUnavailableDateSchema,
   attendanceQuerySchema,
   createProviderProfileSchema,
   nearbyProvidersQuerySchema,
@@ -18,3 +19,4 @@ export type NearbyProvidersQuery = z.infer<typeof nearbyProvidersQuerySchema>;
 export type SetBankAccountInput = z.infer<typeof setBankAccountSchema>;
 export type ProviderAnalyticsQuery = z.infer<typeof providerAnalyticsQuerySchema>;
 export type AttendanceQuery = z.infer<typeof attendanceQuerySchema>;
+export type AddUnavailableDateInput = z.infer<typeof addUnavailableDateSchema>;

@@ -11,6 +11,7 @@ const productSchema = new Schema<IProduct>(
     description: { type: String, default: '', maxlength: 3000 },
     category: { type: String, enum: Object.values(PRODUCT_CATEGORIES), required: true },
     price: { type: Number, required: true, min: 0 },
+    mrp: { type: Number, default: null, min: 0 },
     images: { type: [String], default: [] },
     stock: { type: Number, required: true, min: 0, default: 0 },
     sku: { type: String, required: true, trim: true, uppercase: true },

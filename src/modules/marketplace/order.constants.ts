@@ -1,5 +1,8 @@
 export const ORDER_MODEL_NAME = 'Order';
 
+/** Flat delivery fee applied to every marketplace order (rupees). */
+export const DEFAULT_DELIVERY_FEE = 40;
+
 export const ORDER_STATUSES = {
   PENDING: 'PENDING',
   CONFIRMED: 'CONFIRMED',

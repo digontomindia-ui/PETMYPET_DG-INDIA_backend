@@ -12,3 +12,7 @@ export const updateCartItemSchema = z.object({
 });
 
 export const productIdParamSchema = z.object({ productId: objectIdSchema });
+
+export const applyCartCouponSchema = z.object({
+  code: z.string().min(1).max(30),
+});

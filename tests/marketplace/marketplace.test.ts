@@ -84,13 +84,15 @@ describe('marketplace', () => {
       .set('Authorization', `Bearer ${user.tokens.accessToken}`)
       .send({ productId: product.id, quantity: 2 });
     expect(addRes.status).toBe(201);
-    expect(addRes.body.data.totalAmount).toBe(500);
+    expect(addRes.body.data.subtotal).toBe(500);
+    expect(addRes.body.data.totalAmount).toBe(540);
 
     const updateRes = await request(app)
       .put(`/api/v1/cart/items/${product.id}`)
       .set('Authorization', `Bearer ${user.tokens.accessToken}`)
       .send({ quantity: 1 });
-    expect(updateRes.body.data.totalAmount).toBe(250);
+    expect(updateRes.body.data.subtotal).toBe(250);
+    expect(updateRes.body.data.totalAmount).toBe(290);
 
     await request(app)
       .post(`/api/v1/wishlist/${product.id}`)
@@ -120,12 +122,14 @@ describe('marketplace', () => {
       .set('Authorization', `Bearer ${user.tokens.accessToken}`)
       .send({ shippingAddress, paymentMethod: 'WALLET' });
     expect(orderRes.status).toBe(201);
-    expect(orderRes.body.data.totalAmount).toBe(600);
+    expect(orderRes.body.data.totalAmount).toBe(640);
+    expect(orderRes.body.data.deliveryFee).toBe(40);
+    expect(orderRes.body.data.discountAmount).toBe(0);
     expect(orderRes.body.data.paymentStatus).toBe('PAID');
     const orderId = orderRes.body.data.id as string;
 
     const balance = await walletService.getBalance(user.user.id);
-    expect(balance.balance).toBe(400);
+    expect(balance.balance).toBe(360);
 
     const productAfter = await request(app).get(`/api/v1/products/${product.id}`);
     expect(productAfter.body.data.stock).toBe(3);

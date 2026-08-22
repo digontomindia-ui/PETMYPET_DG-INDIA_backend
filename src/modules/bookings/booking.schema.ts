@@ -8,6 +8,7 @@ import {
   BOOKING_MODEL_NAME,
   BOOKING_STATUSES,
   CANCELLED_BY,
+  CONSULTATION_MODES,
   PAYMENT_STATUSES,
 } from './booking.constants.js';
 import { BOOKING_PHOTO_PHASES, type IBooking } from './booking.types.js';
@@ -55,9 +56,10 @@ const bookingSchema = new Schema<IBooking>(
       ],
       default: [],
     },
-    durationDays: { type: Number, default: null, min: 1 },
+    durationDays: { type: Number, default: null, min: 1, max: 15 },
     dropOffTime: { type: String, default: null },
     pickupTime: { type: String, default: null },
+    consultationMode: { type: String, enum: Object.values(CONSULTATION_MODES), default: null },
     providerNotes: { type: String, default: '', maxlength: 2000 },
     photos: {
       type: [

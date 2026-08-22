@@ -73,10 +73,11 @@ export const petCompanionService = {
         },
       },
     })
-      .select('_id addresses')
+      .select('_id addresses name')
       .lean();
 
     const distanceByOwnerId = new Map<string, number>();
+    const nameByOwnerId = new Map<string, string>();
     for (const owner of nearbyOwners) {
       const defaultAddress = owner.addresses.find((address) => address.isDefault);
       if (!defaultAddress) continue;
@@ -84,6 +85,7 @@ export const petCompanionService = {
         owner._id.toString(),
         haversineMeters([lng, lat], defaultAddress.location.coordinates),
       );
+      nameByOwnerId.set(owner._id.toString(), owner.name);
     }
 
     if (distanceByOwnerId.size === 0) {
@@ -108,7 +110,11 @@ export const petCompanionService = {
 
     const page_ = sorted.slice(skip, skip + limit);
     const pets = page_.map(({ candidate, distanceMeters }) =>
-      toCandidatePetDto(candidate, distanceMeters),
+      toCandidatePetDto(
+        candidate,
+        distanceMeters,
+        nameByOwnerId.get(candidate.ownerId.toString()) ?? '',
+      ),
     );
 
     return { pets, total: sorted.length, page, limit };

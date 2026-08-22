@@ -16,6 +16,7 @@ const chatRoomSchema = new Schema<IChatRoom>({
   bookingId: { type: Schema.Types.ObjectId, ref: BOOKING_MODEL_NAME, default: null },
   lastMessageAt: { type: Date, default: null },
   lastMessagePreview: { type: String, default: '' },
+  isUrgent: { type: Boolean, default: false },
   createdAt: { type: Date, default: () => new Date() },
 });
 

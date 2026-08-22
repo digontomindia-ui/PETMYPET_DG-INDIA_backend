@@ -39,3 +39,10 @@ export const PAYMENT_STATUSES = {
 } as const;
 
 export type BookingPaymentStatus = (typeof PAYMENT_STATUSES)[keyof typeof PAYMENT_STATUSES];
+
+export const CONSULTATION_MODES = {
+  CLINIC: 'CLINIC',
+  ONLINE: 'ONLINE',
+} as const;
+
+export type ConsultationMode = (typeof CONSULTATION_MODES)[keyof typeof CONSULTATION_MODES];

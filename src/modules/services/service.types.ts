@@ -13,6 +13,7 @@ export interface IService extends SoftDeletable {
   name: string;
   description: string;
   price: number;
+  originalPrice: number | null;
   durationMinutes: number;
   images: string[];
   addOnCatalog: IServiceAddOn[];

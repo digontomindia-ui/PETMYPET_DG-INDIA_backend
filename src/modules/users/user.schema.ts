@@ -2,7 +2,7 @@ import { model, Schema } from 'mongoose';
 import { ROLES } from '../../common/constants/roles.js';
 import { softDeletePlugin } from '../../common/database/plugins/soft-delete.plugin.js';
 import { USER_MODEL_NAME } from './user.constants.js';
-import type { IAddress, IUser, IUserPreferences } from './user.types.js';
+import type { IAddress, IEmergencyContact, IUser, IUserPreferences } from './user.types.js';
 
 const addressSchema = new Schema<IAddress>(
   {
@@ -32,6 +32,14 @@ const preferencesSchema = new Schema<IUserPreferences>(
   { _id: false },
 );
 
+const emergencyContactSchema = new Schema<IEmergencyContact>(
+  {
+    name: { type: String, required: true, trim: true },
+    phone: { type: String, required: true, trim: true },
+  },
+  { _id: false },
+);
+
 const userSchema = new Schema<IUser>(
   {
     role: { type: String, enum: Object.values(ROLES), required: true, default: ROLES.USER },
@@ -53,6 +61,10 @@ const userSchema = new Schema<IUser>(
     addresses: { type: [addressSchema], default: [] },
     preferences: { type: preferencesSchema, default: () => ({}) },
     deviceTokens: { type: [String], default: [] },
+    // Onboarding "Preferences" screen fields — separate from `preferences` above since
+    // those are notification toggles, not service/contact info.
+    serviceInterests: { type: [String], default: [] },
+    emergencyContact: { type: emergencyContactSchema, default: null },
     // No `default: null` here on purpose — a sparse unique index only excludes documents
     // where the field is genuinely absent, not ones explicitly set to null. Leaving it
     // unset until referral.service.ts lazily generates one keeps the index sparse in practice.

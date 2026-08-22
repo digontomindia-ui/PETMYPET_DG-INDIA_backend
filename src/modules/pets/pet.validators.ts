@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { COMPANION_ACTIVITY_LEVELS, PET_GENDERS, PET_SPECIES } from './pet.constants.js';
+import {
+  COMPANION_ACTIVITY_LEVELS,
+  GETS_ALONG_WITH_STATUS,
+  PET_GENDERS,
+  PET_SPECIES,
+} from './pet.constants.js';
 
 export const createPetSchema = z.object({
   name: z.string().min(1).max(60),
@@ -50,12 +55,37 @@ export const updateCompanionProfileSchema = z.object({
     ])
     .optional(),
   temperament: z.string().optional(),
+  neutered: z.boolean().optional(),
   getsAlongWith: z
     .object({
-      dogs: z.boolean().optional(),
-      cats: z.boolean().optional(),
-      kids: z.boolean().optional(),
-      families: z.boolean().optional(),
+      dogs: z
+        .enum([
+          GETS_ALONG_WITH_STATUS.YES,
+          GETS_ALONG_WITH_STATUS.NO,
+          GETS_ALONG_WITH_STATUS.NEEDS_INTRODUCTION,
+        ])
+        .optional(),
+      cats: z
+        .enum([
+          GETS_ALONG_WITH_STATUS.YES,
+          GETS_ALONG_WITH_STATUS.NO,
+          GETS_ALONG_WITH_STATUS.NEEDS_INTRODUCTION,
+        ])
+        .optional(),
+      kids: z
+        .enum([
+          GETS_ALONG_WITH_STATUS.YES,
+          GETS_ALONG_WITH_STATUS.NO,
+          GETS_ALONG_WITH_STATUS.NEEDS_INTRODUCTION,
+        ])
+        .optional(),
+      families: z
+        .enum([
+          GETS_ALONG_WITH_STATUS.YES,
+          GETS_ALONG_WITH_STATUS.NO,
+          GETS_ALONG_WITH_STATUS.NEEDS_INTRODUCTION,
+        ])
+        .optional(),
     })
     .optional(),
 });

@@ -58,7 +58,7 @@ orderRoutes.use(authenticate);
  *         content:
  *           application/json:
  *             schema: { type: object }
- *             example: { success: true, message: Order placed, data: { id: "64f1a2b3c4d5e6f7a8b9c0f9", userId: "64f1a2b3c4d5e6f7a8b9c0d2", items: [{ productId: "64f1a2b3c4d5e6f7a8b9c0d1", name: "Royal Canin Adult Dog Food 3kg", price: 1499, quantity: 2 }], totalAmount: 2998, currency: INR, shippingAddress: { addressLine1: "221B Baker Street", addressLine2: "Near HSR Layout", city: Bengaluru, state: Karnataka, postalCode: "560102", country: India }, status: PENDING, paymentMethod: WALLET, paymentStatus: PAID, createdAt: "2026-08-04T12:00:00.000Z" } }
+ *             example: { success: true, message: Order placed, data: { id: "64f1a2b3c4d5e6f7a8b9c0f9", userId: "64f1a2b3c4d5e6f7a8b9c0d2", items: [{ productId: "64f1a2b3c4d5e6f7a8b9c0d1", name: "Royal Canin Adult Dog Food 3kg", price: 1499, quantity: 2 }], totalAmount: 3038, discountAmount: 0, deliveryFee: 40, couponCode: null, currency: INR, shippingAddress: { addressLine1: "221B Baker Street", addressLine2: "Near HSR Layout", city: Bengaluru, state: Karnataka, postalCode: "560102", country: India }, status: PENDING, paymentMethod: WALLET, paymentStatus: PAID, createdAt: "2026-08-04T12:00:00.000Z" } }
  *       400:
  *         description: Validation error, empty cart, or insufficient wallet balance
  *         content:
@@ -102,7 +102,10 @@ orderRoutes.post('/', validate({ body: placeOrderSchema }), orderController.plac
  *                 - id: "64f1a2b3c4d5e6f7a8b9c0f9"
  *                   userId: "64f1a2b3c4d5e6f7a8b9c0d2"
  *                   items: [{ productId: "64f1a2b3c4d5e6f7a8b9c0d1", name: "Royal Canin Adult Dog Food 3kg", price: 1499, quantity: 2 }]
- *                   totalAmount: 2998
+ *                   totalAmount: 3038
+ *                   discountAmount: 0
+ *                   deliveryFee: 40
+ *                   couponCode: null
  *                   currency: INR
  *                   shippingAddress: { addressLine1: "221B Baker Street", city: Bengaluru, state: Karnataka, postalCode: "560102", country: India }
  *                   status: PENDING
@@ -137,7 +140,7 @@ orderRoutes.get('/', validate({ query: listOrdersQuerySchema }), orderController
  *         content:
  *           application/json:
  *             schema: { type: object }
- *             example: { success: true, message: Success, data: { id: "64f1a2b3c4d5e6f7a8b9c0f9", userId: "64f1a2b3c4d5e6f7a8b9c0d2", items: [{ productId: "64f1a2b3c4d5e6f7a8b9c0d1", name: "Royal Canin Adult Dog Food 3kg", price: 1499, quantity: 2 }], totalAmount: 2998, currency: INR, shippingAddress: { addressLine1: "221B Baker Street", city: Bengaluru, state: Karnataka, postalCode: "560102", country: India }, status: PENDING, paymentMethod: WALLET, paymentStatus: PAID, createdAt: "2026-08-04T12:00:00.000Z" } }
+ *             example: { success: true, message: Success, data: { id: "64f1a2b3c4d5e6f7a8b9c0f9", userId: "64f1a2b3c4d5e6f7a8b9c0d2", items: [{ productId: "64f1a2b3c4d5e6f7a8b9c0d1", name: "Royal Canin Adult Dog Food 3kg", price: 1499, quantity: 2 }], totalAmount: 3038, discountAmount: 0, deliveryFee: 40, couponCode: null, currency: INR, shippingAddress: { addressLine1: "221B Baker Street", city: Bengaluru, state: Karnataka, postalCode: "560102", country: India }, status: PENDING, paymentMethod: WALLET, paymentStatus: PAID, createdAt: "2026-08-04T12:00:00.000Z" } }
  *       400:
  *         description: Invalid id parameter or order not found
  *         content:
@@ -183,7 +186,7 @@ orderRoutes.get('/:id', validate({ params: idParamSchema }), orderController.get
  *         content:
  *           application/json:
  *             schema: { type: object }
- *             example: { success: true, message: Order status updated, data: { id: "64f1a2b3c4d5e6f7a8b9c0f9", userId: "64f1a2b3c4d5e6f7a8b9c0d2", items: [{ productId: "64f1a2b3c4d5e6f7a8b9c0d1", name: "Royal Canin Adult Dog Food 3kg", price: 1499, quantity: 2 }], totalAmount: 2998, currency: INR, shippingAddress: { addressLine1: "221B Baker Street", city: Bengaluru, state: Karnataka, postalCode: "560102", country: India }, status: SHIPPED, paymentMethod: WALLET, paymentStatus: PAID, createdAt: "2026-08-04T12:00:00.000Z" } }
+ *             example: { success: true, message: Order status updated, data: { id: "64f1a2b3c4d5e6f7a8b9c0f9", userId: "64f1a2b3c4d5e6f7a8b9c0d2", items: [{ productId: "64f1a2b3c4d5e6f7a8b9c0d1", name: "Royal Canin Adult Dog Food 3kg", price: 1499, quantity: 2 }], totalAmount: 3038, discountAmount: 0, deliveryFee: 40, couponCode: null, currency: INR, shippingAddress: { addressLine1: "221B Baker Street", city: Bengaluru, state: Karnataka, postalCode: "560102", country: India }, status: SHIPPED, paymentMethod: WALLET, paymentStatus: PAID, createdAt: "2026-08-04T12:00:00.000Z" } }
  *       400:
  *         description: Validation error, order not found, or invalid status transition
  *         content:
@@ -228,7 +231,7 @@ orderRoutes.patch(
  *         content:
  *           application/json:
  *             schema: { type: object }
- *             example: { success: true, message: Order marked as paid, data: { id: "64f1a2b3c4d5e6f7a8b9c0f9", userId: "64f1a2b3c4d5e6f7a8b9c0d2", items: [{ productId: "64f1a2b3c4d5e6f7a8b9c0d1", name: "Royal Canin Adult Dog Food 3kg", price: 1499, quantity: 2 }], totalAmount: 2998, currency: INR, shippingAddress: { addressLine1: "221B Baker Street", city: Bengaluru, state: Karnataka, postalCode: "560102", country: India }, status: DELIVERED, paymentMethod: CASH_ON_DELIVERY, paymentStatus: PAID, createdAt: "2026-08-04T12:00:00.000Z" } }
+ *             example: { success: true, message: Order marked as paid, data: { id: "64f1a2b3c4d5e6f7a8b9c0f9", userId: "64f1a2b3c4d5e6f7a8b9c0d2", items: [{ productId: "64f1a2b3c4d5e6f7a8b9c0d1", name: "Royal Canin Adult Dog Food 3kg", price: 1499, quantity: 2 }], totalAmount: 3038, discountAmount: 0, deliveryFee: 40, couponCode: null, currency: INR, shippingAddress: { addressLine1: "221B Baker Street", city: Bengaluru, state: Karnataka, postalCode: "560102", country: India }, status: DELIVERED, paymentMethod: CASH_ON_DELIVERY, paymentStatus: PAID, createdAt: "2026-08-04T12:00:00.000Z" } }
  *       400:
  *         description: Order not found
  *         content:

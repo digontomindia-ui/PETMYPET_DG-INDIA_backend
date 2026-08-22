@@ -8,6 +8,8 @@ export function toProductDto(product: ProductDocument) {
     description: product.description,
     category: product.category,
     price: product.price,
+    mrp: product.mrp,
+    discountPercent: product.mrp ? Math.round((1 - product.price / product.mrp) * 100) : null,
     images: product.images,
     stock: product.stock,
     sku: product.sku,

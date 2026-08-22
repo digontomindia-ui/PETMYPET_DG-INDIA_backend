@@ -12,6 +12,8 @@ export function toPublicUser(user: UserDocument): PublicUser {
     isBlocked: user.isBlocked,
     addresses: user.addresses,
     preferences: user.preferences,
+    serviceInterests: user.serviceInterests,
+    emergencyContact: user.emergencyContact,
     referralCode: user.referralCode ?? null,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,

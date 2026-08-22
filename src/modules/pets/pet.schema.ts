@@ -4,6 +4,7 @@ import { USER_MODEL_NAME } from '../users/user.constants.js';
 import { PROVIDER_MODEL_NAME } from '../providers/provider.constants.js';
 import {
   COMPANION_ACTIVITY_LEVELS,
+  GETS_ALONG_WITH_STATUS,
   PET_GENDERS,
   PET_MODEL_NAME,
   PET_SPECIES,
@@ -45,11 +46,28 @@ const companionProfileSchema = new Schema<ICompanionProfile>(
       default: COMPANION_ACTIVITY_LEVELS.MEDIUM,
     },
     temperament: { type: String, default: '' },
+    neutered: { type: Boolean, default: false },
     getsAlongWith: {
-      dogs: { type: Boolean, default: true },
-      cats: { type: Boolean, default: true },
-      kids: { type: Boolean, default: true },
-      families: { type: Boolean, default: true },
+      dogs: {
+        type: String,
+        enum: Object.values(GETS_ALONG_WITH_STATUS),
+        default: GETS_ALONG_WITH_STATUS.YES,
+      },
+      cats: {
+        type: String,
+        enum: Object.values(GETS_ALONG_WITH_STATUS),
+        default: GETS_ALONG_WITH_STATUS.YES,
+      },
+      kids: {
+        type: String,
+        enum: Object.values(GETS_ALONG_WITH_STATUS),
+        default: GETS_ALONG_WITH_STATUS.YES,
+      },
+      families: {
+        type: String,
+        enum: Object.values(GETS_ALONG_WITH_STATUS),
+        default: GETS_ALONG_WITH_STATUS.YES,
+      },
     },
   },
   { _id: false },

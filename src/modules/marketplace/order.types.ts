@@ -23,6 +23,9 @@ export interface IOrder {
   userId: Types.ObjectId;
   items: Types.DocumentArray<IOrderItem>;
   totalAmount: number;
+  discountAmount: number;
+  deliveryFee: number;
+  couponCode: string | null;
   currency: string;
   shippingAddress: IShippingAddress;
   status: OrderStatus;

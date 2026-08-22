@@ -9,7 +9,10 @@ export const cartRepository = {
   },
 
   async clear(userId: string): Promise<void> {
-    await CartModel.updateOne({ userId }, { items: [] }).exec();
+    await CartModel.updateOne(
+      { userId },
+      { items: [], couponCode: null, discountAmount: 0 },
+    ).exec();
   },
 };
 

@@ -1503,6 +1503,14 @@
                       "emailNotifications": true,
                       "pushNotifications": true
                     },
+                    "serviceInterests": [
+                      "Grooming",
+                      "Veterinary"
+                    ],
+                    "emergencyContact": {
+                      "name": "Rohit Sharma",
+                      "phone": "+919876500000"
+                    },
                     "createdAt": "2024-01-15T10:30:00.000Z",
                     "updatedAt": "2024-06-20T08:15:00.000Z"
                   }
@@ -1548,6 +1556,10 @@
                     "type": "string",
                     "maxLength": 120
                   },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
                   "avatarUrl": {
                     "type": "string",
                     "format": "uri"
@@ -1568,17 +1580,45 @@
                         "type": "boolean"
                       }
                     }
+                  },
+                  "serviceInterests": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Grooming, Veterinary, Vaccination, Boarding, Pet Sitting, Training, Dog Walking, Pet Taxi, Other"
+                  },
+                  "emergencyContact": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "maxLength": 120
+                      },
+                      "phone": {
+                        "type": "string"
+                      }
+                    }
                   }
                 }
               },
               "example": {
                 "name": "Ananya Sharma",
+                "email": "ananya.sharma@example.com",
                 "avatarUrl": "https://res.cloudinary.com/patmypets/image/upload/v1699999999/avatars/ananya.jpg",
                 "preferences": {
                   "language": "en",
                   "smsNotifications": true,
                   "emailNotifications": false,
                   "pushNotifications": true
+                },
+                "serviceInterests": [
+                  "Grooming",
+                  "Veterinary"
+                ],
+                "emergencyContact": {
+                  "name": "Rohit Sharma",
+                  "phone": "+919876500000"
                 }
               }
             }
@@ -1622,6 +1662,14 @@
                       "emailNotifications": false,
                       "pushNotifications": true
                     },
+                    "serviceInterests": [
+                      "Grooming",
+                      "Veterinary"
+                    ],
+                    "emergencyContact": {
+                      "name": "Rohit Sharma",
+                      "phone": "+919876500000"
+                    },
                     "createdAt": "2024-01-15T10:30:00.000Z",
                     "updatedAt": "2024-06-21T09:00:00.000Z"
                   }
@@ -1655,6 +1703,21 @@
                   "success": false,
                   "error": "UNAUTHORIZED",
                   "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email already in use",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "CONFLICT",
+                  "message": "An account with this email already exists"
                 }
               }
             }
@@ -3822,6 +3885,7 @@
                       "name": "Full Grooming Package",
                       "description": "Bath, haircut, nail trim, and ear cleaning.",
                       "price": 899,
+                      "originalPrice": 1049,
                       "durationMinutes": 60,
                       "images": [
                         "https://cdn.petmypet.in/services/grooming-package.jpg"
@@ -3897,6 +3961,12 @@
                     "type": "number",
                     "minimum": 0
                   },
+                  "originalPrice": {
+                    "type": "number",
+                    "minimum": 0,
+                    "nullable": true,
+                    "description": "Struck-through list price; must be >= price when set"
+                  },
                   "durationMinutes": {
                     "type": "integer",
                     "minimum": 5
@@ -3938,6 +4008,7 @@
                 "name": "Full Grooming Package",
                 "description": "Bath, haircut, nail trim, and ear cleaning.",
                 "price": 899,
+                "originalPrice": 1049,
                 "durationMinutes": 60,
                 "images": [
                   "https://cdn.petmypet.in/services/grooming-package.jpg"
@@ -3974,6 +4045,7 @@
                     "name": "Full Grooming Package",
                     "description": "Bath, haircut, nail trim, and ear cleaning.",
                     "price": 899,
+                    "originalPrice": 1049,
                     "durationMinutes": 60,
                     "images": [
                       "https://cdn.petmypet.in/services/grooming-package.jpg"
@@ -4078,6 +4150,7 @@
                     "name": "Full Grooming Package",
                     "description": "Bath, haircut, nail trim, and ear cleaning.",
                     "price": 899,
+                    "originalPrice": 1049,
                     "durationMinutes": 60,
                     "images": [
                       "https://cdn.petmypet.in/services/grooming-package.jpg"
@@ -4149,6 +4222,12 @@
                     "type": "number",
                     "minimum": 0
                   },
+                  "originalPrice": {
+                    "type": "number",
+                    "minimum": 0,
+                    "nullable": true,
+                    "description": "Struck-through list price; must be >= price when set"
+                  },
                   "durationMinutes": {
                     "type": "integer",
                     "minimum": 5
@@ -4188,6 +4267,7 @@
               },
               "example": {
                 "price": 949,
+                "originalPrice": 1099,
                 "durationMinutes": 75,
                 "addOnCatalog": [
                   {
@@ -4221,6 +4301,7 @@
                     "name": "Full Grooming Package",
                     "description": "Bath, haircut, nail trim, and ear cleaning.",
                     "price": 949,
+                    "originalPrice": 1099,
                     "durationMinutes": 75,
                     "images": [
                       "https://cdn.petmypet.in/services/grooming-package.jpg"
@@ -4957,6 +5038,7 @@
                     {
                       "id": "64f1a2b3c4d5e6f7a8b9c0d1",
                       "refereeName": "Priya Sharma",
+                      "refereeAvatarUrl": "https://cdn.patmypets.app/avatars/priya.jpg",
                       "status": "REWARDED",
                       "rewardPoints": 100,
                       "createdAt": "2026-08-01T10:30:00.000Z"
@@ -4964,6 +5046,7 @@
                     {
                       "id": "64f1a2b3c4d5e6f7a8b9c0d2",
                       "refereeName": "Rohan Mehta",
+                      "refereeAvatarUrl": null,
                       "status": "PENDING",
                       "rewardPoints": 100,
                       "createdAt": "2026-08-10T14:00:00.000Z"
@@ -5156,6 +5239,11 @@
                       "providerType": "GROOMER",
                       "businessName": "Happy Paws Grooming",
                       "description": "Mobile grooming service for dogs and cats",
+                      "experienceYears": 5,
+                      "languages": [
+                        "English",
+                        "Hindi"
+                      ],
                       "kycStatus": "APPROVED",
                       "zoneIds": [
                         "64f1a2b3c4d5e6f7a8b9c0e1"
@@ -5176,6 +5264,7 @@
                           "isClosed": false
                         }
                       ],
+                      "unavailableDates": [],
                       "metadata": {
                         "groomer": {
                           "specializations": [
@@ -5254,6 +5343,16 @@
                   "businessName": {
                     "type": "string"
                   },
+                  "experienceYears": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "languages": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
                   "description": {
                     "type": "string"
                   },
@@ -5287,6 +5386,11 @@
                 "providerType": "GROOMER",
                 "businessName": "Happy Paws Grooming",
                 "description": "Mobile grooming service for dogs and cats",
+                "experienceYears": 5,
+                "languages": [
+                  "English",
+                  "Hindi"
+                ],
                 "coordinates": [
                   77.5946,
                   12.9716
@@ -5338,6 +5442,11 @@
                     "providerType": "GROOMER",
                     "businessName": "Happy Paws Grooming",
                     "description": "Mobile grooming service for dogs and cats",
+                    "experienceYears": 5,
+                    "languages": [
+                      "English",
+                      "Hindi"
+                    ],
                     "kycStatus": "PENDING",
                     "zoneIds": [
                       "64f1a2b3c4d5e6f7a8b9c0e1"
@@ -5358,6 +5467,7 @@
                         "isClosed": false
                       }
                     ],
+                    "unavailableDates": [],
                     "metadata": {
                       "groomer": {
                         "specializations": [
@@ -5439,6 +5549,11 @@
                     "providerType": "GROOMER",
                     "businessName": "Happy Paws Grooming",
                     "description": "Mobile grooming service for dogs and cats",
+                    "experienceYears": 5,
+                    "languages": [
+                      "English",
+                      "Hindi"
+                    ],
                     "kycStatus": "APPROVED",
                     "zoneIds": [
                       "64f1a2b3c4d5e6f7a8b9c0e1"
@@ -5459,6 +5574,7 @@
                         "isClosed": false
                       }
                     ],
+                    "unavailableDates": [],
                     "metadata": {
                       "groomer": {
                         "specializations": [
@@ -5536,6 +5652,16 @@
                   "businessName": {
                     "type": "string"
                   },
+                  "experienceYears": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "languages": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
                   "description": {
                     "type": "string"
                   },
@@ -5568,6 +5694,11 @@
               "example": {
                 "businessName": "Happy Paws Grooming & Spa",
                 "description": "Mobile grooming and spa service for dogs and cats",
+                "experienceYears": 5,
+                "languages": [
+                  "English",
+                  "Hindi"
+                ],
                 "address": "45 Brigade Road, Bengaluru, Karnataka 560025"
               }
             }
@@ -5590,6 +5721,11 @@
                     "providerType": "GROOMER",
                     "businessName": "Happy Paws Grooming & Spa",
                     "description": "Mobile grooming and spa service for dogs and cats",
+                    "experienceYears": 5,
+                    "languages": [
+                      "English",
+                      "Hindi"
+                    ],
                     "kycStatus": "APPROVED",
                     "zoneIds": [
                       "64f1a2b3c4d5e6f7a8b9c0e1"
@@ -5610,6 +5746,7 @@
                         "isClosed": false
                       }
                     ],
+                    "unavailableDates": [],
                     "metadata": {
                       "groomer": {
                         "specializations": [
@@ -5732,6 +5869,11 @@
                     "providerType": "GROOMER",
                     "businessName": "Happy Paws Grooming",
                     "description": "Mobile grooming service for dogs and cats",
+                    "experienceYears": 5,
+                    "languages": [
+                      "English",
+                      "Hindi"
+                    ],
                     "kycStatus": "APPROVED",
                     "zoneIds": [
                       "64f1a2b3c4d5e6f7a8b9c0e1"
@@ -5745,6 +5887,7 @@
                     },
                     "address": "12 MG Road, Bengaluru, Karnataka 560001",
                     "workingHours": [],
+                    "unavailableDates": [],
                     "metadata": {},
                     "commissionPercent": 15,
                     "rating": 4.6,
@@ -5858,6 +6001,11 @@
                     "providerType": "GROOMER",
                     "businessName": "Happy Paws Grooming",
                     "description": "Mobile grooming service for dogs and cats",
+                    "experienceYears": 5,
+                    "languages": [
+                      "English",
+                      "Hindi"
+                    ],
                     "kycStatus": "PENDING",
                     "zoneIds": [
                       "64f1a2b3c4d5e6f7a8b9c0e1"
@@ -5871,6 +6019,7 @@
                     },
                     "address": "12 MG Road, Bengaluru, Karnataka 560001",
                     "workingHours": [],
+                    "unavailableDates": [],
                     "metadata": {},
                     "commissionPercent": null,
                     "rating": 0,
@@ -5965,6 +6114,11 @@
                     "providerType": "GROOMER",
                     "businessName": "Happy Paws Grooming",
                     "description": "Mobile grooming service for dogs and cats",
+                    "experienceYears": 5,
+                    "languages": [
+                      "English",
+                      "Hindi"
+                    ],
                     "kycStatus": "PENDING",
                     "zoneIds": [
                       "64f1a2b3c4d5e6f7a8b9c0e1"
@@ -5978,6 +6132,7 @@
                     },
                     "address": "12 MG Road, Bengaluru, Karnataka 560001",
                     "workingHours": [],
+                    "unavailableDates": [],
                     "metadata": {},
                     "commissionPercent": null,
                     "rating": 0,
@@ -6090,6 +6245,11 @@
                     "providerType": "GROOMER",
                     "businessName": "Happy Paws Grooming",
                     "description": "Mobile grooming service for dogs and cats",
+                    "experienceYears": 5,
+                    "languages": [
+                      "English",
+                      "Hindi"
+                    ],
                     "kycStatus": "APPROVED",
                     "zoneIds": [
                       "64f1a2b3c4d5e6f7a8b9c0e1"
@@ -6103,6 +6263,7 @@
                     },
                     "address": "12 MG Road, Bengaluru, Karnataka 560001",
                     "workingHours": [],
+                    "unavailableDates": [],
                     "metadata": {},
                     "commissionPercent": 15,
                     "rating": 4.6,
@@ -6197,6 +6358,11 @@
                     "providerType": "GROOMER",
                     "businessName": "Happy Paws Grooming",
                     "description": "Mobile grooming service for dogs and cats",
+                    "experienceYears": 5,
+                    "languages": [
+                      "English",
+                      "Hindi"
+                    ],
                     "kycStatus": "APPROVED",
                     "zoneIds": [
                       "64f1a2b3c4d5e6f7a8b9c0e1"
@@ -6210,6 +6376,7 @@
                     },
                     "address": "12 MG Road, Bengaluru, Karnataka 560001",
                     "workingHours": [],
+                    "unavailableDates": [],
                     "metadata": {},
                     "commissionPercent": 15,
                     "rating": 4.6,
@@ -6304,6 +6471,11 @@
                     "providerType": "GROOMER",
                     "businessName": "Happy Paws Grooming",
                     "description": "Mobile grooming service for dogs and cats",
+                    "experienceYears": 5,
+                    "languages": [
+                      "English",
+                      "Hindi"
+                    ],
                     "kycStatus": "APPROVED",
                     "zoneIds": [
                       "64f1a2b3c4d5e6f7a8b9c0e1"
@@ -6317,6 +6489,7 @@
                     },
                     "address": "12 MG Road, Bengaluru, Karnataka 560001",
                     "workingHours": [],
+                    "unavailableDates": [],
                     "metadata": {},
                     "commissionPercent": 15,
                     "rating": 4.6,
@@ -6361,6 +6534,169 @@
                   "success": false,
                   "error": "BAD_REQUEST",
                   "message": "No open check-in found for today"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Missing or malformed Authorization header"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/providers/me/unavailable-dates": {
+      "post": {
+        "tags": [
+          "Providers"
+        ],
+        "summary": "Add a holiday/blocked date (SERVICE_PROVIDER only) — GET /availability returns no bookable slots on this date",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "date"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-10-02"
+                  }
+                }
+              },
+              "example": {
+                "date": "2026-10-02"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Unavailable date added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Unavailable date added",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "unavailableDates": [
+                      "2026-10-02"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "date: Invalid date"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Missing or malformed Authorization header"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/providers/me/unavailable-dates/{date}": {
+      "delete": {
+        "tags": [
+          "Providers"
+        ],
+        "summary": "Remove a holiday/blocked date (SERVICE_PROVIDER only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "date",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2026-10-02"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unavailable date removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Unavailable date removed",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "unavailableDates": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid date format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Expected YYYY-MM-DD"
                 }
               }
             }
@@ -6444,7 +6780,38 @@
                       "4": 21.4,
                       "5": 64.3
                     },
-                    "repeatClientPercent": 35.7
+                    "repeatClientPercent": 35.7,
+                    "caseMix": [
+                      {
+                        "categoryId": "64f1a2b3c4d5e6f7a8b9c0c1",
+                        "categoryName": "Grooming",
+                        "count": 10,
+                        "percent": 71.4
+                      },
+                      {
+                        "categoryId": "64f1a2b3c4d5e6f7a8b9c0c2",
+                        "categoryName": "Boarding",
+                        "count": 4,
+                        "percent": 28.6
+                      }
+                    ],
+                    "topServices": [
+                      {
+                        "serviceId": "64f1a2b3c4d5e6f7a8b9c0a5",
+                        "name": "Full Grooming Package",
+                        "price": 899,
+                        "bookingCount": 8
+                      },
+                      {
+                        "serviceId": "64f1a2b3c4d5e6f7a8b9c0a6",
+                        "name": "Basic Bath & Trim",
+                        "price": 499,
+                        "bookingCount": 6
+                      }
+                    ],
+                    "avgServiceDurationMinutes": 52,
+                    "satisfactionScore": 4.64,
+                    "previousPeriodEarnings": 6100
                   }
                 }
               }
@@ -6638,6 +7005,7 @@
                       },
                       "address": "8 Koramangala 4th Block, Bengaluru, Karnataka 560034",
                       "workingHours": [],
+                      "unavailableDates": [],
                       "metadata": {
                         "vet": {
                           "specializations": [
@@ -6744,6 +7112,7 @@
                     },
                     "address": "8 Koramangala 4th Block, Bengaluru, Karnataka 560034",
                     "workingHours": [],
+                    "unavailableDates": [],
                     "metadata": {
                       "vet": {
                         "specializations": [
@@ -6894,6 +7263,7 @@
                     },
                     "address": "8 Koramangala 4th Block, Bengaluru, Karnataka 560034",
                     "workingHours": [],
+                    "unavailableDates": [],
                     "metadata": {
                       "vet": {
                         "specializations": [
@@ -7007,6 +7377,11 @@
                     "providerType": "GROOMER",
                     "businessName": "Happy Paws Grooming",
                     "description": "Mobile grooming service for dogs and cats",
+                    "experienceYears": 5,
+                    "languages": [
+                      "English",
+                      "Hindi"
+                    ],
                     "kycStatus": "APPROVED",
                     "zoneIds": [
                       "64f1a2b3c4d5e6f7a8b9c0e1"
@@ -7027,6 +7402,7 @@
                         "isClosed": false
                       }
                     ],
+                    "unavailableDates": [],
                     "metadata": {
                       "groomer": {
                         "specializations": [
@@ -8113,20 +8489,44 @@
                   "temperament": {
                     "type": "string"
                   },
+                  "neutered": {
+                    "type": "boolean",
+                    "default": false
+                  },
                   "getsAlongWith": {
                     "type": "object",
                     "properties": {
                       "dogs": {
-                        "type": "boolean"
+                        "type": "string",
+                        "enum": [
+                          "YES",
+                          "NO",
+                          "NEEDS_INTRODUCTION"
+                        ]
                       },
                       "cats": {
-                        "type": "boolean"
+                        "type": "string",
+                        "enum": [
+                          "YES",
+                          "NO",
+                          "NEEDS_INTRODUCTION"
+                        ]
                       },
                       "kids": {
-                        "type": "boolean"
+                        "type": "string",
+                        "enum": [
+                          "YES",
+                          "NO",
+                          "NEEDS_INTRODUCTION"
+                        ]
                       },
                       "families": {
-                        "type": "boolean"
+                        "type": "string",
+                        "enum": [
+                          "YES",
+                          "NO",
+                          "NEEDS_INTRODUCTION"
+                        ]
                       }
                     }
                   }
@@ -8151,11 +8551,12 @@
                 ],
                 "activityLevel": "HIGH",
                 "temperament": "Gentle with smaller dogs",
+                "neutered": true,
                 "getsAlongWith": {
-                  "dogs": true,
-                  "cats": false,
-                  "kids": true,
-                  "families": true
+                  "dogs": "YES",
+                  "cats": "NEEDS_INTRODUCTION",
+                  "kids": "YES",
+                  "families": "YES"
                 }
               }
             }
@@ -8204,11 +8605,12 @@
                       ],
                       "activityLevel": "HIGH",
                       "temperament": "Gentle with smaller dogs",
+                      "neutered": true,
                       "getsAlongWith": {
-                        "dogs": true,
-                        "cats": false,
-                        "kids": true,
-                        "families": true
+                        "dogs": "YES",
+                        "cats": "NEEDS_INTRODUCTION",
+                        "kids": "YES",
+                        "families": "YES"
                       }
                     },
                     "createdAt": "2026-08-04T08:00:00.000Z"
@@ -10174,10 +10576,12 @@
                     {
                       "id": "64f1a2b3c4d5e6f7a8b9c0e1",
                       "ownerId": "64f1a2b3c4d5e6f7a8b9c0e2",
+                      "ownerName": "Ananya S.",
                       "name": "Luna",
                       "species": "DOG",
                       "breed": "Golden Retriever",
                       "gender": "FEMALE",
+                      "dateOfBirth": "2023-05-01T00:00:00.000Z",
                       "weightKg": 24,
                       "avatarUrl": "https://cdn.petmypet.in/pets/luna-avatar.jpg",
                       "companionProfile": {
@@ -10196,11 +10600,12 @@
                         ],
                         "activityLevel": "HIGH",
                         "temperament": "Great with other dogs",
+                        "neutered": true,
                         "getsAlongWith": {
-                          "dogs": true,
-                          "cats": true,
-                          "kids": true,
-                          "families": true
+                          "dogs": "YES",
+                          "cats": "YES",
+                          "kids": "YES",
+                          "families": "YES"
                         }
                       },
                       "distanceMeters": 1240.5
@@ -11889,6 +12294,8 @@
                       "description": "Balanced nutrition for adult dogs.",
                       "category": "FOOD",
                       "price": 1499,
+                      "mrp": 1699,
+                      "discountPercent": 12,
                       "images": [
                         "https://cdn.petmypet.in/products/royal-canin-3kg.jpg"
                       ],
@@ -11972,6 +12379,12 @@
                     "type": "number",
                     "minimum": 0
                   },
+                  "mrp": {
+                    "type": "number",
+                    "minimum": 0,
+                    "nullable": true,
+                    "description": "Struck-through list price; must be >= price when set"
+                  },
                   "images": {
                     "type": "array",
                     "items": {
@@ -12000,6 +12413,7 @@
                 "description": "Balanced nutrition for adult dogs.",
                 "category": "FOOD",
                 "price": 1499,
+                "mrp": 1699,
                 "images": [
                   "https://cdn.petmypet.in/products/royal-canin-3kg.jpg"
                 ],
@@ -12027,6 +12441,8 @@
                     "description": "Balanced nutrition for adult dogs.",
                     "category": "FOOD",
                     "price": 1499,
+                    "mrp": 1699,
+                    "discountPercent": 12,
                     "images": [
                       "https://cdn.petmypet.in/products/royal-canin-3kg.jpg"
                     ],
@@ -12122,6 +12538,8 @@
                     "description": "Balanced nutrition for adult dogs.",
                     "category": "FOOD",
                     "price": 1499,
+                    "mrp": 1699,
+                    "discountPercent": 12,
                     "images": [
                       "https://cdn.petmypet.in/products/royal-canin-3kg.jpg"
                     ],
@@ -12202,6 +12620,12 @@
                     "type": "number",
                     "minimum": 0
                   },
+                  "mrp": {
+                    "type": "number",
+                    "minimum": 0,
+                    "nullable": true,
+                    "description": "Struck-through list price; must be >= price when set"
+                  },
                   "images": {
                     "type": "array",
                     "items": {
@@ -12224,6 +12648,7 @@
               },
               "example": {
                 "price": 1399,
+                "mrp": 1599,
                 "stock": 30
               }
             }
@@ -12247,6 +12672,8 @@
                     "description": "Balanced nutrition for adult dogs.",
                     "category": "FOOD",
                     "price": 1399,
+                    "mrp": 1599,
+                    "discountPercent": 13,
                     "images": [
                       "https://cdn.petmypet.in/products/royal-canin-3kg.jpg"
                     ],
@@ -12494,7 +12921,10 @@
                         "quantity": 2
                       }
                     ],
-                    "totalAmount": 2998,
+                    "totalAmount": 3038,
+                    "discountAmount": 0,
+                    "deliveryFee": 40,
+                    "couponCode": null,
                     "currency": "INR",
                     "shippingAddress": {
                       "addressLine1": "221B Baker Street",
@@ -12598,7 +13028,10 @@
                           "quantity": 2
                         }
                       ],
-                      "totalAmount": 2998,
+                      "totalAmount": 3038,
+                      "discountAmount": 0,
+                      "deliveryFee": 40,
+                      "couponCode": null,
                       "currency": "INR",
                       "shippingAddress": {
                         "addressLine1": "221B Baker Street",
@@ -12685,7 +13118,10 @@
                         "quantity": 2
                       }
                     ],
-                    "totalAmount": 2998,
+                    "totalAmount": 3038,
+                    "discountAmount": 0,
+                    "deliveryFee": 40,
+                    "couponCode": null,
                     "currency": "INR",
                     "shippingAddress": {
                       "addressLine1": "221B Baker Street",
@@ -12807,7 +13243,10 @@
                         "quantity": 2
                       }
                     ],
-                    "totalAmount": 2998,
+                    "totalAmount": 3038,
+                    "discountAmount": 0,
+                    "deliveryFee": 40,
+                    "couponCode": null,
                     "currency": "INR",
                     "shippingAddress": {
                       "addressLine1": "221B Baker Street",
@@ -12917,7 +13356,10 @@
                         "quantity": 2
                       }
                     ],
-                    "totalAmount": 2998,
+                    "totalAmount": 3038,
+                    "discountAmount": 0,
+                    "deliveryFee": 40,
+                    "couponCode": null,
                     "currency": "INR",
                     "shippingAddress": {
                       "addressLine1": "221B Baker Street",
@@ -13019,7 +13461,11 @@
                         "subtotal": 2998
                       }
                     ],
-                    "totalAmount": 2998
+                    "subtotal": 2998,
+                    "discountAmount": 0,
+                    "couponCode": null,
+                    "deliveryFee": 40,
+                    "totalAmount": 3038
                   }
                 }
               }
@@ -13150,7 +13596,11 @@
                         "subtotal": 2998
                       }
                     ],
-                    "totalAmount": 2998
+                    "subtotal": 2998,
+                    "discountAmount": 0,
+                    "couponCode": null,
+                    "deliveryFee": 40,
+                    "totalAmount": 3038
                   }
                 }
               }
@@ -13258,7 +13708,11 @@
                         "subtotal": 4497
                       }
                     ],
-                    "totalAmount": 4497
+                    "subtotal": 4497,
+                    "discountAmount": 0,
+                    "couponCode": null,
+                    "deliveryFee": 40,
+                    "totalAmount": 4537
                   }
                 }
               }
@@ -13331,6 +13785,10 @@
                   "data": {
                     "id": "64f1a2b3c4d5e6f7a8b9c0e1",
                     "items": [],
+                    "subtotal": 0,
+                    "discountAmount": 0,
+                    "couponCode": null,
+                    "deliveryFee": 0,
                     "totalAmount": 0
                   }
                 }
@@ -13348,6 +13806,186 @@
                   "success": false,
                   "error": "BAD_REQUEST",
                   "message": "Item not found in cart"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cart/apply-coupon": {
+      "post": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Apply a coupon code to the current cart",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "code"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "example": "WELCOME10"
+                  }
+                }
+              },
+              "example": {
+                "code": "WELCOME10"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Coupon applied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Coupon applied",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0e1",
+                    "items": [
+                      {
+                        "productId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                        "name": "Royal Canin Adult Dog Food 3kg",
+                        "price": 1499,
+                        "images": [
+                          "https://cdn.petmypet.in/products/royal-canin-3kg.jpg"
+                        ],
+                        "quantity": 2,
+                        "subtotal": 2998
+                      }
+                    ],
+                    "subtotal": 2998,
+                    "discountAmount": 300,
+                    "couponCode": "WELCOME10",
+                    "deliveryFee": 40,
+                    "totalAmount": 2738
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Cart is empty, or the coupon is invalid/ineligible",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Coupon requires a minimum booking amount of 3000"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Coupon not found or inactive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Coupon not found or inactive"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cart/coupon": {
+      "delete": {
+        "tags": [
+          "Cart"
+        ],
+        "summary": "Remove the coupon applied to the current cart",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Coupon removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Coupon removed",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0e1",
+                    "items": [
+                      {
+                        "productId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                        "name": "Royal Canin Adult Dog Food 3kg",
+                        "price": 1499,
+                        "images": [
+                          "https://cdn.petmypet.in/products/royal-canin-3kg.jpg"
+                        ],
+                        "quantity": 2,
+                        "subtotal": 2998
+                      }
+                    ],
+                    "subtotal": 2998,
+                    "discountAmount": 0,
+                    "couponCode": null,
+                    "deliveryFee": 40,
+                    "totalAmount": 3038
+                  }
                 }
               }
             }
@@ -13449,6 +14087,9 @@
                       "petName": "Bruno",
                       "species": "Dog",
                       "breed": "Labrador Retriever",
+                      "age": "3 years",
+                      "gender": "MALE",
+                      "rewardAmount": 5000,
                       "description": "Last seen near Cubbon Park wearing a red collar.",
                       "photoUrls": [
                         "https://cdn.petmypet.in/lost-and-found/bruno-1.jpg"
@@ -13530,6 +14171,27 @@
                     "type": "string",
                     "maxLength": 100
                   },
+                  "age": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "nullable": true,
+                    "example": "3 years"
+                  },
+                  "gender": {
+                    "type": "string",
+                    "enum": [
+                      "MALE",
+                      "FEMALE",
+                      "UNKNOWN"
+                    ],
+                    "nullable": true
+                  },
+                  "rewardAmount": {
+                    "type": "number",
+                    "minimum": 0,
+                    "nullable": true,
+                    "example": 5000
+                  },
                   "description": {
                     "type": "string",
                     "maxLength": 2000
@@ -13563,6 +14225,9 @@
                 "petName": "Bruno",
                 "species": "Dog",
                 "breed": "Labrador Retriever",
+                "age": "3 years",
+                "gender": "MALE",
+                "rewardAmount": 5000,
                 "description": "Last seen near Cubbon Park wearing a red collar.",
                 "photoUrls": [
                   "https://cdn.petmypet.in/lost-and-found/bruno-1.jpg"
@@ -13594,6 +14259,9 @@
                     "petName": "Bruno",
                     "species": "Dog",
                     "breed": "Labrador Retriever",
+                    "age": "3 years",
+                    "gender": "MALE",
+                    "rewardAmount": 5000,
                     "description": "Last seen near Cubbon Park wearing a red collar.",
                     "photoUrls": [
                       "https://cdn.petmypet.in/lost-and-found/bruno-1.jpg"
@@ -13696,6 +14364,9 @@
                       "petName": "",
                       "species": "Cat",
                       "breed": "Indie",
+                      "age": "1 year",
+                      "gender": "UNKNOWN",
+                      "rewardAmount": null,
                       "description": "Found a friendly cat wandering near Indiranagar metro station.",
                       "photoUrls": [
                         "https://cdn.petmypet.in/lost-and-found/cat-1.jpg"
@@ -13792,6 +14463,9 @@
                     "petName": "Bruno",
                     "species": "Dog",
                     "breed": "Labrador Retriever",
+                    "age": "3 years",
+                    "gender": "MALE",
+                    "rewardAmount": 5000,
                     "description": "Last seen near Cubbon Park wearing a red collar.",
                     "photoUrls": [
                       "https://cdn.petmypet.in/lost-and-found/bruno-1.jpg"
@@ -13940,6 +14614,9 @@
                     "petName": "Bruno",
                     "species": "Dog",
                     "breed": "Labrador Retriever",
+                    "age": "3 years",
+                    "gender": "MALE",
+                    "rewardAmount": 5000,
                     "description": "Last seen near Cubbon Park wearing a red collar.",
                     "photoUrls": [
                       "https://cdn.petmypet.in/lost-and-found/bruno-1.jpg"
@@ -14034,6 +14711,9 @@
                     "petName": "",
                     "species": "Cat",
                     "breed": "Indie",
+                    "age": "1 year",
+                    "gender": "UNKNOWN",
+                    "rewardAmount": null,
                     "description": "Found a friendly cat wandering near Indiranagar metro station.",
                     "photoUrls": [
                       "https://cdn.petmypet.in/lost-and-found/cat-1.jpg"
@@ -14148,6 +14828,9 @@
                     "petName": "",
                     "species": "Cat",
                     "breed": "Indie",
+                    "age": "1 year",
+                    "gender": "UNKNOWN",
+                    "rewardAmount": null,
                     "description": "Found a friendly cat wandering near Indiranagar metro station.",
                     "photoUrls": [
                       "https://cdn.petmypet.in/lost-and-found/cat-1.jpg"
@@ -16548,6 +17231,7 @@
                     "bookingId": "64f1a2b3c4d5e6f7a8b9c0a1",
                     "lastMessageAt": null,
                     "lastMessagePreview": "",
+                    "isUrgent": false,
                     "unreadCount": 0
                   }
                 }
@@ -16612,6 +17296,19 @@
               "type": "string"
             },
             "example": "20"
+          },
+          {
+            "in": "query",
+            "name": "isUrgent",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "description": "Filter to only urgent (or only non-urgent) rooms — backs the \"Emergency\" filter pill",
+            "example": "true"
           }
         ],
         "responses": {
@@ -16663,6 +17360,7 @@
                       "bookingId": "64f1a2b3c4d5e6f7a8b9c0a1",
                       "lastMessageAt": "2024-06-21T10:15:00.000Z",
                       "lastMessagePreview": "Sure, see you at 5pm!",
+                      "isUrgent": false,
                       "unreadCount": 2
                     }
                   ],
@@ -17017,6 +17715,132 @@
                   "success": false,
                   "error": "UNAUTHORIZED",
                   "message": "Authentication required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/rooms/{roomId}/urgent": {
+      "patch": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Flag or unflag a chat room as urgent/emergency",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "roomId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0b1"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "isUrgent"
+                ],
+                "properties": {
+                  "isUrgent": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "example": {
+                "isUrgent": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Room updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Room updated",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0b1",
+                    "otherParticipantId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "bookingId": null,
+                    "lastMessageAt": "2024-06-21T10:15:00.000Z",
+                    "lastMessagePreview": "Bunny isn't eating, please call me!",
+                    "isUrgent": true,
+                    "unreadCount": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or invalid id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Invalid id"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a participant in this room",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "You are not a participant in this chat room"
                 }
               }
             }
@@ -17555,6 +18379,14 @@
                     "type": "string",
                     "pattern": "^\\d{2}:\\d{2}$",
                     "description": "HH:mm, only meaningful when durationDays is set"
+                  },
+                  "consultationMode": {
+                    "type": "string",
+                    "enum": [
+                      "CLINIC",
+                      "ONLINE"
+                    ],
+                    "description": "Only meaningful for consultation-type services"
                   }
                 }
               },
@@ -17624,6 +18456,7 @@
                     "durationDays": 3,
                     "dropOffTime": "09:00",
                     "pickupTime": "18:00",
+                    "consultationMode": null,
                     "providerNotes": "",
                     "photos": [],
                     "createdAt": "2026-08-04T06:30:00.000Z",
@@ -17686,7 +18519,28 @@
             "schema": {
               "type": "string"
             },
-            "example": "ACCEPTED"
+            "description": "Single status, or comma-separated list e.g. PENDING,ACCEPTED,ON_THE_WAY,STARTED for an \"Upcoming\" bucket",
+            "example": "PENDING,ACCEPTED,ON_THE_WAY,STARTED"
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "YYYY-MM-DD, filters by scheduledStart",
+            "example": "2026-08-01"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "YYYY-MM-DD, filters by scheduledStart",
+            "example": "2026-08-31"
           },
           {
             "name": "page",
@@ -17804,7 +18658,28 @@
             "schema": {
               "type": "string"
             },
-            "example": "PENDING"
+            "description": "Single status, or comma-separated list e.g. PENDING,ACCEPTED,ON_THE_WAY,STARTED for an \"Upcoming\" bucket",
+            "example": "PENDING,ACCEPTED,ON_THE_WAY,STARTED"
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "YYYY-MM-DD, filters by scheduledStart",
+            "example": "2026-08-01"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "YYYY-MM-DD, filters by scheduledStart",
+            "example": "2026-08-31"
           },
           {
             "name": "page",
@@ -17961,6 +18836,7 @@
                     "durationDays": null,
                     "dropOffTime": null,
                     "pickupTime": null,
+                    "consultationMode": null,
                     "providerNotes": "Pet was calm during the walk, drank plenty of water.",
                     "photos": [
                       {
@@ -18494,6 +19370,7 @@
                     "durationDays": null,
                     "dropOffTime": null,
                     "pickupTime": null,
+                    "consultationMode": null,
                     "providerNotes": "Pet was calm during the walk, drank plenty of water.",
                     "photos": [],
                     "createdAt": "2026-08-04T06:30:00.000Z"
@@ -18637,6 +19514,7 @@
                     "durationDays": null,
                     "dropOffTime": null,
                     "pickupTime": null,
+                    "consultationMode": null,
                     "providerNotes": "",
                     "photos": [
                       {
@@ -19693,7 +20571,7 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Log in with email and password",
+        "summary": "Log in with a password (identifier = email or phone). Secondary auth path — the primary flow for both apps is phone+OTP via /auth/login/otp/request and /auth/login/otp/verify, which is the only flow the LogIn screens actually collect fields for. This endpoint exists for the provider app's \"Login with Password\" option and any account that has explicitly set a password via /auth/reset-password or /auth/update-password.",
         "requestBody": {
           "required": true,
           "content": {
@@ -19701,13 +20579,13 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "email",
+                  "identifier",
                   "password"
                 ],
                 "properties": {
-                  "email": {
+                  "identifier": {
                     "type": "string",
-                    "format": "email",
+                    "description": "Email or phone number",
                     "example": "priya.sharma@example.com"
                   },
                   "password": {
@@ -19718,7 +20596,7 @@
                 }
               },
               "example": {
-                "email": "priya.sharma@example.com",
+                "identifier": "priya.sharma@example.com",
                 "password": "P@ssw0rd123"
               }
             }
@@ -19726,7 +20604,7 @@
         },
         "responses": {
           "200": {
-            "description": "Login successful, or no account exists for this email (check `data.isRegistered` to decide whether to redirect to sign up)",
+            "description": "Login successful, or no account exists for this identifier (check `data.isRegistered` to decide whether to redirect to sign up)",
             "content": {
               "application/json": {
                 "schema": {
@@ -19768,10 +20646,10 @@
                     }
                   },
                   "notRegistered": {
-                    "summary": "No account exists for this email",
+                    "summary": "No account exists for this identifier",
                     "value": {
                       "success": true,
-                      "message": "No account found for this email",
+                      "message": "No account found for this identifier",
                       "data": {
                         "isRegistered": false,
                         "user": null,
@@ -19784,7 +20662,7 @@
             }
           },
           "400": {
-            "description": "Validation error",
+            "description": "Validation error, or the account has no password set (phone+OTP-only accounts) — direct the client to /auth/login/otp/request instead",
             "content": {
               "application/json": {
                 "schema": {
@@ -19793,7 +20671,7 @@
                 "example": {
                   "success": false,
                   "error": "BAD_REQUEST",
-                  "message": "password is required"
+                  "message": "This account has no password set — log in with OTP instead"
                 }
               }
             }
@@ -19808,7 +20686,7 @@
                 "example": {
                   "success": false,
                   "error": "UNAUTHORIZED",
-                  "message": "Invalid email or password"
+                  "message": "Invalid credentials"
                 }
               }
             }
@@ -19821,7 +20699,7 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Request an OTP for login",
+        "summary": "Request an OTP for login — this is also the ONLY sign-up entry point the real LogIn screens use. A phone identifier with no existing account is auto-created here (bare-minimum row — name/email are filled in later via PUT /users/me during onboarding) and immediately sent an OTP, exactly like a returning user. `role` and `referralCode` only take effect on that auto-created account; they're ignored for an existing one.",
         "requestBody": {
           "required": true,
           "content": {
@@ -19834,19 +20712,33 @@
                 "properties": {
                   "identifier": {
                     "type": "string",
+                    "description": "Phone number (email also accepted for an existing account, but auto-signup only works for phone, matching what the LogIn screen actually collects)",
                     "example": "+919876543210"
+                  },
+                  "referralCode": {
+                    "type": "string",
+                    "example": "PETJOY25"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "USER",
+                      "SERVICE_PROVIDER"
+                    ],
+                    "example": "USER"
                   }
                 }
               },
               "example": {
-                "identifier": "+919876543210"
+                "identifier": "+919876543210",
+                "referralCode": "PETJOY25"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "OTP sent, or no account exists for this identifier (check `data.isRegistered` to decide whether to redirect to sign up)",
+            "description": "OTP sent — `isRegistered` tells the client whether to route to onboarding (false, brand-new account) or straight home (true) after OTP verify",
             "content": {
               "application/json": {
                 "schema": {
@@ -19863,11 +20755,21 @@
                       }
                     }
                   },
-                  "notRegistered": {
-                    "summary": "No account exists for this identifier",
+                  "newAccount": {
+                    "summary": "New phone number — account auto-created, OTP sent",
                     "value": {
                       "success": true,
-                      "message": "No account found for this identifier",
+                      "message": "OTP sent",
+                      "data": {
+                        "isRegistered": false
+                      }
+                    }
+                  },
+                  "notRegistered": {
+                    "summary": "Unrecognized email identifier (auto-signup is phone-only, so nothing was created)",
+                    "value": {
+                      "success": true,
+                      "message": "OTP sent",
                       "data": {
                         "isRegistered": false
                       }

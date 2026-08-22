@@ -73,6 +73,7 @@ export const serviceRoutes = Router();
  *                   name: "Full Grooming Package"
  *                   description: "Bath, haircut, nail trim, and ear cleaning."
  *                   price: 899
+ *                   originalPrice: 1049
  *                   durationMinutes: 60
  *                   images: ["https://cdn.petmypet.in/services/grooming-package.jpg"]
  *                   isActive: true
@@ -114,6 +115,7 @@ serviceRoutes.get('/', validate({ query: searchServicesQuerySchema }), serviceCo
  *                 name: "Full Grooming Package"
  *                 description: "Bath, haircut, nail trim, and ear cleaning."
  *                 price: 899
+ *                 originalPrice: 1049
  *                 durationMinutes: 60
  *                 images: ["https://cdn.petmypet.in/services/grooming-package.jpg"]
  *                 isActive: true
@@ -146,6 +148,7 @@ serviceRoutes.get('/:id', validate({ params: idParamSchema }), serviceController
  *               name: { type: string, maxLength: 150 }
  *               description: { type: string, maxLength: 2000, default: "" }
  *               price: { type: number, minimum: 0 }
+ *               originalPrice: { type: number, minimum: 0, nullable: true, description: "Struck-through list price; must be >= price when set" }
  *               durationMinutes: { type: integer, minimum: 5 }
  *               images: { type: array, items: { type: string, format: uri }, default: [] }
  *               addOnCatalog:
@@ -162,6 +165,7 @@ serviceRoutes.get('/:id', validate({ params: idParamSchema }), serviceController
  *             name: "Full Grooming Package"
  *             description: "Bath, haircut, nail trim, and ear cleaning."
  *             price: 899
+ *             originalPrice: 1049
  *             durationMinutes: 60
  *             images: ["https://cdn.petmypet.in/services/grooming-package.jpg"]
  *             addOnCatalog:
@@ -183,6 +187,7 @@ serviceRoutes.get('/:id', validate({ params: idParamSchema }), serviceController
  *                 name: "Full Grooming Package"
  *                 description: "Bath, haircut, nail trim, and ear cleaning."
  *                 price: 899
+ *                 originalPrice: 1049
  *                 durationMinutes: 60
  *                 images: ["https://cdn.petmypet.in/services/grooming-package.jpg"]
  *                 addOnCatalog:
@@ -239,6 +244,7 @@ serviceRoutes.post(
  *               name: { type: string, maxLength: 150 }
  *               description: { type: string, maxLength: 2000 }
  *               price: { type: number, minimum: 0 }
+ *               originalPrice: { type: number, minimum: 0, nullable: true, description: "Struck-through list price; must be >= price when set" }
  *               durationMinutes: { type: integer, minimum: 5 }
  *               images: { type: array, items: { type: string, format: uri } }
  *               addOnCatalog:
@@ -252,6 +258,7 @@ serviceRoutes.post(
  *               isActive: { type: boolean }
  *           example:
  *             price: 949
+ *             originalPrice: 1099
  *             durationMinutes: 75
  *             addOnCatalog:
  *               - { name: "Extra 15 Min", price: 79 }
@@ -272,6 +279,7 @@ serviceRoutes.post(
  *                 name: "Full Grooming Package"
  *                 description: "Bath, haircut, nail trim, and ear cleaning."
  *                 price: 949
+ *                 originalPrice: 1099
  *                 durationMinutes: 75
  *                 images: ["https://cdn.petmypet.in/services/grooming-package.jpg"]
  *                 addOnCatalog:

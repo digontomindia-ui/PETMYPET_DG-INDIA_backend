@@ -10,6 +10,8 @@ export interface ICart {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
   items: Types.DocumentArray<ICartItem>;
+  couponCode: string | null;
+  discountAmount: number;
   updatedAt: Date;
 }
 

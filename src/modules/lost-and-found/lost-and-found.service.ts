@@ -22,6 +22,9 @@ export const lostAndFoundService = {
       petName: input.petName,
       species: input.species,
       breed: input.breed,
+      age: input.age ?? null,
+      gender: input.gender ?? null,
+      rewardAmount: input.rewardAmount ?? null,
       description: input.description,
       photoUrls: input.photoUrls,
       lastSeenLocation: input.coordinates

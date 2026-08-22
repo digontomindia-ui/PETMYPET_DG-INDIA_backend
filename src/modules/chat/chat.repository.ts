@@ -19,13 +19,18 @@ export const chatRepository = {
     return ChatRoomModel.findById(roomId).exec();
   },
 
-  async listRoomsForUser(userId: string, skip: number, limit: number) {
-    const filter = { participantIds: new Types.ObjectId(userId) };
+  async listRoomsForUser(userId: string, skip: number, limit: number, isUrgent?: boolean) {
+    const filter: Record<string, unknown> = { participantIds: new Types.ObjectId(userId) };
+    if (isUrgent !== undefined) filter.isUrgent = isUrgent;
     const [items, total] = await Promise.all([
       ChatRoomModel.find(filter).sort({ lastMessageAt: -1 }).skip(skip).limit(limit).exec(),
       ChatRoomModel.countDocuments(filter).exec(),
     ]);
     return { items, total };
+  },
+
+  async setUrgent(roomId: string, isUrgent: boolean) {
+    return ChatRoomModel.findByIdAndUpdate(roomId, { isUrgent }, { new: true }).exec();
   },
 
   async appendMessage(roomId: string, senderId: string, text: string, imageUrl: string | null) {

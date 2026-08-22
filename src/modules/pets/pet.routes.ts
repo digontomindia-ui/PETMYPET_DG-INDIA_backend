@@ -571,13 +571,14 @@ petRoutes.delete(
  *               lookingFor: { type: array, items: { type: string } }
  *               activityLevel: { type: string, enum: [LOW, MEDIUM, HIGH] }
  *               temperament: { type: string }
+ *               neutered: { type: boolean, default: false }
  *               getsAlongWith:
  *                 type: object
  *                 properties:
- *                   dogs: { type: boolean }
- *                   cats: { type: boolean }
- *                   kids: { type: boolean }
- *                   families: { type: boolean }
+ *                   dogs: { type: string, enum: [YES, NO, NEEDS_INTRODUCTION] }
+ *                   cats: { type: string, enum: [YES, NO, NEEDS_INTRODUCTION] }
+ *                   kids: { type: string, enum: [YES, NO, NEEDS_INTRODUCTION] }
+ *                   families: { type: string, enum: [YES, NO, NEEDS_INTRODUCTION] }
  *           example:
  *             isEnabled: true
  *             bio: Bruno loves fetch and making new furry friends at the park.
@@ -586,7 +587,8 @@ petRoutes.delete(
  *             lookingFor: [playdates, running buddy]
  *             activityLevel: HIGH
  *             temperament: Gentle with smaller dogs
- *             getsAlongWith: { dogs: true, cats: false, kids: true, families: true }
+ *             neutered: true
+ *             getsAlongWith: { dogs: YES, cats: NEEDS_INTRODUCTION, kids: YES, families: YES }
  *     responses:
  *       200:
  *         description: Companion profile updated
@@ -617,7 +619,8 @@ petRoutes.delete(
  *                   lookingFor: [playdates, running buddy]
  *                   activityLevel: HIGH
  *                   temperament: Gentle with smaller dogs
- *                   getsAlongWith: { dogs: true, cats: false, kids: true, families: true }
+ *                   neutered: true
+ *                   getsAlongWith: { dogs: YES, cats: NEEDS_INTRODUCTION, kids: YES, families: YES }
  *                 createdAt: "2026-08-04T08:00:00.000Z"
  *       400:
  *         description: Invalid request body or id parameter

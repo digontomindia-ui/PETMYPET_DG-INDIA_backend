@@ -1,6 +1,7 @@
 import { model, Schema } from 'mongoose';
 import { softDeletePlugin } from '../../common/database/plugins/soft-delete.plugin.js';
 import { USER_MODEL_NAME } from '../users/user.constants.js';
+import { PET_GENDERS } from '../pets/pet.constants.js';
 import {
   APPROVAL_STATUSES,
   LOST_AND_FOUND_MODEL_NAME,
@@ -16,6 +17,9 @@ const lostAndFoundSchema = new Schema<ILostAndFoundPost>(
     petName: { type: String, default: '' },
     species: { type: String, required: true },
     breed: { type: String, default: '' },
+    age: { type: String, default: null, maxlength: 30 },
+    gender: { type: String, enum: Object.values(PET_GENDERS), default: null },
+    rewardAmount: { type: Number, default: null, min: 0 },
     description: { type: String, required: true, maxlength: 2000 },
     photoUrls: { type: [String], default: [] },
     lastSeenLocation: {

@@ -10,6 +10,9 @@ export interface PlaceOrderInput {
   userId: string;
   items: IOrderItem[];
   totalAmount: number;
+  discountAmount: number;
+  deliveryFee: number;
+  couponCode: string | null;
   shippingAddress: IShippingAddress;
   paymentMethod: OrderPaymentMethod;
 }
@@ -56,6 +59,9 @@ export class OrderRepository extends BaseRepository<IOrder> {
         userId: new Types.ObjectId(input.userId),
         items: input.items,
         totalAmount: input.totalAmount,
+        discountAmount: input.discountAmount,
+        deliveryFee: input.deliveryFee,
+        couponCode: input.couponCode,
         shippingAddress: input.shippingAddress,
         paymentMethod: input.paymentMethod,
       });

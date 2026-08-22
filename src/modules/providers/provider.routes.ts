@@ -5,6 +5,7 @@ import { validate } from '../../common/middlewares/validate.middleware.js';
 import { ROLES } from '../../common/constants/roles.js';
 import { providerController } from './provider.controller.js';
 import {
+  addUnavailableDateSchema,
   attendanceQuerySchema,
   createProviderProfileSchema,
   documentIdParamSchema,
@@ -13,6 +14,7 @@ import {
   providerAnalyticsQuerySchema,
   rejectKycSchema,
   setBankAccountSchema,
+  unavailableDateParamSchema,
   updateProviderProfileSchema,
   uploadKycDocumentSchema,
 } from './provider.validators.js';
@@ -50,12 +52,15 @@ export const providerRoutes = Router();
  *                   providerType: GROOMER
  *                   businessName: Happy Paws Grooming
  *                   description: Mobile grooming service for dogs and cats
+ *                   experienceYears: 5
+ *                   languages: ["English", "Hindi"]
  *                   kycStatus: APPROVED
  *                   zoneIds: ["64f1a2b3c4d5e6f7a8b9c0e1"]
  *                   location: { type: Point, coordinates: [77.5946, 12.9716] }
  *                   address: 12 MG Road, Bengaluru, Karnataka 560001
  *                   workingHours:
  *                     - { day: MON, openTime: "09:00", closeTime: "18:00", isClosed: false }
+ *                   unavailableDates: []
  *                   metadata: { groomer: { specializations: ["deshedding", "bathing"] } }
  *                   commissionPercent: 15
  *                   rating: 4.6
@@ -95,6 +100,8 @@ providerRoutes.get(
  *             properties:
  *               providerType: { type: string, enum: [VET, GROOMER, BOARDING, PET_WALKER, TRAINER, CLEANER, PHARMACY, RELOCATION, OTHER] }
  *               businessName: { type: string }
+ *               experienceYears: { type: integer, minimum: 0 }
+ *               languages: { type: array, items: { type: string } }
  *               description: { type: string }
  *               coordinates:
  *                 type: array
@@ -111,6 +118,8 @@ providerRoutes.get(
  *             providerType: GROOMER
  *             businessName: Happy Paws Grooming
  *             description: Mobile grooming service for dogs and cats
+ *             experienceYears: 5
+ *             languages: ["English", "Hindi"]
  *             coordinates: [77.5946, 12.9716]
  *             address: 12 MG Road, Bengaluru, Karnataka 560001
  *             zoneIds: ["64f1a2b3c4d5e6f7a8b9c0e1"]
@@ -135,12 +144,15 @@ providerRoutes.get(
  *                 providerType: GROOMER
  *                 businessName: Happy Paws Grooming
  *                 description: Mobile grooming service for dogs and cats
+ *                 experienceYears: 5
+ *                 languages: ["English", "Hindi"]
  *                 kycStatus: PENDING
  *                 zoneIds: ["64f1a2b3c4d5e6f7a8b9c0e1"]
  *                 location: { type: Point, coordinates: [77.5946, 12.9716] }
  *                 address: 12 MG Road, Bengaluru, Karnataka 560001
  *                 workingHours:
  *                   - { day: MON, openTime: "09:00", closeTime: "18:00", isClosed: false }
+ *                 unavailableDates: []
  *                 metadata: { groomer: { specializations: ["deshedding", "bathing"] } }
  *                 commissionPercent: null
  *                 rating: 0
@@ -198,12 +210,15 @@ providerRoutes.post(
  *                 providerType: GROOMER
  *                 businessName: Happy Paws Grooming
  *                 description: Mobile grooming service for dogs and cats
+ *                 experienceYears: 5
+ *                 languages: ["English", "Hindi"]
  *                 kycStatus: APPROVED
  *                 zoneIds: ["64f1a2b3c4d5e6f7a8b9c0e1"]
  *                 location: { type: Point, coordinates: [77.5946, 12.9716] }
  *                 address: 12 MG Road, Bengaluru, Karnataka 560001
  *                 workingHours:
  *                   - { day: MON, openTime: "09:00", closeTime: "18:00", isClosed: false }
+ *                 unavailableDates: []
  *                 metadata: { groomer: { specializations: ["deshedding", "bathing"] } }
  *                 commissionPercent: 15
  *                 rating: 4.6
@@ -240,6 +255,8 @@ providerRoutes.get('/me', ...requireProvider, providerController.getMyProfile);
  *             type: object
  *             properties:
  *               businessName: { type: string }
+ *               experienceYears: { type: integer, minimum: 0 }
+ *               languages: { type: array, items: { type: string } }
  *               description: { type: string }
  *               address: { type: string }
  *               coordinates:
@@ -255,6 +272,8 @@ providerRoutes.get('/me', ...requireProvider, providerController.getMyProfile);
  *           example:
  *             businessName: Happy Paws Grooming & Spa
  *             description: Mobile grooming and spa service for dogs and cats
+ *             experienceYears: 5
+ *             languages: ["English", "Hindi"]
  *             address: 45 Brigade Road, Bengaluru, Karnataka 560025
  *     responses:
  *       200:
@@ -271,12 +290,15 @@ providerRoutes.get('/me', ...requireProvider, providerController.getMyProfile);
  *                 providerType: GROOMER
  *                 businessName: Happy Paws Grooming & Spa
  *                 description: Mobile grooming and spa service for dogs and cats
+ *                 experienceYears: 5
+ *                 languages: ["English", "Hindi"]
  *                 kycStatus: APPROVED
  *                 zoneIds: ["64f1a2b3c4d5e6f7a8b9c0e1"]
  *                 location: { type: Point, coordinates: [77.5946, 12.9716] }
  *                 address: 45 Brigade Road, Bengaluru, Karnataka 560025
  *                 workingHours:
  *                   - { day: MON, openTime: "09:00", closeTime: "18:00", isClosed: false }
+ *                 unavailableDates: []
  *                 metadata: { groomer: { specializations: ["deshedding", "bathing"] } }
  *                 commissionPercent: 15
  *                 rating: 4.6
@@ -345,11 +367,14 @@ providerRoutes.put(
  *                 providerType: GROOMER
  *                 businessName: Happy Paws Grooming
  *                 description: Mobile grooming service for dogs and cats
+ *                 experienceYears: 5
+ *                 languages: ["English", "Hindi"]
  *                 kycStatus: APPROVED
  *                 zoneIds: ["64f1a2b3c4d5e6f7a8b9c0e1"]
  *                 location: { type: Point, coordinates: [77.5946, 12.9716] }
  *                 address: 12 MG Road, Bengaluru, Karnataka 560001
  *                 workingHours: []
+ *                 unavailableDates: []
  *                 metadata: {}
  *                 commissionPercent: 15
  *                 rating: 4.6
@@ -407,11 +432,14 @@ providerRoutes.patch('/me/active', ...requireProvider, providerController.setAct
  *                 providerType: GROOMER
  *                 businessName: Happy Paws Grooming
  *                 description: Mobile grooming service for dogs and cats
+ *                 experienceYears: 5
+ *                 languages: ["English", "Hindi"]
  *                 kycStatus: PENDING
  *                 zoneIds: ["64f1a2b3c4d5e6f7a8b9c0e1"]
  *                 location: { type: Point, coordinates: [77.5946, 12.9716] }
  *                 address: 12 MG Road, Bengaluru, Karnataka 560001
  *                 workingHours: []
+ *                 unavailableDates: []
  *                 metadata: {}
  *                 commissionPercent: null
  *                 rating: 0
@@ -471,11 +499,14 @@ providerRoutes.post(
  *                 providerType: GROOMER
  *                 businessName: Happy Paws Grooming
  *                 description: Mobile grooming service for dogs and cats
+ *                 experienceYears: 5
+ *                 languages: ["English", "Hindi"]
  *                 kycStatus: PENDING
  *                 zoneIds: ["64f1a2b3c4d5e6f7a8b9c0e1"]
  *                 location: { type: Point, coordinates: [77.5946, 12.9716] }
  *                 address: 12 MG Road, Bengaluru, Karnataka 560001
  *                 workingHours: []
+ *                 unavailableDates: []
  *                 metadata: {}
  *                 commissionPercent: null
  *                 rating: 0
@@ -551,11 +582,14 @@ providerRoutes.delete(
  *                 providerType: GROOMER
  *                 businessName: Happy Paws Grooming
  *                 description: Mobile grooming service for dogs and cats
+ *                 experienceYears: 5
+ *                 languages: ["English", "Hindi"]
  *                 kycStatus: APPROVED
  *                 zoneIds: ["64f1a2b3c4d5e6f7a8b9c0e1"]
  *                 location: { type: Point, coordinates: [77.5946, 12.9716] }
  *                 address: 12 MG Road, Bengaluru, Karnataka 560001
  *                 workingHours: []
+ *                 unavailableDates: []
  *                 metadata: {}
  *                 commissionPercent: 15
  *                 rating: 4.6
@@ -614,11 +648,14 @@ providerRoutes.put(
  *                 providerType: GROOMER
  *                 businessName: Happy Paws Grooming
  *                 description: Mobile grooming service for dogs and cats
+ *                 experienceYears: 5
+ *                 languages: ["English", "Hindi"]
  *                 kycStatus: APPROVED
  *                 zoneIds: ["64f1a2b3c4d5e6f7a8b9c0e1"]
  *                 location: { type: Point, coordinates: [77.5946, 12.9716] }
  *                 address: 12 MG Road, Bengaluru, Karnataka 560001
  *                 workingHours: []
+ *                 unavailableDates: []
  *                 metadata: {}
  *                 commissionPercent: 15
  *                 rating: 4.6
@@ -671,11 +708,14 @@ providerRoutes.post('/me/attendance/check-in', ...requireProvider, providerContr
  *                 providerType: GROOMER
  *                 businessName: Happy Paws Grooming
  *                 description: Mobile grooming service for dogs and cats
+ *                 experienceYears: 5
+ *                 languages: ["English", "Hindi"]
  *                 kycStatus: APPROVED
  *                 zoneIds: ["64f1a2b3c4d5e6f7a8b9c0e1"]
  *                 location: { type: Point, coordinates: [77.5946, 12.9716] }
  *                 address: 12 MG Road, Bengaluru, Karnataka 560001
  *                 workingHours: []
+ *                 unavailableDates: []
  *                 metadata: {}
  *                 commissionPercent: 15
  *                 rating: 4.6
@@ -709,6 +749,97 @@ providerRoutes.post('/me/attendance/check-out', ...requireProvider, providerCont
 
 /**
  * @openapi
+ * /providers/me/unavailable-dates:
+ *   post:
+ *     tags: [Providers]
+ *     summary: Add a holiday/blocked date (SERVICE_PROVIDER only) — GET /availability returns no bookable slots on this date
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [date]
+ *             properties:
+ *               date: { type: string, format: date, example: "2026-10-02" }
+ *           example:
+ *             date: "2026-10-02"
+ *     responses:
+ *       201:
+ *         description: Unavailable date added
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *             example:
+ *               success: true
+ *               message: Unavailable date added
+ *               data:
+ *                 id: "64f1a2b3c4d5e6f7a8b9c0d1"
+ *                 unavailableDates: ["2026-10-02"]
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: BAD_REQUEST, message: "date: Invalid date" }
+ *       401:
+ *         description: Missing or invalid authentication token
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: UNAUTHORIZED, message: Missing or malformed Authorization header }
+ */
+providerRoutes.post(
+  '/me/unavailable-dates',
+  ...requireProvider,
+  validate({ body: addUnavailableDateSchema }),
+  providerController.addUnavailableDate,
+);
+
+/**
+ * @openapi
+ * /providers/me/unavailable-dates/{date}:
+ *   delete:
+ *     tags: [Providers]
+ *     summary: Remove a holiday/blocked date (SERVICE_PROVIDER only)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: date, in: path, required: true, schema: { type: string, format: date }, example: "2026-10-02" }
+ *     responses:
+ *       200:
+ *         description: Unavailable date removed
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *             example:
+ *               success: true
+ *               message: Unavailable date removed
+ *               data:
+ *                 id: "64f1a2b3c4d5e6f7a8b9c0d1"
+ *                 unavailableDates: []
+ *       400:
+ *         description: Invalid date format
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: BAD_REQUEST, message: "Expected YYYY-MM-DD" }
+ *       401:
+ *         description: Missing or invalid authentication token
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: UNAUTHORIZED, message: Missing or malformed Authorization header }
+ */
+providerRoutes.delete(
+  '/me/unavailable-dates/:date',
+  ...requireProvider,
+  validate({ params: unavailableDateParamSchema }),
+  providerController.removeUnavailableDate,
+);
+
+/**
+ * @openapi
  * /providers/me/analytics:
  *   get:
  *     tags: [Providers]
@@ -737,6 +868,15 @@ providerRoutes.post('/me/attendance/check-out', ...requireProvider, providerCont
  *                 bookingCount: 14
  *                 ratingBreakdown: { "5": 64.3, "4": 21.4, "3": 7.1, "2": 0, "1": 7.1 }
  *                 repeatClientPercent: 35.7
+ *                 caseMix:
+ *                   - { categoryId: "64f1a2b3c4d5e6f7a8b9c0c1", categoryName: Grooming, count: 10, percent: 71.4 }
+ *                   - { categoryId: "64f1a2b3c4d5e6f7a8b9c0c2", categoryName: Boarding, count: 4, percent: 28.6 }
+ *                 topServices:
+ *                   - { serviceId: "64f1a2b3c4d5e6f7a8b9c0a5", name: "Full Grooming Package", price: 899, bookingCount: 8 }
+ *                   - { serviceId: "64f1a2b3c4d5e6f7a8b9c0a6", name: "Basic Bath & Trim", price: 499, bookingCount: 6 }
+ *                 avgServiceDurationMinutes: 52
+ *                 satisfactionScore: 4.64
+ *                 previousPeriodEarnings: 6100
  *       401:
  *         description: Missing or invalid authentication token
  *         content:
@@ -848,6 +988,7 @@ providerRoutes.get(
  *                   location: { type: Point, coordinates: [77.6033, 12.9352] }
  *                   address: 8 Koramangala 4th Block, Bengaluru, Karnataka 560034
  *                   workingHours: []
+ *                   unavailableDates: []
  *                   metadata: { vet: { specializations: ["surgery"], consultationFee: 500, licenseNumber: "VET-KA-1234", supportsVideoConsultation: true } }
  *                   commissionPercent: null
  *                   rating: 0
@@ -899,6 +1040,7 @@ providerRoutes.get('/pending-kyc', ...adminOnly, providerController.listPendingK
  *                 location: { type: Point, coordinates: [77.6033, 12.9352] }
  *                 address: 8 Koramangala 4th Block, Bengaluru, Karnataka 560034
  *                 workingHours: []
+ *                 unavailableDates: []
  *                 metadata: { vet: { specializations: ["surgery"], consultationFee: 500, licenseNumber: "VET-KA-1234", supportsVideoConsultation: true } }
  *                 commissionPercent: null
  *                 rating: 0
@@ -983,6 +1125,7 @@ providerRoutes.patch(
  *                 location: { type: Point, coordinates: [77.6033, 12.9352] }
  *                 address: 8 Koramangala 4th Block, Bengaluru, Karnataka 560034
  *                 workingHours: []
+ *                 unavailableDates: []
  *                 metadata: { vet: { specializations: ["surgery"], consultationFee: 500, licenseNumber: "VET-KA-1234", supportsVideoConsultation: true } }
  *                 commissionPercent: null
  *                 rating: 0
@@ -1051,12 +1194,15 @@ providerRoutes.patch(
  *                 providerType: GROOMER
  *                 businessName: Happy Paws Grooming
  *                 description: Mobile grooming service for dogs and cats
+ *                 experienceYears: 5
+ *                 languages: ["English", "Hindi"]
  *                 kycStatus: APPROVED
  *                 zoneIds: ["64f1a2b3c4d5e6f7a8b9c0e1"]
  *                 location: { type: Point, coordinates: [77.5946, 12.9716] }
  *                 address: 12 MG Road, Bengaluru, Karnataka 560001
  *                 workingHours:
  *                   - { day: MON, openTime: "09:00", closeTime: "18:00", isClosed: false }
+ *                 unavailableDates: []
  *                 metadata: { groomer: { specializations: ["deshedding", "bathing"] } }
  *                 commissionPercent: 15
  *                 rating: 4.6

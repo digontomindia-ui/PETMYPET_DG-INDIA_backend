@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PET_GENDERS } from '../pets/pet.constants.js';
 import { LOST_AND_FOUND_TYPES } from './lost-and-found.constants.js';
 
 const objectIdSchema = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
@@ -8,6 +9,12 @@ export const createLostAndFoundSchema = z.object({
   petName: z.string().max(100).default(''),
   species: z.string().min(1).max(50),
   breed: z.string().max(100).default(''),
+  age: z.string().max(30).nullable().optional(),
+  gender: z
+    .enum([PET_GENDERS.MALE, PET_GENDERS.FEMALE, PET_GENDERS.UNKNOWN])
+    .nullable()
+    .optional(),
+  rewardAmount: z.number().min(0).nullable().optional(),
   description: z.string().min(1).max(2000),
   photoUrls: z.array(z.string().url()).max(10).default([]),
   coordinates: z.tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)]).optional(),

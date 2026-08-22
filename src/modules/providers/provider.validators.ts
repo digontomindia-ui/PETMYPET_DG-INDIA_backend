@@ -32,6 +32,7 @@ const metadataSchema = z
       .optional(),
     trainer: z.object({ trainingPlans: z.array(trainingPlanInputSchema).default([]) }).optional(),
     petWalker: z.object({ maxPetsPerWalk: z.number().int().min(1) }).optional(),
+    petSitter: z.object({ maxPetsAtOnce: z.number().int().min(1) }).optional(),
     pharmacy: z.object({ licenseNumber: z.string().min(1) }).optional(),
     relocation: z.object({ vehicleTypes: z.array(z.string()).default([]) }).optional(),
   })
@@ -43,6 +44,7 @@ export const createProviderProfileSchema = z.object({
     PROVIDER_TYPES.GROOMER,
     PROVIDER_TYPES.BOARDING,
     PROVIDER_TYPES.PET_WALKER,
+    PROVIDER_TYPES.PET_SITTER,
     PROVIDER_TYPES.TRAINER,
     PROVIDER_TYPES.CLEANER,
     PROVIDER_TYPES.PHARMACY,
@@ -51,6 +53,8 @@ export const createProviderProfileSchema = z.object({
   ]),
   businessName: z.string().min(1).max(150),
   description: z.string().max(2000).default(''),
+  experienceYears: z.number().int().min(0).optional(),
+  languages: z.array(z.string()).default([]),
   coordinates: z.tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)]),
   address: z.string().min(1).max(500),
   zoneIds: z.array(objectIdSchema).default([]),
@@ -101,4 +105,12 @@ export const providerAnalyticsQuerySchema = z.object({
 export const attendanceQuerySchema = z.object({
   page: z.string().optional(),
   limit: z.string().optional(),
+});
+
+export const addUnavailableDateSchema = z.object({
+  date: z.coerce.date(),
+});
+
+export const unavailableDateParamSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD'),
 });

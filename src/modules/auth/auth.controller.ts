@@ -4,6 +4,7 @@ import { sendSuccess } from '../../common/utils/api-response.js';
 import { AppError } from '../../common/errors/app-error.js';
 import { HTTP_STATUS } from '../../common/constants/http-status.js';
 import { authService } from './auth.service.js';
+import { isEmailIdentifier } from '../../common/utils/otp.js';
 import type {
   ForgotPasswordInput,
   LoginInput,
@@ -56,17 +57,21 @@ export const authController = {
       res,
       HTTP_STATUS.OK,
       result,
-      result.isRegistered ? 'Login successful' : 'No account found for this email',
+      result.isRegistered ? 'Login successful' : 'No account found for this identifier',
     );
   }),
 
   requestOtpLogin: asyncHandler(async (req: Request, res: Response) => {
+    const { identifier } = req.body as RequestOtpLoginInput;
     const result = await authService.requestOtpLogin(req.body as RequestOtpLoginInput);
+    // An OTP was actually sent unless this was an unrecognized email (auto-signup is
+    // phone-only — see auth.service.ts's requestOtpLogin for why).
+    const otpWasSent = result.isRegistered || !isEmailIdentifier(identifier);
     sendSuccess(
       res,
       HTTP_STATUS.OK,
       result,
-      result.isRegistered ? 'OTP sent' : 'No account found for this identifier',
+      otpWasSent ? 'OTP sent' : 'No account found for this identifier',
     );
   }),
 

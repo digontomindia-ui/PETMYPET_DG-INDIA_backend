@@ -122,13 +122,19 @@ export const referralService = {
       referralRepository.count(filter),
     ]);
 
-    const referees = await userRepository.findMany({
-      _id: { $in: items.map((item) => item.refereeId) },
-    });
+    const referees = await userRepository.findMany(
+      { _id: { $in: items.map((item) => item.refereeId) } },
+      { select: 'name avatarUrl' },
+    );
     const nameById = new Map(referees.map((user) => [user._id.toString(), user.name]));
+    const avatarUrlById = new Map(referees.map((user) => [user._id.toString(), user.avatarUrl]));
 
     const referrals = items.map((item) =>
-      toReferralHistoryDto(item, nameById.get(item.refereeId.toString()) ?? 'Unknown user'),
+      toReferralHistoryDto(
+        item,
+        nameById.get(item.refereeId.toString()) ?? 'Unknown user',
+        avatarUrlById.get(item.refereeId.toString()) ?? null,
+      ),
     );
     return { referrals, total, page, limit };
   },

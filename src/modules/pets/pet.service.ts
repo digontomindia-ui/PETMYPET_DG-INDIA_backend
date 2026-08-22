@@ -1,7 +1,7 @@
 import { Types } from 'mongoose';
 import { AppError } from '../../common/errors/app-error.js';
 import { ROLES } from '../../common/constants/roles.js';
-import { COMPANION_ACTIVITY_LEVELS } from './pet.constants.js';
+import { COMPANION_ACTIVITY_LEVELS, GETS_ALONG_WITH_STATUS } from './pet.constants.js';
 import { petRepository } from './pet.repository.js';
 import { toPublicPet } from './pet.mapper.js';
 import type {
@@ -115,11 +115,13 @@ export const petService = {
       lookingFor: input.lookingFor ?? existing?.lookingFor ?? [],
       activityLevel: input.activityLevel ?? existing?.activityLevel ?? COMPANION_ACTIVITY_LEVELS.MEDIUM,
       temperament: input.temperament ?? existing?.temperament ?? '',
+      neutered: input.neutered ?? existing?.neutered ?? false,
       getsAlongWith: {
-        dogs: input.getsAlongWith?.dogs ?? existing?.getsAlongWith?.dogs ?? true,
-        cats: input.getsAlongWith?.cats ?? existing?.getsAlongWith?.cats ?? true,
-        kids: input.getsAlongWith?.kids ?? existing?.getsAlongWith?.kids ?? true,
-        families: input.getsAlongWith?.families ?? existing?.getsAlongWith?.families ?? true,
+        dogs: input.getsAlongWith?.dogs ?? existing?.getsAlongWith?.dogs ?? GETS_ALONG_WITH_STATUS.YES,
+        cats: input.getsAlongWith?.cats ?? existing?.getsAlongWith?.cats ?? GETS_ALONG_WITH_STATUS.YES,
+        kids: input.getsAlongWith?.kids ?? existing?.getsAlongWith?.kids ?? GETS_ALONG_WITH_STATUS.YES,
+        families:
+          input.getsAlongWith?.families ?? existing?.getsAlongWith?.families ?? GETS_ALONG_WITH_STATUS.YES,
       },
     };
     await pet.save();

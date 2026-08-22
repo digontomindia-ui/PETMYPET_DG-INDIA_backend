@@ -9,6 +9,7 @@ export interface IProduct extends SoftDeletable {
   description: string;
   category: ProductCategory;
   price: number;
+  mrp: number | null;
   images: string[];
   stock: number;
   sku: string;

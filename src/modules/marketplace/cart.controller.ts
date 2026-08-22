@@ -4,7 +4,7 @@ import { sendSuccess } from '../../common/utils/api-response.js';
 import { AppError } from '../../common/errors/app-error.js';
 import { HTTP_STATUS } from '../../common/constants/http-status.js';
 import { cartService } from './cart.service.js';
-import type { AddToCartInput, UpdateCartItemInput } from './cart.dto.js';
+import type { AddToCartInput, ApplyCartCouponInput, UpdateCartItemInput } from './cart.dto.js';
 
 function requireAuth(req: Request): string {
   if (!req.user) throw AppError.unauthorized();
@@ -39,6 +39,16 @@ export const cartController = {
   clearCart: asyncHandler(async (req: Request, res: Response) => {
     await cartService.clearCart(requireAuth(req));
     sendSuccess(res, HTTP_STATUS.OK, null, 'Cart cleared');
+  }),
+
+  applyCoupon: asyncHandler(async (req: Request, res: Response) => {
+    const cart = await cartService.applyCoupon(requireAuth(req), req.body as ApplyCartCouponInput);
+    sendSuccess(res, HTTP_STATUS.OK, cart, 'Coupon applied');
+  }),
+
+  removeCoupon: asyncHandler(async (req: Request, res: Response) => {
+    const cart = await cartService.removeCoupon(requireAuth(req));
+    sendSuccess(res, HTTP_STATUS.OK, cart, 'Coupon removed');
   }),
 
   getWishlist: asyncHandler(async (req: Request, res: Response) => {

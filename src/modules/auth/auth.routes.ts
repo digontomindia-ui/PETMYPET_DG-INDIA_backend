@@ -183,23 +183,23 @@ authRoutes.post('/otp/resend', validate({ body: resendOtpSchema }), authControll
  * /auth/login:
  *   post:
  *     tags: [Auth]
- *     summary: Log in with email and password
+ *     summary: Log in with a password (identifier = email or phone). Secondary auth path — the primary flow for both apps is phone+OTP via /auth/login/otp/request and /auth/login/otp/verify, which is the only flow the LogIn screens actually collect fields for. This endpoint exists for the provider app's "Login with Password" option and any account that has explicitly set a password via /auth/reset-password or /auth/update-password.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [email, password]
+ *             required: [identifier, password]
  *             properties:
- *               email: { type: string, format: email, example: "priya.sharma@example.com" }
+ *               identifier: { type: string, description: "Email or phone number", example: "priya.sharma@example.com" }
  *               password: { type: string, format: password, example: "P@ssw0rd123" }
  *           example:
- *             email: "priya.sharma@example.com"
+ *             identifier: "priya.sharma@example.com"
  *             password: "P@ssw0rd123"
  *     responses:
  *       200:
- *         description: Login successful, or no account exists for this email (check `data.isRegistered` to decide whether to redirect to sign up)
+ *         description: Login successful, or no account exists for this identifier (check `data.isRegistered` to decide whether to redirect to sign up)
  *         content:
  *           application/json:
  *             schema: { type: object }
@@ -233,23 +233,23 @@ authRoutes.post('/otp/resend', validate({ body: resendOtpSchema }), authControll
  *                       refreshToken: "eyJhbGciOi...<truncated>"
  *                       expiresIn: "15m"
  *               notRegistered:
- *                 summary: No account exists for this email
+ *                 summary: No account exists for this identifier
  *                 value:
  *                   success: true
- *                   message: "No account found for this email"
+ *                   message: "No account found for this identifier"
  *                   data:
  *                     isRegistered: false
  *                     user: null
  *                     tokens: null
  *       400:
- *         description: Validation error
+ *         description: Validation error, or the account has no password set (phone+OTP-only accounts) — direct the client to /auth/login/otp/request instead
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/ErrorResponse' }
  *             example:
  *               success: false
  *               error: "BAD_REQUEST"
- *               message: "password is required"
+ *               message: "This account has no password set — log in with OTP instead"
  *       401:
  *         description: Incorrect password for an existing account
  *         content:
@@ -258,7 +258,7 @@ authRoutes.post('/otp/resend', validate({ body: resendOtpSchema }), authControll
  *             example:
  *               success: false
  *               error: "UNAUTHORIZED"
- *               message: "Invalid email or password"
+ *               message: "Invalid credentials"
  */
 authRoutes.post('/login', validate({ body: loginSchema }), authController.login);
 
@@ -267,7 +267,7 @@ authRoutes.post('/login', validate({ body: loginSchema }), authController.login)
  * /auth/login/otp/request:
  *   post:
  *     tags: [Auth]
- *     summary: Request an OTP for login
+ *     summary: Request an OTP for login — this is also the ONLY sign-up entry point the real LogIn screens use. A phone identifier with no existing account is auto-created here (bare-minimum row — name/email are filled in later via PUT /users/me during onboarding) and immediately sent an OTP, exactly like a returning user. `role` and `referralCode` only take effect on that auto-created account; they're ignored for an existing one.
  *     requestBody:
  *       required: true
  *       content:
@@ -276,12 +276,15 @@ authRoutes.post('/login', validate({ body: loginSchema }), authController.login)
  *             type: object
  *             required: [identifier]
  *             properties:
- *               identifier: { type: string, example: "+919876543210" }
+ *               identifier: { type: string, description: "Phone number (email also accepted for an existing account, but auto-signup only works for phone, matching what the LogIn screen actually collects)", example: "+919876543210" }
+ *               referralCode: { type: string, example: "PETJOY25" }
+ *               role: { type: string, enum: [USER, SERVICE_PROVIDER], example: "USER" }
  *           example:
  *             identifier: "+919876543210"
+ *             referralCode: "PETJOY25"
  *     responses:
  *       200:
- *         description: OTP sent, or no account exists for this identifier (check `data.isRegistered` to decide whether to redirect to sign up)
+ *         description: OTP sent — `isRegistered` tells the client whether to route to onboarding (false, brand-new account) or straight home (true) after OTP verify
  *         content:
  *           application/json:
  *             schema: { type: object }
@@ -293,11 +296,18 @@ authRoutes.post('/login', validate({ body: loginSchema }), authController.login)
  *                   message: "OTP sent"
  *                   data:
  *                     isRegistered: true
- *               notRegistered:
- *                 summary: No account exists for this identifier
+ *               newAccount:
+ *                 summary: New phone number — account auto-created, OTP sent
  *                 value:
  *                   success: true
- *                   message: "No account found for this identifier"
+ *                   message: "OTP sent"
+ *                   data:
+ *                     isRegistered: false
+ *               notRegistered:
+ *                 summary: Unrecognized email identifier (auto-signup is phone-only, so nothing was created)
+ *                 value:
+ *                   success: true
+ *                   message: "OTP sent"
  *                   data:
  *                     isRegistered: false
  *       400:

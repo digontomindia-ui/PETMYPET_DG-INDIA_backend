@@ -12,6 +12,7 @@ import type {
   ListMessagesQuery,
   ListRoomsQuery,
   SendMessageInput,
+  UpdateUrgentInput,
 } from './chat.dto.js';
 import type { ChatRoomDocument } from './chat.types.js';
 
@@ -43,7 +44,8 @@ export const chatService = {
 
   async listRooms(userId: string, query: ListRoomsQuery) {
     const { page, limit, skip } = parsePagination(query);
-    const { items, total } = await chatRepository.listRoomsForUser(userId, skip, limit);
+    const isUrgent = query.isUrgent === undefined ? undefined : query.isUrgent === 'true';
+    const { items, total } = await chatRepository.listRoomsForUser(userId, skip, limit, isUrgent);
 
     const rooms = await Promise.all(
       items.map(async (room) => {
@@ -96,5 +98,13 @@ export const chatService = {
     tryGetSocketServer()
       ?.to(`room:${roomId}`)
       .emit(CHAT_SOCKET_EVENTS.READ, { roomId, readerId: userId });
+  },
+
+  async setUrgent(roomId: string, userId: string, input: UpdateUrgentInput) {
+    await requireParticipant(roomId, userId);
+    const room = await chatRepository.setUrgent(roomId, input.isUrgent);
+    if (!room) throw AppError.notFound('Chat room not found');
+    const unreadCount = await chatRepository.countUnreadInRoom(roomId, userId);
+    return toRoomDto(room, userId, unreadCount);
   },
 };

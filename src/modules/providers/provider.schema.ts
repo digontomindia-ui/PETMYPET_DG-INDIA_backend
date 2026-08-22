@@ -74,6 +74,9 @@ const metadataSchema = new Schema<IProviderMetadata>(
     petWalker: {
       maxPetsPerWalk: { type: Number },
     },
+    petSitter: {
+      maxPetsAtOnce: { type: Number },
+    },
     pharmacy: {
       licenseNumber: { type: String },
     },
@@ -90,6 +93,8 @@ const providerSchema = new Schema<IProvider>(
     providerType: { type: String, enum: Object.values(PROVIDER_TYPES), required: true },
     businessName: { type: String, required: true, trim: true, maxlength: 150 },
     description: { type: String, default: '', maxlength: 2000 },
+    experienceYears: { type: Number, default: null, min: 0 },
+    languages: { type: [String], default: [] },
     kycStatus: { type: String, enum: Object.values(KYC_STATUSES), default: KYC_STATUSES.PENDING },
     kycRejectionReason: { type: String, default: null },
     kycDocuments: { type: [kycDocumentSchema], default: [] },
@@ -100,6 +105,7 @@ const providerSchema = new Schema<IProvider>(
     },
     address: { type: String, required: true },
     workingHours: { type: [workingHoursSchema], default: [] },
+    unavailableDates: { type: [Date], default: [] },
     metadata: { type: metadataSchema, default: () => ({}) },
     bankAccount: { type: bankAccountSchema, default: null },
     commissionPercent: { type: Number, default: null, min: 0, max: 100 },

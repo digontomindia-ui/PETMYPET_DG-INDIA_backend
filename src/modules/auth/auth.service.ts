@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import { env } from '../../common/config/env.js';
 import { AppError } from '../../common/errors/app-error.js';
+import { ROLES } from '../../common/constants/roles.js';
 import { hashPassword, comparePassword } from '../../common/utils/password.js';
 import {
   compareOtpCode,
@@ -44,10 +45,13 @@ function parseDurationToMs(duration: string): number {
   return value * unitMs;
 }
 
-async function findUserByIdentifier(identifier: string): Promise<UserDocument | null> {
+async function findUserByIdentifier(
+  identifier: string,
+  includePassword = false,
+): Promise<UserDocument | null> {
   return isEmailIdentifier(identifier)
-    ? userRepository.findByEmail(identifier)
-    : userRepository.findByPhone(identifier);
+    ? userRepository.findByEmail(identifier, includePassword)
+    : userRepository.findByPhone(identifier, includePassword);
 }
 
 async function sendOtpToIdentifier(
@@ -153,7 +157,7 @@ export const authService = {
 
     await issueOtp(input.email.toLowerCase(), OTP_PURPOSES.SIGNUP);
 
-    return { userId: user._id.toString(), identifier: user.email };
+    return { userId: user._id.toString(), identifier: input.email.toLowerCase() };
   },
 
   async verifySignup(
@@ -188,12 +192,15 @@ export const authService = {
     input: LoginInput,
     deviceInfo: DeviceInfo,
   ): Promise<{ isRegistered: boolean; user: PublicUser | null; tokens: AuthTokens | null }> {
-    const user = await userRepository.findByEmail(input.email, true);
+    const user = await findUserByIdentifier(input.identifier, true);
     if (!user) return { isRegistered: false, user: null, tokens: null };
     if (user.isBlocked) throw AppError.forbidden('This account has been blocked');
+    if (!user.passwordHash) {
+      throw AppError.badRequest('This account has no password set — log in with OTP instead');
+    }
 
     const passwordMatches = await comparePassword(input.password, user.passwordHash);
-    if (!passwordMatches) throw AppError.unauthorized('Invalid email or password');
+    if (!passwordMatches) throw AppError.unauthorized('Invalid credentials');
 
     if (!user.isVerified) throw AppError.forbidden('Please verify your account before logging in');
 
@@ -201,13 +208,46 @@ export const authService = {
     return { isRegistered: true, user: toPublicUser(user), tokens };
   },
 
+  /**
+   * The real LogIn screen (both apps) only ever collects a phone number — there is no
+   * separate "sign up" screen for it. So this is also the account-creation entry point:
+   * a phone identifier with no existing account gets a bare-minimum user row created here
+   * (name/email filled in later via the "Your Profile" onboarding screen, PUT /users/me),
+   * then an OTP is sent exactly as if the account already existed. `isRegistered: false`
+   * tells the client to route to onboarding after verify instead of straight to Home.
+   */
   async requestOtpLogin(input: RequestOtpLoginInput): Promise<{ isRegistered: boolean }> {
-    const user = await findUserByIdentifier(input.identifier);
-    if (!user) return { isRegistered: false };
-    if (user.isBlocked) throw AppError.forbidden('This account has been blocked');
+    const existing = await findUserByIdentifier(input.identifier);
+    if (existing) {
+      if (existing.isBlocked) throw AppError.forbidden('This account has been blocked');
+      await issueOtp(input.identifier, OTP_PURPOSES.LOGIN);
+      return { isRegistered: true };
+    }
+
+    // Auto-create is phone-only, matching what every screen actually collects here — an
+    // unrecognized email identifier just reports isRegistered: false, no side effects,
+    // since there's no phone number to create an account with.
+    if (isEmailIdentifier(input.identifier)) {
+      return { isRegistered: false };
+    }
+
+    let referrer: UserDocument | null = null;
+    if (input.referralCode) {
+      referrer = await userRepository.findOne({ referralCode: input.referralCode });
+    }
+
+    const user = await userRepository.create({
+      phone: input.identifier,
+      role: input.role ?? ROLES.USER,
+      referredBy: referrer ? new Types.ObjectId(referrer._id.toString()) : null,
+    });
+
+    if (referrer) {
+      await referralService.recordSignup(referrer._id.toString(), user._id.toString());
+    }
 
     await issueOtp(input.identifier, OTP_PURPOSES.LOGIN);
-    return { isRegistered: true };
+    return { isRegistered: false };
   },
 
   async verifyOtpLogin(
@@ -293,6 +333,9 @@ export const authService = {
   async updatePassword(userId: string, input: UpdatePasswordInput): Promise<void> {
     const user = await userRepository.findByIdWithPassword(userId);
     if (!user) throw AppError.notFound('User not found');
+    if (!user.passwordHash) {
+      throw AppError.badRequest('No password is set on this account yet');
+    }
 
     const matches = await comparePassword(input.oldPassword, user.passwordHash);
     if (!matches) throw AppError.badRequest('Current password is incorrect');

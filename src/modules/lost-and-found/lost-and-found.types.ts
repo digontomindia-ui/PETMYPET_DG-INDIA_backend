@@ -1,5 +1,6 @@
 import type { HydratedDocument, Types } from 'mongoose';
 import type { SoftDeletable } from '../../common/database/plugins/soft-delete.plugin.js';
+import type { PetGender } from '../pets/pet.constants.js';
 import type {
   ApprovalStatus,
   LostAndFoundStatus,
@@ -13,6 +14,9 @@ export interface ILostAndFoundPost extends SoftDeletable {
   petName: string;
   species: string;
   breed: string;
+  age: string | null;
+  gender: PetGender | null;
+  rewardAmount: number | null;
   description: string;
   photoUrls: string[];
   lastSeenLocation: { type: 'Point'; coordinates: [number, number] } | null;

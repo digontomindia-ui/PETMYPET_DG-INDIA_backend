@@ -8,6 +8,7 @@ export function toServiceDto(service: ServiceDocument) {
     name: service.name,
     description: service.description,
     price: service.price,
+    originalPrice: service.originalPrice,
     durationMinutes: service.durationMinutes,
     images: service.images,
     addOnCatalog: service.addOnCatalog,

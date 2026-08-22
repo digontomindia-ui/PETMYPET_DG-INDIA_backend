@@ -55,10 +55,12 @@ petCompanionRoutes.use(authenticate);
  *               data:
  *                 - id: 64f1a2b3c4d5e6f7a8b9c0e1
  *                   ownerId: 64f1a2b3c4d5e6f7a8b9c0e2
+ *                   ownerName: Ananya S.
  *                   name: Luna
  *                   species: DOG
  *                   breed: Golden Retriever
  *                   gender: FEMALE
+ *                   dateOfBirth: "2023-05-01T00:00:00.000Z"
  *                   weightKg: 24.0
  *                   avatarUrl: "https://cdn.petmypet.in/pets/luna-avatar.jpg"
  *                   companionProfile:
@@ -69,7 +71,8 @@ petCompanionRoutes.use(authenticate);
  *                     lookingFor: [playdates]
  *                     activityLevel: HIGH
  *                     temperament: Great with other dogs
- *                     getsAlongWith: { dogs: true, cats: true, kids: true, families: true }
+ *                     neutered: true
+ *                     getsAlongWith: { dogs: YES, cats: YES, kids: YES, families: YES }
  *                   distanceMeters: 1240.5
  *               meta: { page: 1, limit: 20, total: 1, totalPages: 1 }
  *       400:

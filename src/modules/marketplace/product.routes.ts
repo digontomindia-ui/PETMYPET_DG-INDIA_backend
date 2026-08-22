@@ -66,6 +66,8 @@ export const productRoutes = Router();
  *                   description: "Balanced nutrition for adult dogs."
  *                   category: "FOOD"
  *                   price: 1499
+ *                   mrp: 1699
+ *                   discountPercent: 12
  *                   images: ["https://cdn.petmypet.in/products/royal-canin-3kg.jpg"]
  *                   stock: 42
  *                   sku: "RC-ADT-3KG"
@@ -108,6 +110,8 @@ productRoutes.get('/', validate({ query: searchProductsQuerySchema }), productCo
  *                 description: "Balanced nutrition for adult dogs."
  *                 category: "FOOD"
  *                 price: 1499
+ *                 mrp: 1699
+ *                 discountPercent: 12
  *                 images: ["https://cdn.petmypet.in/products/royal-canin-3kg.jpg"]
  *                 stock: 42
  *                 sku: "RC-ADT-3KG"
@@ -141,6 +145,7 @@ productRoutes.get('/:id', validate({ params: idParamSchema }), productController
  *               description: { type: string, maxLength: 3000, default: "" }
  *               category: { type: string, enum: [FOOD, PHARMACY, ACCESSORIES, GROOMING_SUPPLIES, TOYS, OTHER] }
  *               price: { type: number, minimum: 0 }
+ *               mrp: { type: number, minimum: 0, nullable: true, description: "Struck-through list price; must be >= price when set" }
  *               images: { type: array, items: { type: string, format: uri }, default: [] }
  *               stock: { type: integer, minimum: 0, default: 0 }
  *               sku: { type: string, maxLength: 50 }
@@ -150,6 +155,7 @@ productRoutes.get('/:id', validate({ params: idParamSchema }), productController
  *             description: "Balanced nutrition for adult dogs."
  *             category: "FOOD"
  *             price: 1499
+ *             mrp: 1699
  *             images: ["https://cdn.petmypet.in/products/royal-canin-3kg.jpg"]
  *             stock: 50
  *             sku: "RC-ADT-3KG"
@@ -169,6 +175,8 @@ productRoutes.get('/:id', validate({ params: idParamSchema }), productController
  *                 description: "Balanced nutrition for adult dogs."
  *                 category: "FOOD"
  *                 price: 1499
+ *                 mrp: 1699
+ *                 discountPercent: 12
  *                 images: ["https://cdn.petmypet.in/products/royal-canin-3kg.jpg"]
  *                 stock: 50
  *                 sku: "RC-ADT-3KG"
@@ -223,12 +231,14 @@ productRoutes.post(
  *               description: { type: string, maxLength: 3000 }
  *               category: { type: string, enum: [FOOD, PHARMACY, ACCESSORIES, GROOMING_SUPPLIES, TOYS, OTHER] }
  *               price: { type: number, minimum: 0 }
+ *               mrp: { type: number, minimum: 0, nullable: true, description: "Struck-through list price; must be >= price when set" }
  *               images: { type: array, items: { type: string, format: uri } }
  *               stock: { type: integer, minimum: 0 }
  *               sku: { type: string, maxLength: 50 }
  *               isActive: { type: boolean }
  *           example:
  *             price: 1399
+ *             mrp: 1599
  *             stock: 30
  *     responses:
  *       200:
@@ -246,6 +256,8 @@ productRoutes.post(
  *                 description: "Balanced nutrition for adult dogs."
  *                 category: "FOOD"
  *                 price: 1399
+ *                 mrp: 1599
+ *                 discountPercent: 13
  *                 images: ["https://cdn.petmypet.in/products/royal-canin-3kg.jpg"]
  *                 stock: 30
  *                 sku: "RC-ADT-3KG"

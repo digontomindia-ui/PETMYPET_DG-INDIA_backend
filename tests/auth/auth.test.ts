@@ -6,6 +6,7 @@ vi.mock('../../src/common/integrations/sms.js', () => ({ sendSms: vi.fn() }));
 
 const { createApp } = await import('../../src/app.js');
 const { sendEmail } = await import('../../src/common/integrations/mailer.js');
+const { sendSms } = await import('../../src/common/integrations/sms.js');
 
 function extractOtp(html: string): string {
   const match = /code is (\d+)\./.exec(html);
@@ -55,7 +56,7 @@ describe('auth flow', () => {
 
     const loginRes = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: signupPayload.email, password: signupPayload.password });
+      .send({ identifier: signupPayload.email, password: signupPayload.password });
 
     expect(loginRes.status).toBe(200);
     expect(loginRes.body.data.tokens.accessToken).toBeTruthy();
@@ -117,5 +118,44 @@ describe('auth flow', () => {
       .post('/api/v1/auth/refresh')
       .send({ refreshToken });
     expect(refreshAfterLogout.status).toBe(401);
+  });
+
+  // This is the real LogIn screen's flow (both apps): phone number only, no separate
+  // signup form — a brand-new phone number gets an account auto-created right here.
+  it('auto-creates an account on first OTP request for an unrecognized phone number, then logs in on verify', async () => {
+    const phone = '+919900011122';
+
+    const requestRes = await request(app)
+      .post('/api/v1/auth/login/otp/request')
+      .send({ identifier: phone });
+    expect(requestRes.status).toBe(200);
+    expect(requestRes.body.data.isRegistered).toBe(false);
+    expect(sendSms).toHaveBeenCalledOnce();
+
+    const message = vi.mocked(sendSms).mock.calls[0]?.[1] as string;
+    const otp = extractOtp(message);
+
+    const verifyRes = await request(app)
+      .post('/api/v1/auth/login/otp/verify')
+      .send({ identifier: phone, code: otp });
+    expect(verifyRes.status).toBe(200);
+    expect(verifyRes.body.data.user.phone).toBe(phone);
+    expect(verifyRes.body.data.user.isVerified).toBe(true);
+    expect(verifyRes.body.data.tokens.accessToken).toBeTruthy();
+
+    // A second OTP request for the same (now-registered) phone must not re-create anything.
+    const secondRequestRes = await request(app)
+      .post('/api/v1/auth/login/otp/request')
+      .send({ identifier: phone });
+    expect(secondRequestRes.body.data.isRegistered).toBe(true);
+  });
+
+  it('does not create an account for an unrecognized email identifier (auto-signup is phone-only)', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/login/otp/request')
+      .send({ identifier: 'nobody-here@example.com' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.isRegistered).toBe(false);
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 });

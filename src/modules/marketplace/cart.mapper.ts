@@ -1,3 +1,4 @@
+import { DEFAULT_DELIVERY_FEE } from './order.constants.js';
 import type { ProductDocument } from './product.types.js';
 import type { CartDocument, WishlistDocument } from './cart.types.js';
 
@@ -17,9 +18,19 @@ export function toCartDto(cart: CartDocument, productsById: Map<string, ProductD
     })
     .filter((item) => item !== null);
 
-  const totalAmount = Math.round(items.reduce((sum, item) => sum + item.subtotal, 0) * 100) / 100;
+  const subtotal = Math.round(items.reduce((sum, item) => sum + item.subtotal, 0) * 100) / 100;
+  const deliveryFee = items.length > 0 ? DEFAULT_DELIVERY_FEE : 0;
+  const totalAmount = Math.max(0, subtotal - cart.discountAmount + deliveryFee);
 
-  return { id: cart._id.toString(), items, totalAmount };
+  return {
+    id: cart._id.toString(),
+    items,
+    subtotal,
+    discountAmount: cart.discountAmount,
+    couponCode: cart.couponCode,
+    deliveryFee,
+    totalAmount,
+  };
 }
 
 export function toWishlistDto(

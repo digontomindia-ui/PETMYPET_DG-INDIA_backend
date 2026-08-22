@@ -6,6 +6,7 @@ export interface IChatRoom {
   bookingId: Types.ObjectId | null;
   lastMessageAt: Date | null;
   lastMessagePreview: string;
+  isUrgent: boolean;
   createdAt: Date;
 }
 

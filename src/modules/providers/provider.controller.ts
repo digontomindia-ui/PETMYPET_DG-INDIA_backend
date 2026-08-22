@@ -5,6 +5,7 @@ import { AppError } from '../../common/errors/app-error.js';
 import { HTTP_STATUS } from '../../common/constants/http-status.js';
 import { providerService } from './provider.service.js';
 import type {
+  AddUnavailableDateInput,
   CreateProviderProfileInput,
   NearbyProvidersQuery,
   RejectKycInput,
@@ -131,5 +132,19 @@ export const providerController = {
       req.query,
     );
     sendSuccess(res, HTTP_STATUS.OK, items, 'Success', buildPaginationMeta(page, limit, total));
+  }),
+
+  addUnavailableDate: asyncHandler(async (req: Request, res: Response) => {
+    const { date } = req.body as AddUnavailableDateInput;
+    const provider = await providerService.addUnavailableDate(requireAuth(req), date);
+    sendSuccess(res, HTTP_STATUS.CREATED, provider, 'Unavailable date added');
+  }),
+
+  removeUnavailableDate: asyncHandler(async (req: Request, res: Response) => {
+    const provider = await providerService.removeUnavailableDate(
+      requireAuth(req),
+      req.params.date as string,
+    );
+    sendSuccess(res, HTTP_STATUS.OK, provider, 'Unavailable date removed');
   }),
 };

@@ -62,6 +62,10 @@ export const userRoutes = Router();
  *                   smsNotifications: true
  *                   emailNotifications: true
  *                   pushNotifications: true
+ *                 serviceInterests: [Grooming, Veterinary]
+ *                 emergencyContact:
+ *                   name: Rohit Sharma
+ *                   phone: "+919876500000"
  *                 createdAt: "2024-01-15T10:30:00.000Z"
  *                 updatedAt: "2024-06-20T08:15:00.000Z"
  *       401:
@@ -91,6 +95,7 @@ userRoutes.get('/me', authenticate, userController.getMe);
  *             type: object
  *             properties:
  *               name: { type: string, maxLength: 120 }
+ *               email: { type: string, format: email }
  *               avatarUrl: { type: string, format: uri }
  *               preferences:
  *                 type: object
@@ -99,14 +104,28 @@ userRoutes.get('/me', authenticate, userController.getMe);
  *                   smsNotifications: { type: boolean }
  *                   emailNotifications: { type: boolean }
  *                   pushNotifications: { type: boolean }
+ *               serviceInterests:
+ *                 type: array
+ *                 items: { type: string }
+ *                 description: "Grooming, Veterinary, Vaccination, Boarding, Pet Sitting, Training, Dog Walking, Pet Taxi, Other"
+ *               emergencyContact:
+ *                 type: object
+ *                 properties:
+ *                   name: { type: string, maxLength: 120 }
+ *                   phone: { type: string }
  *           example:
  *             name: Ananya Sharma
+ *             email: ananya.sharma@example.com
  *             avatarUrl: "https://res.cloudinary.com/patmypets/image/upload/v1699999999/avatars/ananya.jpg"
  *             preferences:
  *               language: en
  *               smsNotifications: true
  *               emailNotifications: false
  *               pushNotifications: true
+ *             serviceInterests: [Grooming, Veterinary]
+ *             emergencyContact:
+ *               name: Rohit Sharma
+ *               phone: "+919876500000"
  *     responses:
  *       200:
  *         description: Updated
@@ -136,6 +155,10 @@ userRoutes.get('/me', authenticate, userController.getMe);
  *                   smsNotifications: true
  *                   emailNotifications: false
  *                   pushNotifications: true
+ *                 serviceInterests: [Grooming, Veterinary]
+ *                 emergencyContact:
+ *                   name: Rohit Sharma
+ *                   phone: "+919876500000"
  *                 createdAt: "2024-01-15T10:30:00.000Z"
  *                 updatedAt: "2024-06-21T09:00:00.000Z"
  *       400:
@@ -156,6 +179,15 @@ userRoutes.get('/me', authenticate, userController.getMe);
  *               success: false
  *               error: UNAUTHORIZED
  *               message: Authentication required
+ *       409:
+ *         description: Email already in use
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: CONFLICT
+ *               message: An account with this email already exists
  */
 userRoutes.put(
   '/me',
