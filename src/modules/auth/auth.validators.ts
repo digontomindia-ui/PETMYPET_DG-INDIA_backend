@@ -21,6 +21,7 @@ export const signupSchema = z.object({
   phone: z.string().regex(/^\+?[0-9]{7,15}$/, 'Invalid phone number'),
   password: passwordSchema,
   role: z.enum([ROLES.USER, ROLES.SERVICE_PROVIDER]).default(ROLES.USER),
+  referralCode: z.string().min(1).max(20).optional(),
 });
 
 export const verifySignupSchema = z.object({
@@ -29,12 +30,13 @@ export const verifySignupSchema = z.object({
 });
 
 export const loginSchema = z.object({
-  email: z.string().email(),
+  identifier: identifierSchema,
   password: z.string().min(1),
 });
 
 export const requestOtpLoginSchema = z.object({
   identifier: identifierSchema,
+  referralCode: z.string().min(1).max(20).optional(),
 });
 
 export const verifyOtpLoginSchema = z.object({

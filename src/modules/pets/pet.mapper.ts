@@ -14,6 +14,7 @@ export function toPublicPet(pet: PetDocument): PublicPet {
     notes: pet.notes,
     medicalRecords: pet.medicalRecords,
     vaccinations: pet.vaccinations,
+    companionProfile: pet.companionProfile,
     createdAt: pet.createdAt,
   };
 }

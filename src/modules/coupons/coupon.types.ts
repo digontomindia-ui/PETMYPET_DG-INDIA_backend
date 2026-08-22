@@ -34,3 +34,8 @@ export interface ICouponRedemption {
 }
 
 export type CouponRedemptionDocument = HydratedDocument<ICouponRedemption>;
+
+/** A redemption doc (lean) whose couponId has been populated down to just its code. */
+export type PopulatedCouponRedemption = Omit<ICouponRedemption, 'couponId'> & {
+  couponId: Pick<ICoupon, '_id' | 'code'>;
+};

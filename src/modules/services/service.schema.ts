@@ -14,6 +14,15 @@ const serviceSchema = new Schema<IService>(
     price: { type: Number, required: true, min: 0 },
     durationMinutes: { type: Number, required: true, min: 5 },
     images: { type: [String], default: [] },
+    addOnCatalog: {
+      type: [
+        {
+          name: { type: String, required: true, trim: true, maxlength: 100 },
+          price: { type: Number, required: true, min: 0 },
+        },
+      ],
+      default: [],
+    },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },

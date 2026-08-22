@@ -14,6 +14,7 @@ export const WALLET_TRANSACTION_REASONS = {
   ORDER_REFUND: 'ORDER_REFUND',
   TOPUP: 'TOPUP',
   ADMIN_ADJUSTMENT: 'ADMIN_ADJUSTMENT',
+  REFERRAL_BONUS: 'REFERRAL_BONUS',
 } as const;
 
 export type WalletTransactionReason =

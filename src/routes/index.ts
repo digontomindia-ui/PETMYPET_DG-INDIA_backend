@@ -30,6 +30,11 @@ import {
 } from '../modules/admin/admin.routes.js';
 import { uploadRoutes } from '../modules/uploads/upload.routes.js';
 import { availabilityRoutes } from '../modules/availability/availability.routes.js';
+import { referralRoutes } from '../modules/referrals/referral.routes.js';
+import { petTaxiRoutes } from '../modules/pet-taxi/pet-taxi.routes.js';
+import { petRelocationRoutes } from '../modules/pet-relocation/pet-relocation.routes.js';
+import { petInsuranceRoutes } from '../modules/pet-insurance/pet-insurance.routes.js';
+import { petCompanionRoutes } from '../modules/pet-companion/pet-companion.routes.js';
 
 export const apiRouter = Router();
 
@@ -63,3 +68,8 @@ apiRouter.use('/feature-flags', publicFeatureFlagRoutes);
 apiRouter.use('/banners', publicBannerRoutes);
 apiRouter.use('/uploads', uploadRoutes);
 apiRouter.use('/availability', availabilityRoutes);
+apiRouter.use('/referrals', referralRoutes);
+apiRouter.use('/pet-taxi', petTaxiRoutes);
+apiRouter.use('/pet-relocation', petRelocationRoutes);
+apiRouter.use('/pet-insurance', petInsuranceRoutes);
+apiRouter.use('/pet-companion', petCompanionRoutes);

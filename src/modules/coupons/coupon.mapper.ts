@@ -1,4 +1,15 @@
-import type { CouponDocument } from './coupon.types.js';
+import type { CouponDocument, PopulatedCouponRedemption } from './coupon.types.js';
+
+export function toCouponRedemptionDto(redemption: PopulatedCouponRedemption) {
+  return {
+    id: redemption._id.toString(),
+    couponId: redemption.couponId._id.toString(),
+    code: redemption.couponId.code,
+    bookingId: redemption.bookingId.toString(),
+    discountAmount: redemption.discountAmount,
+    redeemedAt: redemption.redeemedAt,
+  };
+}
 
 export function toCouponDto(coupon: CouponDocument) {
   return {

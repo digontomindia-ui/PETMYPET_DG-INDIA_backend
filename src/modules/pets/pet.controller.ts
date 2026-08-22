@@ -8,6 +8,7 @@ import type {
   AddMedicalRecordInput,
   AddVaccinationInput,
   CreatePetInput,
+  UpdateCompanionProfileInput,
   UpdatePetInput,
 } from './pet.dto.js';
 
@@ -72,5 +73,38 @@ export const petController = {
       req.body as AddVaccinationInput,
     );
     sendSuccess(res, HTTP_STATUS.CREATED, pet, 'Vaccination added');
+  }),
+
+  removeMedicalRecord: asyncHandler(async (req: Request, res: Response) => {
+    const { userId, role } = requireAuth(req);
+    const pet = await petService.removeMedicalRecord(
+      req.params.id as string,
+      userId,
+      role,
+      req.params.recordId as string,
+    );
+    sendSuccess(res, HTTP_STATUS.OK, pet, 'Medical record removed');
+  }),
+
+  removeVaccination: asyncHandler(async (req: Request, res: Response) => {
+    const { userId, role } = requireAuth(req);
+    const pet = await petService.removeVaccination(
+      req.params.id as string,
+      userId,
+      role,
+      req.params.recordId as string,
+    );
+    sendSuccess(res, HTTP_STATUS.OK, pet, 'Vaccination removed');
+  }),
+
+  updateCompanionProfile: asyncHandler(async (req: Request, res: Response) => {
+    const { userId, role } = requireAuth(req);
+    const pet = await petService.updateCompanionProfile(
+      req.params.id as string,
+      userId,
+      role,
+      req.body as UpdateCompanionProfileInput,
+    );
+    sendSuccess(res, HTTP_STATUS.OK, pet, 'Companion profile updated');
   }),
 };

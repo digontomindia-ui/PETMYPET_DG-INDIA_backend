@@ -10,6 +10,7 @@ import { providerRepository } from '../providers/provider.repository.js';
 import { couponService } from '../coupons/coupon.service.js';
 import { notificationService } from '../notifications/notification.service.js';
 import { NOTIFICATION_TYPES } from '../notifications/notification.constants.js';
+import { referralService } from '../referrals/referral.service.js';
 import { bookingRepository } from './booking.repository.js';
 import { toOwnerBookingView, toProviderBookingView } from './booking.mapper.js';
 import {
@@ -18,13 +19,47 @@ import {
   CANCELLED_BY,
   PAYMENT_STATUSES,
 } from './booking.constants.js';
-import type { CancelBookingInput, CreateBookingInput, ListBookingsQuery } from './booking.dto.js';
-import type { BookingDocument } from './booking.types.js';
+import type {
+  AddBookingPhotoInput,
+  CancelBookingInput,
+  CreateBookingInput,
+  ListBookingsQuery,
+  UpdateProviderNotesInput,
+} from './booking.dto.js';
+import type { BookingDocument, IBookingAddOn } from './booking.types.js';
 import type { BookingStatus } from './booking.constants.js';
+
+const DAY_MS = 24 * 60 * 60_000;
+
+/** The provider can only write session notes / photos while actively working the booking. */
+const PROVIDER_EDITABLE_STATUSES: BookingStatus[] = [
+  BOOKING_STATUSES.ACCEPTED,
+  BOOKING_STATUSES.ON_THE_WAY,
+  BOOKING_STATUSES.STARTED,
+];
 
 function assertTransition(current: BookingStatus, next: BookingStatus): void {
   if (!BOOKING_TRANSITIONS[current].includes(next)) {
     throw AppError.badRequest(`Cannot move booking from ${current} to ${next}`);
+  }
+}
+
+/** Rejects any requested add-on whose name+price doesn't match an entry in the service's catalog,
+ * so a client can't inject arbitrary add-on pricing at booking time. */
+function assertAddOnsInCatalog(addOns: IBookingAddOn[], catalog: IBookingAddOn[]): void {
+  for (const addOn of addOns) {
+    const isValid = catalog.some((c) => c.name === addOn.name && c.price === addOn.price);
+    if (!isValid) {
+      throw AppError.badRequest(
+        `Add-on "${addOn.name}" at price ${addOn.price} is not offered by this service`,
+      );
+    }
+  }
+}
+
+function assertBookingEditableByProvider(status: BookingStatus): void {
+  if (!PROVIDER_EDITABLE_STATUSES.includes(status)) {
+    throw AppError.badRequest(`Cannot update booking while it is ${status}`);
   }
 }
 
@@ -75,8 +110,13 @@ export const bookingService = {
       }
     }
 
+    assertAddOnsInCatalog(input.addOns, service.addOnCatalog);
+    const addOnsTotal = input.addOns.reduce((sum, addOn) => sum + addOn.price, 0);
+
     const scheduledStart = input.scheduledStart;
-    const scheduledEnd = new Date(scheduledStart.getTime() + service.durationMinutes * 60_000);
+    const scheduledEnd = input.durationDays
+      ? new Date(scheduledStart.getTime() + input.durationDays * DAY_MS)
+      : new Date(scheduledStart.getTime() + service.durationMinutes * 60_000);
 
     const overlap = await bookingRepository.hasOverlap(
       input.providerId,
@@ -99,9 +139,10 @@ export const bookingService = {
       appliedCoupon = { couponId: validation.couponId, code: validation.code };
     }
 
+    const totalPrice = service.price + addOnsTotal;
     const commissionPercent = provider.commissionPercent ?? env.DEFAULT_PLATFORM_COMMISSION_PERCENT;
     const { commissionAmount, providerPayoutAmount } = computeAmounts(
-      service.price,
+      totalPrice,
       discountAmount,
       commissionPercent,
     );
@@ -117,7 +158,7 @@ export const bookingService = {
       status: BOOKING_STATUSES.PENDING,
       otpStart: generateOtpCode(),
       otpEnd: generateOtpCode(),
-      price: service.price,
+      price: totalPrice,
       currency: env.CURRENCY,
       couponCode: appliedCoupon?.code ?? null,
       discountAmount,
@@ -126,6 +167,10 @@ export const bookingService = {
       providerPayoutAmount,
       paymentStatus: PAYMENT_STATUSES.PENDING,
       notes: input.notes,
+      addOns: input.addOns,
+      durationDays: input.durationDays ?? null,
+      dropOffTime: input.dropOffTime ?? null,
+      pickupTime: input.pickupTime ?? null,
     });
 
     if (appliedCoupon) {
@@ -260,6 +305,28 @@ export const bookingService = {
       data: { bookingId: booking._id.toString() },
     });
 
+    await referralService.onFirstBookingCompleted(booking.userId.toString());
+
+    return toProviderBookingView(booking);
+  },
+
+  async updateProviderNotes(
+    bookingId: string,
+    providerUserId: string,
+    input: UpdateProviderNotesInput,
+  ) {
+    const booking = await requireBookingForProvider(bookingId, providerUserId);
+    assertBookingEditableByProvider(booking.status);
+    booking.providerNotes = input.notes;
+    await booking.save();
+    return toProviderBookingView(booking);
+  },
+
+  async addPhoto(bookingId: string, providerUserId: string, input: AddBookingPhotoInput) {
+    const booking = await requireBookingForProvider(bookingId, providerUserId);
+    assertBookingEditableByProvider(booking.status);
+    booking.photos.push({ url: input.url, phase: input.phase, uploadedAt: new Date() });
+    await booking.save();
     return toProviderBookingView(booking);
   },
 

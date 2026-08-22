@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import { env } from '../../common/config/env.js';
 import { AppError } from '../../common/errors/app-error.js';
 import { hashPassword, comparePassword } from '../../common/utils/password.js';
@@ -13,6 +14,7 @@ import { sendSms } from '../../common/integrations/sms.js';
 import { logger } from '../../common/utils/logger.js';
 import { userRepository } from '../users/user.repository.js';
 import { toPublicUser } from '../users/user.mapper.js';
+import { referralService } from '../referrals/referral.service.js';
 import type { PublicUser, UserDocument } from '../users/user.types.js';
 import { otpRepository } from './otp.repository.js';
 import { sessionRepository } from './session.repository.js';
@@ -128,6 +130,13 @@ export const authService = {
       throw AppError.conflict('An account with this phone number already exists');
 
     const passwordHash = await hashPassword(input.password);
+
+    // A bad/unknown referral code should never block signup — just skip attributing it.
+    let referrer: UserDocument | null = null;
+    if (input.referralCode) {
+      referrer = await userRepository.findOne({ referralCode: input.referralCode });
+    }
+
     const user = await userRepository.create({
       name: input.name,
       email: input.email.toLowerCase(),
@@ -135,7 +144,12 @@ export const authService = {
       passwordHash,
       role: input.role,
       isVerified: false,
+      referredBy: referrer ? new Types.ObjectId(referrer._id.toString()) : null,
     });
+
+    if (referrer) {
+      await referralService.recordSignup(referrer._id.toString(), user._id.toString());
+    }
 
     await issueOtp(input.email.toLowerCase(), OTP_PURPOSES.SIGNUP);
 

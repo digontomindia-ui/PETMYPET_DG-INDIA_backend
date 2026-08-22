@@ -1,7 +1,7 @@
 import { Types } from 'mongoose';
 import { BaseRepository } from '../../common/repositories/base.repository.js';
 import { CouponModel, CouponRedemptionModel } from './coupon.schema.js';
-import type { ICoupon } from './coupon.types.js';
+import type { ICoupon, PopulatedCouponRedemption } from './coupon.types.js';
 
 export class CouponRepository extends BaseRepository<ICoupon> {
   constructor() {
@@ -14,6 +14,24 @@ export class CouponRepository extends BaseRepository<ICoupon> {
 
   async countRedemptionsForUser(couponId: string, userId: string): Promise<number> {
     return CouponRedemptionModel.countDocuments({ couponId, userId }).exec();
+  }
+
+  async findRedemptionsForUser(
+    userId: string,
+    skip: number,
+    limit: number,
+  ): Promise<{ items: PopulatedCouponRedemption[]; total: number }> {
+    const [items, total] = await Promise.all([
+      CouponRedemptionModel.find({ userId })
+        .populate<{ couponId: Pick<ICoupon, '_id' | 'code'> }>('couponId', 'code')
+        .sort({ redeemedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec(),
+      CouponRedemptionModel.countDocuments({ userId }).exec(),
+    ]);
+    return { items, total };
   }
 
   /**

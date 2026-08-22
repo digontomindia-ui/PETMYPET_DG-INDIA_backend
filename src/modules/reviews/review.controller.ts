@@ -4,7 +4,7 @@ import { sendSuccess, buildPaginationMeta } from '../../common/utils/api-respons
 import { AppError } from '../../common/errors/app-error.js';
 import { HTTP_STATUS } from '../../common/constants/http-status.js';
 import { reviewService } from './review.service.js';
-import type { CreateReviewInput, ListReviewsQuery } from './review.dto.js';
+import type { CreateReviewInput } from './review.dto.js';
 
 export const reviewController = {
   create: asyncHandler(async (req: Request, res: Response) => {
@@ -15,7 +15,7 @@ export const reviewController = {
 
   listForProvider: asyncHandler(async (req: Request, res: Response) => {
     const { reviews, total, page, limit } = await reviewService.listForProvider(
-      req.query as unknown as ListReviewsQuery,
+      req.query,
     );
     sendSuccess(res, HTTP_STATUS.OK, reviews, 'Success', buildPaginationMeta(page, limit, total));
   }),

@@ -56,3 +56,8 @@ export const validateCouponSchema = z.object({
 });
 
 export const idParamSchema = z.object({ id: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id') });
+
+export const listRedemptionsQuerySchema = z.object({
+  page: z.string().optional(),
+  limit: z.string().optional(),
+});

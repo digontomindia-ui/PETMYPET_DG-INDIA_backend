@@ -1,9 +1,9 @@
 import { AppError } from '../../common/errors/app-error.js';
 import { parsePagination } from '../../common/utils/pagination.js';
 import { couponRepository } from './coupon.repository.js';
-import { toCouponDto } from './coupon.mapper.js';
+import { toCouponDto, toCouponRedemptionDto } from './coupon.mapper.js';
 import { DISCOUNT_TYPES } from './coupon.constants.js';
-import type { CreateCouponInput, UpdateCouponInput } from './coupon.dto.js';
+import type { CreateCouponInput, ListRedemptionsQuery, UpdateCouponInput } from './coupon.dto.js';
 import type { CouponValidationResult } from './coupon.dto.js';
 
 export const couponService = {
@@ -97,6 +97,13 @@ export const couponService = {
       code: coupon.code,
       discountAmount: Math.round(discountAmount * 100) / 100,
     };
+  },
+
+  /** The caller's own coupon redemption history. */
+  async listMyRedemptions(userId: string, query: ListRedemptionsQuery) {
+    const { page, limit, skip } = parsePagination(query);
+    const { items, total } = await couponRepository.findRedemptionsForUser(userId, skip, limit);
+    return { redemptions: items.map(toCouponRedemptionDto), total, page, limit };
   },
 
   /** Consumes the coupon's usage; called only after the booking it applies to is actually created. */

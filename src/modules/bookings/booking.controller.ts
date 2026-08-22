@@ -5,7 +5,13 @@ import { AppError } from '../../common/errors/app-error.js';
 import { HTTP_STATUS } from '../../common/constants/http-status.js';
 import type { AuthenticatedUser } from '../../common/types/express.js';
 import { bookingService } from './booking.service.js';
-import type { CancelBookingInput, CreateBookingInput, VerifyOtpInput } from './booking.dto.js';
+import type {
+  AddBookingPhotoInput,
+  CancelBookingInput,
+  CreateBookingInput,
+  UpdateProviderNotesInput,
+  VerifyOtpInput,
+} from './booking.dto.js';
 
 function requireAuth(req: Request): AuthenticatedUser {
   if (!req.user) throw AppError.unauthorized();
@@ -64,6 +70,26 @@ export const bookingController = {
     const { code } = req.body as VerifyOtpInput;
     const booking = await bookingService.verifyEndOtp(req.params.id as string, userId, code);
     sendSuccess(res, HTTP_STATUS.OK, booking, 'Service completed');
+  }),
+
+  updateNotes: asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = requireAuth(req);
+    const booking = await bookingService.updateProviderNotes(
+      req.params.id as string,
+      userId,
+      req.body as UpdateProviderNotesInput,
+    );
+    sendSuccess(res, HTTP_STATUS.OK, booking, 'Notes updated');
+  }),
+
+  addPhoto: asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = requireAuth(req);
+    const booking = await bookingService.addPhoto(
+      req.params.id as string,
+      userId,
+      req.body as AddBookingPhotoInput,
+    );
+    sendSuccess(res, HTTP_STATUS.CREATED, booking, 'Photo added');
   }),
 
   cancel: asyncHandler(async (req: Request, res: Response) => {

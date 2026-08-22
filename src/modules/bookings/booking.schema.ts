@@ -10,7 +10,7 @@ import {
   CANCELLED_BY,
   PAYMENT_STATUSES,
 } from './booking.constants.js';
-import type { IBooking } from './booking.types.js';
+import { BOOKING_PHOTO_PHASES, type IBooking } from './booking.types.js';
 
 const bookingSchema = new Schema<IBooking>(
   {
@@ -46,6 +46,29 @@ const bookingSchema = new Schema<IBooking>(
     cancelledBy: { type: String, enum: Object.values(CANCELLED_BY), default: null },
     cancellationReason: { type: String, default: null },
     notes: { type: String, default: '', maxlength: 1000 },
+    addOns: {
+      type: [
+        {
+          name: { type: String, required: true, trim: true, maxlength: 100 },
+          price: { type: Number, required: true, min: 0 },
+        },
+      ],
+      default: [],
+    },
+    durationDays: { type: Number, default: null, min: 1 },
+    dropOffTime: { type: String, default: null },
+    pickupTime: { type: String, default: null },
+    providerNotes: { type: String, default: '', maxlength: 2000 },
+    photos: {
+      type: [
+        {
+          url: { type: String, required: true },
+          phase: { type: String, enum: Object.values(BOOKING_PHOTO_PHASES), required: true },
+          uploadedAt: { type: Date, required: true, default: Date.now },
+        },
+      ],
+      default: [],
+    },
   },
   { timestamps: true },
 );

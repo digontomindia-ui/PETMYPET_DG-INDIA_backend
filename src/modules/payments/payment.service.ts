@@ -14,9 +14,8 @@ import { notificationService } from '../notifications/notification.service.js';
 import { NOTIFICATION_TYPES } from '../notifications/notification.constants.js';
 import { paymentRepository } from './payment.repository.js';
 import { toPaymentDto } from './payment.mapper.js';
-import { PAYMENT_METHODS, PAYMENT_TRANSACTION_STATUSES } from './payment.constants.js';
+import { PAYMENT_METHODS, PAYMENT_PURPOSES, PAYMENT_TRANSACTION_STATUSES } from './payment.constants.js';
 import type { RazorpayOrderResponse } from './payment.dto.js';
-import type { PaymentDocument } from './payment.types.js';
 
 function netAmount(price: number, discountAmount: number): number {
   return Math.max(0, Math.round((price - discountAmount) * 100) / 100);
@@ -122,6 +121,8 @@ export const paymentService = {
     if (payment.method !== PAYMENT_METHODS.CASH)
       throw AppError.badRequest('This payment is not a cash payment');
 
+    if (!payment.bookingId) throw AppError.internal('Cash payment is missing a bookingId');
+
     const provider = await providerRepository.findByUserId(providerUserId);
     const booking = await bookingRepository.findById(payment.bookingId.toString());
     if (!provider || !booking || booking.providerId.toString() !== provider._id.toString()) {
@@ -192,18 +193,38 @@ export const paymentService = {
     payment.razorpayPaymentId = razorpayPaymentId;
     await payment.save();
 
-    await bookingRepository.updateById(payment.bookingId.toString(), {
-      paymentStatus: PAYMENT_STATUSES.PAID,
-      paymentId: payment._id,
-    });
+    if (payment.purpose === PAYMENT_PURPOSES.BOOKING) {
+      if (!payment.bookingId) throw AppError.internal('Booking payment is missing a bookingId');
 
-    await notificationService.notify({
-      userId: payment.userId.toString(),
-      type: NOTIFICATION_TYPES.PAYMENT_RECEIVED,
-      title: 'Payment received',
-      body: `We received your payment of ${payment.currency} ${payment.amount}`,
-      data: { bookingId: payment.bookingId.toString() },
-    });
+      await bookingRepository.updateById(payment.bookingId.toString(), {
+        paymentStatus: PAYMENT_STATUSES.PAID,
+        paymentId: payment._id,
+      });
+
+      await notificationService.notify({
+        userId: payment.userId.toString(),
+        type: NOTIFICATION_TYPES.PAYMENT_RECEIVED,
+        title: 'Payment received',
+        body: `We received your payment of ${payment.currency} ${payment.amount}`,
+        data: { bookingId: payment.bookingId.toString() },
+      });
+    } else {
+      await walletService.credit(
+        payment.userId.toString(),
+        payment.amount,
+        WALLET_TRANSACTION_REASONS.TOPUP,
+        payment._id.toString(),
+        'Wallet top-up',
+      );
+
+      await notificationService.notify({
+        userId: payment.userId.toString(),
+        type: NOTIFICATION_TYPES.PAYMENT_RECEIVED,
+        title: 'Payment received',
+        body: `Your wallet top-up of ${payment.currency} ${payment.amount} was successful`,
+        data: { paymentId: payment._id.toString() },
+      });
+    }
   },
 
   async onPaymentFailed(razorpayOrderId: string, reason: string): Promise<void> {
@@ -214,21 +235,33 @@ export const paymentService = {
     payment.failureReason = reason;
     await payment.save();
 
-    await bookingRepository.updateById(payment.bookingId.toString(), {
-      paymentStatus: PAYMENT_STATUSES.FAILED,
-    });
+    if (payment.purpose === PAYMENT_PURPOSES.BOOKING) {
+      if (!payment.bookingId) throw AppError.internal('Booking payment is missing a bookingId');
 
-    await notificationService.notify({
-      userId: payment.userId.toString(),
-      type: NOTIFICATION_TYPES.PAYMENT_FAILED,
-      title: 'Payment failed',
-      body: reason,
-      data: { bookingId: payment.bookingId.toString() },
-    });
+      await bookingRepository.updateById(payment.bookingId.toString(), {
+        paymentStatus: PAYMENT_STATUSES.FAILED,
+      });
+
+      await notificationService.notify({
+        userId: payment.userId.toString(),
+        type: NOTIFICATION_TYPES.PAYMENT_FAILED,
+        title: 'Payment failed',
+        body: reason,
+        data: { bookingId: payment.bookingId.toString() },
+      });
+    } else {
+      await notificationService.notify({
+        userId: payment.userId.toString(),
+        type: NOTIFICATION_TYPES.PAYMENT_FAILED,
+        title: 'Wallet top-up failed',
+        body: reason,
+        data: { paymentId: payment._id.toString() },
+      });
+    }
   },
 
   /** Admin-initiated refund: reverses the captured payment via its original method, then marks the booking refunded. */
-  async refundBooking(bookingId: string): Promise<PaymentDocument> {
+  async refundBooking(bookingId: string): Promise<ReturnType<typeof toPaymentDto>> {
     const payment = await paymentRepository.findLatestForBooking(bookingId);
     if (!payment || payment.status !== PAYMENT_TRANSACTION_STATUSES.CAPTURED) {
       throw AppError.badRequest('This booking has no captured payment to refund');
@@ -263,6 +296,6 @@ export const paymentService = {
       data: { bookingId },
     });
 
-    return payment;
+    return toPaymentDto(payment);
   },
 };

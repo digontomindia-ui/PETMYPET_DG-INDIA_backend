@@ -1,12 +1,14 @@
 import { Types } from 'mongoose';
 import { AppError } from '../../common/errors/app-error.js';
 import { ROLES } from '../../common/constants/roles.js';
+import { COMPANION_ACTIVITY_LEVELS } from './pet.constants.js';
 import { petRepository } from './pet.repository.js';
 import { toPublicPet } from './pet.mapper.js';
 import type {
   AddMedicalRecordInput,
   AddVaccinationInput,
   CreatePetInput,
+  UpdateCompanionProfileInput,
   UpdatePetInput,
 } from './pet.dto.js';
 import type { PetDocument } from './pet.types.js';
@@ -75,6 +77,51 @@ export const petService = {
       certificateUrl: input.certificateUrl ?? null,
       providerId: null,
     });
+    await pet.save();
+    return toPublicPet(pet);
+  },
+
+  async removeMedicalRecord(petId: string, userId: string, role: string, recordId: string) {
+    const pet = await requireOwnedPet(petId, userId, role);
+    const record = pet.medicalRecords.id(recordId);
+    if (!record) throw AppError.notFound('Medical record not found');
+    record.deleteOne();
+    await pet.save();
+    return toPublicPet(pet);
+  },
+
+  async removeVaccination(petId: string, userId: string, role: string, recordId: string) {
+    const pet = await requireOwnedPet(petId, userId, role);
+    const record = pet.vaccinations.id(recordId);
+    if (!record) throw AppError.notFound('Vaccination not found');
+    record.deleteOne();
+    await pet.save();
+    return toPublicPet(pet);
+  },
+
+  async updateCompanionProfile(
+    petId: string,
+    userId: string,
+    role: string,
+    input: UpdateCompanionProfileInput,
+  ) {
+    const pet = await requireOwnedPet(petId, userId, role);
+    const existing = pet.companionProfile;
+    pet.companionProfile = {
+      isEnabled: input.isEnabled ?? existing?.isEnabled ?? false,
+      bio: input.bio ?? existing?.bio ?? '',
+      personalityTraits: input.personalityTraits ?? existing?.personalityTraits ?? [],
+      interests: input.interests ?? existing?.interests ?? [],
+      lookingFor: input.lookingFor ?? existing?.lookingFor ?? [],
+      activityLevel: input.activityLevel ?? existing?.activityLevel ?? COMPANION_ACTIVITY_LEVELS.MEDIUM,
+      temperament: input.temperament ?? existing?.temperament ?? '',
+      getsAlongWith: {
+        dogs: input.getsAlongWith?.dogs ?? existing?.getsAlongWith?.dogs ?? true,
+        cats: input.getsAlongWith?.cats ?? existing?.getsAlongWith?.cats ?? true,
+        kids: input.getsAlongWith?.kids ?? existing?.getsAlongWith?.kids ?? true,
+        families: input.getsAlongWith?.families ?? existing?.getsAlongWith?.families ?? true,
+      },
+    };
     await pet.save();
     return toPublicPet(pet);
   },

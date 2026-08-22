@@ -2,8 +2,13 @@ import { model, Schema } from 'mongoose';
 import { softDeletePlugin } from '../../common/database/plugins/soft-delete.plugin.js';
 import { USER_MODEL_NAME } from '../users/user.constants.js';
 import { PROVIDER_MODEL_NAME } from '../providers/provider.constants.js';
-import { PET_GENDERS, PET_MODEL_NAME, PET_SPECIES } from './pet.constants.js';
-import type { IMedicalRecord, IPet, IVaccination } from './pet.types.js';
+import {
+  COMPANION_ACTIVITY_LEVELS,
+  PET_GENDERS,
+  PET_MODEL_NAME,
+  PET_SPECIES,
+} from './pet.constants.js';
+import type { ICompanionProfile, IMedicalRecord, IPet, IVaccination } from './pet.types.js';
 
 const medicalRecordSchema = new Schema<IMedicalRecord>(
   {
@@ -27,6 +32,29 @@ const vaccinationSchema = new Schema<IVaccination>(
   { _id: true },
 );
 
+const companionProfileSchema = new Schema<ICompanionProfile>(
+  {
+    isEnabled: { type: Boolean, default: false },
+    bio: { type: String, default: '', maxlength: 1000 },
+    personalityTraits: { type: [String], default: [] },
+    interests: { type: [String], default: [] },
+    lookingFor: { type: [String], default: [] },
+    activityLevel: {
+      type: String,
+      enum: Object.values(COMPANION_ACTIVITY_LEVELS),
+      default: COMPANION_ACTIVITY_LEVELS.MEDIUM,
+    },
+    temperament: { type: String, default: '' },
+    getsAlongWith: {
+      dogs: { type: Boolean, default: true },
+      cats: { type: Boolean, default: true },
+      kids: { type: Boolean, default: true },
+      families: { type: Boolean, default: true },
+    },
+  },
+  { _id: false },
+);
+
 const petSchema = new Schema<IPet>(
   {
     ownerId: { type: Schema.Types.ObjectId, ref: USER_MODEL_NAME, required: true, index: true },
@@ -40,11 +68,13 @@ const petSchema = new Schema<IPet>(
     notes: { type: String, default: '', maxlength: 2000 },
     medicalRecords: { type: [medicalRecordSchema], default: [] },
     vaccinations: { type: [vaccinationSchema], default: [] },
+    companionProfile: { type: companionProfileSchema, default: null },
   },
   { timestamps: true },
 );
 
 petSchema.index({ ownerId: 1, isDeleted: 1 });
+petSchema.index({ 'companionProfile.isEnabled': 1 });
 petSchema.plugin(softDeletePlugin);
 
 export const PetModel = model<IPet>(PET_MODEL_NAME, petSchema);

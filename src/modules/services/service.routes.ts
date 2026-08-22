@@ -148,6 +148,15 @@ serviceRoutes.get('/:id', validate({ params: idParamSchema }), serviceController
  *               price: { type: number, minimum: 0 }
  *               durationMinutes: { type: integer, minimum: 5 }
  *               images: { type: array, items: { type: string, format: uri }, default: [] }
+ *               addOnCatalog:
+ *                 type: array
+ *                 default: []
+ *                 items:
+ *                   type: object
+ *                   required: [name, price]
+ *                   properties:
+ *                     name: { type: string, minLength: 1, maxLength: 100 }
+ *                     price: { type: number, minimum: 0 }
  *           example:
  *             categoryId: "64f1a2b3c4d5e6f7a8b9c0c1"
  *             name: "Full Grooming Package"
@@ -155,6 +164,9 @@ serviceRoutes.get('/:id', validate({ params: idParamSchema }), serviceController
  *             price: 899
  *             durationMinutes: 60
  *             images: ["https://cdn.petmypet.in/services/grooming-package.jpg"]
+ *             addOnCatalog:
+ *               - { name: "Extra 15 Min", price: 79 }
+ *               - { name: "Poo Pickup", price: 49 }
  *     responses:
  *       201:
  *         description: Service created
@@ -173,6 +185,9 @@ serviceRoutes.get('/:id', validate({ params: idParamSchema }), serviceController
  *                 price: 899
  *                 durationMinutes: 60
  *                 images: ["https://cdn.petmypet.in/services/grooming-package.jpg"]
+ *                 addOnCatalog:
+ *                   - { name: "Extra 15 Min", price: 79 }
+ *                   - { name: "Poo Pickup", price: 49 }
  *                 isActive: true
  *                 createdAt: "2026-08-04T12:00:00.000Z"
  *       400:
@@ -226,10 +241,21 @@ serviceRoutes.post(
  *               price: { type: number, minimum: 0 }
  *               durationMinutes: { type: integer, minimum: 5 }
  *               images: { type: array, items: { type: string, format: uri } }
+ *               addOnCatalog:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required: [name, price]
+ *                   properties:
+ *                     name: { type: string, minLength: 1, maxLength: 100 }
+ *                     price: { type: number, minimum: 0 }
  *               isActive: { type: boolean }
  *           example:
  *             price: 949
  *             durationMinutes: 75
+ *             addOnCatalog:
+ *               - { name: "Extra 15 Min", price: 79 }
+ *               - { name: "Poo Pickup", price: 49 }
  *     responses:
  *       200:
  *         description: Service updated
@@ -248,6 +274,9 @@ serviceRoutes.post(
  *                 price: 949
  *                 durationMinutes: 75
  *                 images: ["https://cdn.petmypet.in/services/grooming-package.jpg"]
+ *                 addOnCatalog:
+ *                   - { name: "Extra 15 Min", price: 79 }
+ *                   - { name: "Poo Pickup", price: 49 }
  *                 isActive: true
  *                 createdAt: "2026-05-10T08:00:00.000Z"
  *       400:

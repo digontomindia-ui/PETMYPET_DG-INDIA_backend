@@ -61,7 +61,7 @@ export const productService = {
 
   async getById(id: string) {
     const product = await productRepository.findById(id);
-    if (!product) throw AppError.notFound('Product not found');
+    if (!product || !product.isActive) throw AppError.notFound('Product not found');
     return toProductDto(product);
   },
 

@@ -7,6 +7,7 @@ import { couponController } from './coupon.controller.js';
 import {
   createCouponSchema,
   idParamSchema,
+  listRedemptionsQuerySchema,
   updateCouponSchema,
   validateCouponSchema,
 } from './coupon.validators.js';
@@ -74,6 +75,63 @@ couponRoutes.post(
   authenticate,
   validate({ body: validateCouponSchema }),
   couponController.validate,
+);
+
+/**
+ * @openapi
+ * /coupons/me/redemptions:
+ *   get:
+ *     tags: [Coupons]
+ *     summary: Get the authenticated user's own coupon redemption history
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: page, in: query, required: false, schema: { type: string }, example: "1" }
+ *       - { name: limit, in: query, required: false, schema: { type: string }, example: "20" }
+ *     responses:
+ *       200:
+ *         description: List of the caller's coupon redemptions
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *             example:
+ *               success: true
+ *               message: "Success"
+ *               data:
+ *                 - id: "64f1a2b3c4d5e6f7a8b9c0f1"
+ *                   couponId: "64f1a2b3c4d5e6f7a8b9c0d2"
+ *                   code: "WELCOME50"
+ *                   bookingId: "64f1a2b3c4d5e6f7a8b9c0e5"
+ *                   discountAmount: 300
+ *                   redeemedAt: "2026-08-10T12:00:00.000Z"
+ *               meta:
+ *                 page: 1
+ *                 limit: 20
+ *                 total: 1
+ *                 totalPages: 1
+ *       400:
+ *         description: Invalid query parameters
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: "BAD_REQUEST"
+ *               message: "limit must be a valid number"
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: "UNAUTHORIZED"
+ *               message: "Authentication required"
+ */
+couponRoutes.get(
+  '/me/redemptions',
+  authenticate,
+  validate({ query: listRedemptionsQuerySchema }),
+  couponController.listMyRedemptions,
 );
 
 /**

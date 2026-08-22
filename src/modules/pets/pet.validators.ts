@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PET_GENDERS, PET_SPECIES } from './pet.constants.js';
+import { COMPANION_ACTIVITY_LEVELS, PET_GENDERS, PET_SPECIES } from './pet.constants.js';
 
 export const createPetSchema = z.object({
   name: z.string().min(1).max(60),
@@ -34,6 +34,30 @@ export const addVaccinationSchema = z.object({
   administeredAt: z.coerce.date(),
   expiresAt: z.coerce.date().optional(),
   certificateUrl: z.string().url().optional(),
+});
+
+export const updateCompanionProfileSchema = z.object({
+  isEnabled: z.boolean().optional(),
+  bio: z.string().max(1000).optional(),
+  personalityTraits: z.array(z.string()).optional(),
+  interests: z.array(z.string()).optional(),
+  lookingFor: z.array(z.string()).optional(),
+  activityLevel: z
+    .enum([
+      COMPANION_ACTIVITY_LEVELS.LOW,
+      COMPANION_ACTIVITY_LEVELS.MEDIUM,
+      COMPANION_ACTIVITY_LEVELS.HIGH,
+    ])
+    .optional(),
+  temperament: z.string().optional(),
+  getsAlongWith: z
+    .object({
+      dogs: z.boolean().optional(),
+      cats: z.boolean().optional(),
+      kids: z.boolean().optional(),
+      families: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 export const idParamSchema = z.object({ id: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id') });

@@ -20,6 +20,12 @@ function toBaseBooking(booking: BookingDocument): PublicBookingBase {
     cancelledBy: booking.cancelledBy,
     cancellationReason: booking.cancellationReason,
     notes: booking.notes,
+    addOns: booking.addOns,
+    durationDays: booking.durationDays,
+    dropOffTime: booking.dropOffTime,
+    pickupTime: booking.pickupTime,
+    providerNotes: booking.providerNotes,
+    photos: booking.photos,
     createdAt: booking.createdAt,
   };
 }

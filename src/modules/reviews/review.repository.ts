@@ -11,8 +11,21 @@ export class ReviewRepository extends BaseRepository<IReview> {
     return this.model.findOne({ bookingId }).exec();
   }
 
+  async findByProductAndUser(productId: string, userId: string) {
+    return this.model.findOne({ productId, userId }).exec();
+  }
+
   async findForProvider(providerId: string, skip: number, limit: number) {
     const filter = { providerId };
+    const [items, total] = await Promise.all([
+      this.model.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).exec(),
+      this.model.countDocuments(filter).exec(),
+    ]);
+    return { items, total };
+  }
+
+  async findForProduct(productId: string, skip: number, limit: number) {
+    const filter = { productId };
     const [items, total] = await Promise.all([
       this.model.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).exec(),
       this.model.countDocuments(filter).exec(),

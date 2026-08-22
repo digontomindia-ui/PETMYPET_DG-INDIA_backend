@@ -18,3 +18,10 @@ export const PAYMENT_TRANSACTION_STATUSES = {
 
 export type PaymentTransactionStatus =
   (typeof PAYMENT_TRANSACTION_STATUSES)[keyof typeof PAYMENT_TRANSACTION_STATUSES];
+
+export const PAYMENT_PURPOSES = {
+  BOOKING: 'BOOKING',
+  WALLET_TOPUP: 'WALLET_TOPUP',
+} as const;
+
+export type PaymentPurpose = (typeof PAYMENT_PURPOSES)[keyof typeof PAYMENT_PURPOSES];

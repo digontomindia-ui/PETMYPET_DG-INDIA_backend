@@ -5,10 +5,12 @@ import { validate } from '../../common/middlewares/validate.middleware.js';
 import { ROLES } from '../../common/constants/roles.js';
 import { providerController } from './provider.controller.js';
 import {
+  attendanceQuerySchema,
   createProviderProfileSchema,
   documentIdParamSchema,
   idParamSchema,
   nearbyProvidersQuerySchema,
+  providerAnalyticsQuerySchema,
   rejectKycSchema,
   setBankAccountSchema,
   updateProviderProfileSchema,
@@ -25,7 +27,7 @@ export const providerRoutes = Router();
  * /providers/nearby:
  *   get:
  *     tags: [Providers]
- *     summary: List nearby providers
+ *     summary: List nearby providers (public summary — omits kycDocuments, kycRejectionReason, bankAccount, attendance; see GET /providers/me for the full self-view)
  *     parameters:
  *       - { name: lat, in: query, required: true, schema: { type: string }, example: "12.9716" }
  *       - { name: lng, in: query, required: true, schema: { type: string }, example: "77.5946" }
@@ -144,6 +146,10 @@ providerRoutes.get(
  *                 rating: 0
  *                 ratingCount: 0
  *                 isActive: true
+ *                 kycRejectionReason: null
+ *                 kycDocuments: []
+ *                 bankAccount: null
+ *                 attendance: []
  *                 createdAt: "2026-01-15T09:30:00.000Z"
  *       400:
  *         description: Invalid request body
@@ -203,6 +209,10 @@ providerRoutes.post(
  *                 rating: 4.6
  *                 ratingCount: 82
  *                 isActive: true
+ *                 kycRejectionReason: null
+ *                 kycDocuments: [{ id: "64f1a2b3c4d5e6f7a8b9c0f1", type: GOVERNMENT_ID, url: "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg", uploadedAt: "2026-01-10T08:00:00.000Z" }]
+ *                 bankAccount: { accountHolderName: Rohit Sharma, bankName: HDFC Bank, last4: "7890" }
+ *                 attendance: [{ id: "64f1a2b3c4d5e6f7a8b9c0f9", date: "2026-08-20", checkInAt: "2026-08-20T09:00:00.000Z", checkOutAt: "2026-08-20T17:00:00.000Z" }]
  *                 createdAt: "2026-01-15T09:30:00.000Z"
  *       401:
  *         description: Missing or invalid authentication token
@@ -272,6 +282,10 @@ providerRoutes.get('/me', ...requireProvider, providerController.getMyProfile);
  *                 rating: 4.6
  *                 ratingCount: 82
  *                 isActive: true
+ *                 kycRejectionReason: null
+ *                 kycDocuments: [{ id: "64f1a2b3c4d5e6f7a8b9c0f1", type: GOVERNMENT_ID, url: "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg", uploadedAt: "2026-01-10T08:00:00.000Z" }]
+ *                 bankAccount: { accountHolderName: Rohit Sharma, bankName: HDFC Bank, last4: "7890" }
+ *                 attendance: [{ id: "64f1a2b3c4d5e6f7a8b9c0f9", date: "2026-08-20", checkInAt: "2026-08-20T09:00:00.000Z", checkOutAt: "2026-08-20T17:00:00.000Z" }]
  *                 createdAt: "2026-01-15T09:30:00.000Z"
  *       400:
  *         description: Invalid request body
@@ -341,6 +355,10 @@ providerRoutes.put(
  *                 rating: 4.6
  *                 ratingCount: 82
  *                 isActive: false
+ *                 kycRejectionReason: null
+ *                 kycDocuments: [{ id: "64f1a2b3c4d5e6f7a8b9c0f1", type: GOVERNMENT_ID, url: "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg", uploadedAt: "2026-01-10T08:00:00.000Z" }]
+ *                 bankAccount: { accountHolderName: Rohit Sharma, bankName: HDFC Bank, last4: "7890" }
+ *                 attendance: [{ id: "64f1a2b3c4d5e6f7a8b9c0f9", date: "2026-08-20", checkInAt: "2026-08-20T09:00:00.000Z", checkOutAt: "2026-08-20T17:00:00.000Z" }]
  *                 createdAt: "2026-01-15T09:30:00.000Z"
  *       401:
  *         description: Missing or invalid authentication token
@@ -399,6 +417,10 @@ providerRoutes.patch('/me/active', ...requireProvider, providerController.setAct
  *                 rating: 0
  *                 ratingCount: 0
  *                 isActive: true
+ *                 kycRejectionReason: null
+ *                 kycDocuments: [{ id: "64f1a2b3c4d5e6f7a8b9c0f1", type: GOVERNMENT_ID, url: "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg", uploadedAt: "2026-01-10T08:00:00.000Z" }]
+ *                 bankAccount: null
+ *                 attendance: []
  *                 createdAt: "2026-01-15T09:30:00.000Z"
  *       400:
  *         description: Invalid request body
@@ -459,6 +481,10 @@ providerRoutes.post(
  *                 rating: 0
  *                 ratingCount: 0
  *                 isActive: true
+ *                 kycRejectionReason: null
+ *                 kycDocuments: []
+ *                 bankAccount: null
+ *                 attendance: []
  *                 createdAt: "2026-01-15T09:30:00.000Z"
  *       400:
  *         description: Invalid document id
@@ -535,6 +561,10 @@ providerRoutes.delete(
  *                 rating: 4.6
  *                 ratingCount: 82
  *                 isActive: true
+ *                 kycRejectionReason: null
+ *                 kycDocuments: [{ id: "64f1a2b3c4d5e6f7a8b9c0f1", type: GOVERNMENT_ID, url: "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg", uploadedAt: "2026-01-10T08:00:00.000Z" }]
+ *                 bankAccount: { accountHolderName: Rohit Sharma, bankName: HDFC Bank, last4: "7890" }
+ *                 attendance: [{ id: "64f1a2b3c4d5e6f7a8b9c0f9", date: "2026-08-20", checkInAt: "2026-08-20T09:00:00.000Z", checkOutAt: "2026-08-20T17:00:00.000Z" }]
  *                 createdAt: "2026-01-15T09:30:00.000Z"
  *       400:
  *         description: Invalid bank account details
@@ -594,6 +624,10 @@ providerRoutes.put(
  *                 rating: 4.6
  *                 ratingCount: 82
  *                 isActive: true
+ *                 kycRejectionReason: null
+ *                 kycDocuments: [{ id: "64f1a2b3c4d5e6f7a8b9c0f1", type: GOVERNMENT_ID, url: "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg", uploadedAt: "2026-01-10T08:00:00.000Z" }]
+ *                 bankAccount: { accountHolderName: Rohit Sharma, bankName: HDFC Bank, last4: "7890" }
+ *                 attendance: [{ id: "64f1a2b3c4d5e6f7a8b9c0f9", date: "2026-08-22", checkInAt: "2026-08-22T09:00:00.000Z", checkOutAt: null }]
  *                 createdAt: "2026-01-15T09:30:00.000Z"
  *       401:
  *         description: Missing or invalid authentication token
@@ -647,6 +681,10 @@ providerRoutes.post('/me/attendance/check-in', ...requireProvider, providerContr
  *                 rating: 4.6
  *                 ratingCount: 82
  *                 isActive: true
+ *                 kycRejectionReason: null
+ *                 kycDocuments: [{ id: "64f1a2b3c4d5e6f7a8b9c0f1", type: GOVERNMENT_ID, url: "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg", uploadedAt: "2026-01-10T08:00:00.000Z" }]
+ *                 bankAccount: { accountHolderName: Rohit Sharma, bankName: HDFC Bank, last4: "7890" }
+ *                 attendance: [{ id: "64f1a2b3c4d5e6f7a8b9c0f9", date: "2026-08-22", checkInAt: "2026-08-22T09:00:00.000Z", checkOutAt: "2026-08-22T17:00:00.000Z" }]
  *                 createdAt: "2026-01-15T09:30:00.000Z"
  *       401:
  *         description: Missing or invalid authentication token
@@ -668,6 +706,117 @@ providerRoutes.post('/me/attendance/check-in', ...requireProvider, providerContr
  *               message: No open check-in found for today
  */
 providerRoutes.post('/me/attendance/check-out', ...requireProvider, providerController.checkOut);
+
+/**
+ * @openapi
+ * /providers/me/analytics:
+ *   get:
+ *     tags: [Providers]
+ *     summary: Get own performance analytics (SERVICE_PROVIDER only)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - name: range
+ *         in: query
+ *         required: false
+ *         schema: { type: string, enum: [week, month], default: week }
+ *         example: week
+ *     responses:
+ *       200:
+ *         description: Provider analytics retrieved
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *             example:
+ *               success: true
+ *               message: Success
+ *               data:
+ *                 earningsByDay:
+ *                   - { date: "2026-08-16", amount: 2400 }
+ *                   - { date: "2026-08-17", amount: 1800 }
+ *                   - { date: "2026-08-20", amount: 3200 }
+ *                 bookingCount: 14
+ *                 ratingBreakdown: { "5": 64.3, "4": 21.4, "3": 7.1, "2": 0, "1": 7.1 }
+ *                 repeatClientPercent: 35.7
+ *       401:
+ *         description: Missing or invalid authentication token
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Missing or malformed Authorization header
+ *       404:
+ *         description: Provider profile not found
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: NOT_FOUND
+ *               message: Provider profile not found
+ */
+providerRoutes.get(
+  '/me/analytics',
+  ...requireProvider,
+  validate({ query: providerAnalyticsQuerySchema }),
+  providerController.getMyAnalytics,
+);
+
+/**
+ * @openapi
+ * /providers/me/attendance:
+ *   get:
+ *     tags: [Providers]
+ *     summary: List own attendance history, newest first (SERVICE_PROVIDER only)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: page, in: query, schema: { type: string }, example: "1" }
+ *       - { name: limit, in: query, schema: { type: string }, example: "20" }
+ *     responses:
+ *       200:
+ *         description: Attendance history retrieved
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *             example:
+ *               success: true
+ *               message: Success
+ *               data:
+ *                 - id: "64f1a2b3c4d5e6f7a8b9c0f9"
+ *                   date: "2026-08-22"
+ *                   checkInAt: "2026-08-22T09:00:00.000Z"
+ *                   checkOutAt: null
+ *                 - id: "64f1a2b3c4d5e6f7a8b9c0f8"
+ *                   date: "2026-08-21"
+ *                   checkInAt: "2026-08-21T09:05:00.000Z"
+ *                   checkOutAt: "2026-08-21T17:10:00.000Z"
+ *               meta: { page: 1, limit: 20, total: 2, totalPages: 1 }
+ *       401:
+ *         description: Missing or invalid authentication token
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Missing or malformed Authorization header
+ *       404:
+ *         description: Provider profile not found
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: NOT_FOUND
+ *               message: Provider profile not found
+ */
+providerRoutes.get(
+  '/me/attendance',
+  ...requireProvider,
+  validate({ query: attendanceQuerySchema }),
+  providerController.getMyAttendance,
+);
 
 /**
  * @openapi
@@ -704,6 +853,10 @@ providerRoutes.post('/me/attendance/check-out', ...requireProvider, providerCont
  *                   rating: 0
  *                   ratingCount: 0
  *                   isActive: false
+ *                   kycRejectionReason: null
+ *                   kycDocuments: [{ id: "64f1a2b3c4d5e6f7a8b9c0f1", type: GOVERNMENT_ID, url: "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg", uploadedAt: "2026-01-10T08:00:00.000Z" }]
+ *                   bankAccount: null
+ *                   attendance: []
  *                   createdAt: "2026-01-20T11:00:00.000Z"
  *               meta: { page: 1, limit: 20, total: 1, totalPages: 1 }
  *       401:
@@ -751,6 +904,10 @@ providerRoutes.get('/pending-kyc', ...adminOnly, providerController.listPendingK
  *                 rating: 0
  *                 ratingCount: 0
  *                 isActive: false
+ *                 kycRejectionReason: null
+ *                 kycDocuments: [{ id: "64f1a2b3c4d5e6f7a8b9c0f1", type: GOVERNMENT_ID, url: "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg", uploadedAt: "2026-01-10T08:00:00.000Z" }]
+ *                 bankAccount: null
+ *                 attendance: []
  *                 createdAt: "2026-01-20T11:00:00.000Z"
  *       400:
  *         description: Invalid provider id
@@ -831,6 +988,10 @@ providerRoutes.patch(
  *                 rating: 0
  *                 ratingCount: 0
  *                 isActive: false
+ *                 kycRejectionReason: "Business license document is unreadable, please re-upload a clearer scan"
+ *                 kycDocuments: [{ id: "64f1a2b3c4d5e6f7a8b9c0f1", type: GOVERNMENT_ID, url: "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg", uploadedAt: "2026-01-10T08:00:00.000Z" }]
+ *                 bankAccount: null
+ *                 attendance: []
  *                 createdAt: "2026-01-20T11:00:00.000Z"
  *       400:
  *         description: Invalid provider id or missing rejection reason
@@ -872,7 +1033,7 @@ providerRoutes.patch(
  * /providers/{id}:
  *   get:
  *     tags: [Providers]
- *     summary: Get a provider by id
+ *     summary: Get a provider by id (public summary — omits kycDocuments, kycRejectionReason, bankAccount, attendance; see GET /providers/me for the full self-view)
  *     parameters:
  *       - { name: id, in: path, required: true, schema: { type: string }, example: "64f1a2b3c4d5e6f7a8b9c0d1" }
  *     responses:

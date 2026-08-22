@@ -1211,6 +1211,105 @@
         }
       }
     },
+    "/wallet/me/topup": {
+      "post": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Self-serve wallet top-up - creates a Razorpay order; the wallet is credited once the payment webhook confirms capture",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "amount"
+                ],
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "minimum": 1
+                  }
+                }
+              },
+              "example": {
+                "amount": 500
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Razorpay order created for the top-up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Wallet top-up initiated",
+                  "data": {
+                    "paymentId": "64f1a2b3c4d5e6f7a8b9c0e1",
+                    "razorpayOrderId": "order_NXtZ4xyzABC123",
+                    "amount": 500,
+                    "currency": "INR",
+                    "razorpayKeyId": "rzp_test_1234567890abcd"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "amount: Number must be greater than or equal to 1"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/wallet/admin/{userId}/adjust": {
       "post": {
         "tags": [
@@ -1802,6 +1901,194 @@
       }
     },
     "/users/me/addresses/{addressId}": {
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Edit an existing address on the authenticated user's profile",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "addressId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0e2"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "addressLine1": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "addressLine2": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "city": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "state": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "postalCode": {
+                    "type": "string",
+                    "maxLength": 20
+                  },
+                  "country": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "coordinates": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "description": "[longitude, latitude]"
+                  },
+                  "isDefault": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "example": {
+                "addressLine1": "221B Baker Street, Flat 4",
+                "isDefault": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Address updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Address updated",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "role": "USER",
+                    "name": "Ananya Sharma",
+                    "email": "ananya.sharma@example.com",
+                    "phone": "+919876543210",
+                    "avatarUrl": null,
+                    "isVerified": true,
+                    "isBlocked": false,
+                    "addresses": [
+                      {
+                        "_id": "64f1a2b3c4d5e6f7a8b9c0e2",
+                        "label": "Home",
+                        "addressLine1": "221B Baker Street, Flat 4",
+                        "addressLine2": "Near Cyber Hub",
+                        "city": "Gurugram",
+                        "state": "Haryana",
+                        "postalCode": "122002",
+                        "country": "India",
+                        "location": {
+                          "type": "Point",
+                          "coordinates": [
+                            77.0894,
+                            28.4595
+                          ]
+                        },
+                        "isDefault": true
+                      }
+                    ],
+                    "preferences": {
+                      "language": "en",
+                      "smsNotifications": true,
+                      "emailNotifications": true,
+                      "pushNotifications": true
+                    },
+                    "createdAt": "2024-01-15T10:30:00.000Z",
+                    "updatedAt": "2024-06-21T09:07:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Invalid id"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Address not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Address not found"
+                }
+              }
+            }
+          }
+        }
+      },
       "delete": {
         "tags": [
           "Users"
@@ -3621,6 +3908,28 @@
                       "format": "uri"
                     },
                     "default": []
+                  },
+                  "addOnCatalog": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "price"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100
+                        },
+                        "price": {
+                          "type": "number",
+                          "minimum": 0
+                        }
+                      }
+                    }
                   }
                 }
               },
@@ -3632,6 +3941,16 @@
                 "durationMinutes": 60,
                 "images": [
                   "https://cdn.petmypet.in/services/grooming-package.jpg"
+                ],
+                "addOnCatalog": [
+                  {
+                    "name": "Extra 15 Min",
+                    "price": 79
+                  },
+                  {
+                    "name": "Poo Pickup",
+                    "price": 49
+                  }
                 ]
               }
             }
@@ -3658,6 +3977,16 @@
                     "durationMinutes": 60,
                     "images": [
                       "https://cdn.petmypet.in/services/grooming-package.jpg"
+                    ],
+                    "addOnCatalog": [
+                      {
+                        "name": "Extra 15 Min",
+                        "price": 79
+                      },
+                      {
+                        "name": "Poo Pickup",
+                        "price": 49
+                      }
                     ],
                     "isActive": true,
                     "createdAt": "2026-08-04T12:00:00.000Z"
@@ -3831,6 +4160,27 @@
                       "format": "uri"
                     }
                   },
+                  "addOnCatalog": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "price"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100
+                        },
+                        "price": {
+                          "type": "number",
+                          "minimum": 0
+                        }
+                      }
+                    }
+                  },
                   "isActive": {
                     "type": "boolean"
                   }
@@ -3838,7 +4188,17 @@
               },
               "example": {
                 "price": 949,
-                "durationMinutes": 75
+                "durationMinutes": 75,
+                "addOnCatalog": [
+                  {
+                    "name": "Extra 15 Min",
+                    "price": 79
+                  },
+                  {
+                    "name": "Poo Pickup",
+                    "price": 49
+                  }
+                ]
               }
             }
           }
@@ -3864,6 +4224,16 @@
                     "durationMinutes": 75,
                     "images": [
                       "https://cdn.petmypet.in/services/grooming-package.jpg"
+                    ],
+                    "addOnCatalog": [
+                      {
+                        "name": "Extra 15 Min",
+                        "price": 79
+                      },
+                      {
+                        "name": "Poo Pickup",
+                        "price": 49
+                      }
                     ],
                     "isActive": true,
                     "createdAt": "2026-05-10T08:00:00.000Z"
@@ -4186,16 +4556,28 @@
         "tags": [
           "Reviews"
         ],
-        "summary": "List a provider's reviews",
+        "summary": "List reviews for a provider or a product",
+        "description": "Provide either `providerId` (booking reviews for that provider) or `productId` (reviews left on that product) — exactly one is required.\n",
         "parameters": [
           {
             "name": "providerId",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
               "type": "string"
             },
+            "description": "Required if `productId` is not provided.",
             "example": "64f8b9c0d1e2f3a4b5c6d7e8"
+          },
+          {
+            "name": "productId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required if `providerId` is not provided.",
+            "example": "64fb1234abcd5678ef901234"
           },
           {
             "name": "page",
@@ -4239,25 +4621,56 @@
                     }
                   }
                 },
-                "example": {
-                  "success": true,
-                  "message": "Success",
-                  "data": [
-                    {
-                      "id": "64fa1b2c3d4e5f6a7b8c9d0e",
-                      "bookingId": "64f207a8b9c0d1e2f3a4b5c7",
-                      "userId": "64f1a2b3c4d5e6f7a8b9c0d1",
-                      "providerId": "64f8b9c0d1e2f3a4b5c6d7e8",
-                      "rating": 5,
-                      "comment": "Excellent grooming service, my dog looked amazing!",
-                      "createdAt": "2026-07-30T14:20:00.000Z"
+                "examples": {
+                  "providerReviews": {
+                    "summary": "Reviews for a provider (booking reviews)",
+                    "value": {
+                      "success": true,
+                      "message": "Success",
+                      "data": [
+                        {
+                          "id": "64fa1b2c3d4e5f6a7b8c9d0e",
+                          "bookingId": "64f207a8b9c0d1e2f3a4b5c7",
+                          "productId": null,
+                          "userId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                          "providerId": "64f8b9c0d1e2f3a4b5c6d7e8",
+                          "rating": 5,
+                          "comment": "Excellent grooming service, my dog looked amazing!",
+                          "createdAt": "2026-07-30T14:20:00.000Z"
+                        }
+                      ],
+                      "meta": {
+                        "page": 1,
+                        "limit": 20,
+                        "total": 1,
+                        "totalPages": 1
+                      }
                     }
-                  ],
-                  "meta": {
-                    "page": 1,
-                    "limit": 20,
-                    "total": 1,
-                    "totalPages": 1
+                  },
+                  "productReviews": {
+                    "summary": "Reviews for a product",
+                    "value": {
+                      "success": true,
+                      "message": "Success",
+                      "data": [
+                        {
+                          "id": "64fa9988d1e2f3a4b5c6d7e9",
+                          "bookingId": null,
+                          "productId": "64fb1234abcd5678ef901234",
+                          "userId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                          "providerId": null,
+                          "rating": 4,
+                          "comment": "Good quality kibble, my cat loves it.",
+                          "createdAt": "2026-08-10T09:12:00.000Z"
+                        }
+                      ],
+                      "meta": {
+                        "page": 1,
+                        "limit": 20,
+                        "total": 1,
+                        "totalPages": 1
+                      }
+                    }
                   }
                 }
               }
@@ -4273,7 +4686,7 @@
                 "example": {
                   "success": false,
                   "error": "BAD_REQUEST",
-                  "message": "providerId: Invalid id"
+                  "message": "Provide providerId or productId"
                 }
               }
             }
@@ -4284,7 +4697,8 @@
         "tags": [
           "Reviews"
         ],
-        "summary": "Leave a rating and review for a completed booking",
+        "summary": "Leave a rating and review for a completed booking, or for a product",
+        "description": "Provide either `bookingId` (review a completed booking) or `productId` (review a product) — exactly one is required, never both.\n",
         "security": [
           {
             "bearerAuth": []
@@ -4298,7 +4712,12 @@
                 "type": "object",
                 "properties": {
                   "bookingId": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Required if productId is not provided"
+                  },
+                  "productId": {
+                    "type": "string",
+                    "description": "Required if bookingId is not provided"
                   },
                   "rating": {
                     "type": "integer",
@@ -4311,14 +4730,26 @@
                   }
                 },
                 "required": [
-                  "bookingId",
                   "rating"
                 ]
               },
-              "example": {
-                "bookingId": "64f207a8b9c0d1e2f3a4b5c7",
-                "rating": 5,
-                "comment": "Excellent grooming service, my dog looked amazing!"
+              "examples": {
+                "bookingReview": {
+                  "summary": "Review a completed booking",
+                  "value": {
+                    "bookingId": "64f207a8b9c0d1e2f3a4b5c7",
+                    "rating": 5,
+                    "comment": "Excellent grooming service, my dog looked amazing!"
+                  }
+                },
+                "productReview": {
+                  "summary": "Review a product",
+                  "value": {
+                    "productId": "64fb1234abcd5678ef901234",
+                    "rating": 4,
+                    "comment": "Good quality kibble, my cat loves it."
+                  }
+                }
               }
             }
           }
@@ -4342,24 +4773,47 @@
                     }
                   }
                 },
-                "example": {
-                  "success": true,
-                  "message": "Review submitted",
-                  "data": {
-                    "id": "64fa1b2c3d4e5f6a7b8c9d0e",
-                    "bookingId": "64f207a8b9c0d1e2f3a4b5c7",
-                    "userId": "64f1a2b3c4d5e6f7a8b9c0d1",
-                    "providerId": "64f8b9c0d1e2f3a4b5c6d7e8",
-                    "rating": 5,
-                    "comment": "Excellent grooming service, my dog looked amazing!",
-                    "createdAt": "2026-08-04T08:45:00.000Z"
+                "examples": {
+                  "bookingReview": {
+                    "summary": "Booking review created",
+                    "value": {
+                      "success": true,
+                      "message": "Review submitted",
+                      "data": {
+                        "id": "64fa1b2c3d4e5f6a7b8c9d0e",
+                        "bookingId": "64f207a8b9c0d1e2f3a4b5c7",
+                        "productId": null,
+                        "userId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                        "providerId": "64f8b9c0d1e2f3a4b5c6d7e8",
+                        "rating": 5,
+                        "comment": "Excellent grooming service, my dog looked amazing!",
+                        "createdAt": "2026-08-04T08:45:00.000Z"
+                      }
+                    }
+                  },
+                  "productReview": {
+                    "summary": "Product review created",
+                    "value": {
+                      "success": true,
+                      "message": "Review submitted",
+                      "data": {
+                        "id": "64fa9988d1e2f3a4b5c6d7e9",
+                        "bookingId": null,
+                        "productId": "64fb1234abcd5678ef901234",
+                        "userId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                        "providerId": null,
+                        "rating": 4,
+                        "comment": "Good quality kibble, my cat loves it.",
+                        "createdAt": "2026-08-10T09:12:00.000Z"
+                      }
+                    }
                   }
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid review payload, or booking not eligible for review",
+            "description": "Invalid review payload (e.g. both or neither of bookingId/productId), or booking not eligible for review",
             "content": {
               "application/json": {
                 "schema": {
@@ -4387,6 +4841,241 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Review already exists for this booking or product",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "CONFLICT",
+                  "message": "You have already reviewed this product"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/referrals/me": {
+      "get": {
+        "tags": [
+          "Referrals"
+        ],
+        "summary": "Get the caller's referral code, share link, and referral stats",
+        "description": "Generates and saves a referral code for the caller the first time this is called, if they don't already have one.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Referral summary for the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "referralCode": "A1B2C3D4",
+                    "shareLink": "https://patmypets.app/invite/A1B2C3D4",
+                    "totalReferrals": 5,
+                    "successfulReferrals": 3,
+                    "pendingReferrals": 2,
+                    "rewardPointsEarned": 300
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/referrals/me/history": {
+      "get": {
+        "tags": [
+          "Referrals"
+        ],
+        "summary": "List the caller's own referrals as referrer",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "20"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of the caller's referrals",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                      "refereeName": "Priya Sharma",
+                      "status": "REWARDED",
+                      "rewardPoints": 100,
+                      "createdAt": "2026-08-01T10:30:00.000Z"
+                    },
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0d2",
+                      "refereeName": "Rohan Mehta",
+                      "status": "PENDING",
+                      "rewardPoints": 100,
+                      "createdAt": "2026-08-10T14:00:00.000Z"
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 2,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "limit must be a valid number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/referrals/redeem": {
+      "post": {
+        "tags": [
+          "Referrals"
+        ],
+        "summary": "Redeem the caller's unredeemed referral reward points to wallet balance",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reward points redeemed to wallet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Reward points redeemed to wallet",
+                  "data": {
+                    "redeemedPoints": 300,
+                    "wallet": {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0e1",
+                      "userId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                      "balance": 300,
+                      "currency": "INR"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No reward points available to redeem",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "No reward points available to redeem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
           }
         }
       }
@@ -4396,7 +5085,7 @@
         "tags": [
           "Providers"
         ],
-        "summary": "List nearby providers",
+        "summary": "List nearby providers (public summary — omits kycDocuments, kycRejectionReason, bankAccount, attendance; see GET /providers/me for the full self-view)",
         "parameters": [
           {
             "name": "lat",
@@ -4681,6 +5370,10 @@
                     "rating": 0,
                     "ratingCount": 0,
                     "isActive": true,
+                    "kycRejectionReason": null,
+                    "kycDocuments": [],
+                    "bankAccount": null,
+                    "attendance": [],
                     "createdAt": "2026-01-15T09:30:00.000Z"
                   }
                 }
@@ -4778,6 +5471,28 @@
                     "rating": 4.6,
                     "ratingCount": 82,
                     "isActive": true,
+                    "kycRejectionReason": null,
+                    "kycDocuments": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0f1",
+                        "type": "GOVERNMENT_ID",
+                        "url": "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg",
+                        "uploadedAt": "2026-01-10T08:00:00.000Z"
+                      }
+                    ],
+                    "bankAccount": {
+                      "accountHolderName": "Rohit Sharma",
+                      "bankName": "HDFC Bank",
+                      "last4": "7890"
+                    },
+                    "attendance": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0f9",
+                        "date": "2026-08-20",
+                        "checkInAt": "2026-08-20T09:00:00.000Z",
+                        "checkOutAt": "2026-08-20T17:00:00.000Z"
+                      }
+                    ],
                     "createdAt": "2026-01-15T09:30:00.000Z"
                   }
                 }
@@ -4907,6 +5622,28 @@
                     "rating": 4.6,
                     "ratingCount": 82,
                     "isActive": true,
+                    "kycRejectionReason": null,
+                    "kycDocuments": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0f1",
+                        "type": "GOVERNMENT_ID",
+                        "url": "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg",
+                        "uploadedAt": "2026-01-10T08:00:00.000Z"
+                      }
+                    ],
+                    "bankAccount": {
+                      "accountHolderName": "Rohit Sharma",
+                      "bankName": "HDFC Bank",
+                      "last4": "7890"
+                    },
+                    "attendance": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0f9",
+                        "date": "2026-08-20",
+                        "checkInAt": "2026-08-20T09:00:00.000Z",
+                        "checkOutAt": "2026-08-20T17:00:00.000Z"
+                      }
+                    ],
                     "createdAt": "2026-01-15T09:30:00.000Z"
                   }
                 }
@@ -5013,6 +5750,28 @@
                     "rating": 4.6,
                     "ratingCount": 82,
                     "isActive": false,
+                    "kycRejectionReason": null,
+                    "kycDocuments": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0f1",
+                        "type": "GOVERNMENT_ID",
+                        "url": "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg",
+                        "uploadedAt": "2026-01-10T08:00:00.000Z"
+                      }
+                    ],
+                    "bankAccount": {
+                      "accountHolderName": "Rohit Sharma",
+                      "bankName": "HDFC Bank",
+                      "last4": "7890"
+                    },
+                    "attendance": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0f9",
+                        "date": "2026-08-20",
+                        "checkInAt": "2026-08-20T09:00:00.000Z",
+                        "checkOutAt": "2026-08-20T17:00:00.000Z"
+                      }
+                    ],
                     "createdAt": "2026-01-15T09:30:00.000Z"
                   }
                 }
@@ -5117,6 +5876,17 @@
                     "rating": 0,
                     "ratingCount": 0,
                     "isActive": true,
+                    "kycRejectionReason": null,
+                    "kycDocuments": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0f1",
+                        "type": "GOVERNMENT_ID",
+                        "url": "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg",
+                        "uploadedAt": "2026-01-10T08:00:00.000Z"
+                      }
+                    ],
+                    "bankAccount": null,
+                    "attendance": [],
                     "createdAt": "2026-01-15T09:30:00.000Z"
                   }
                 }
@@ -5213,6 +5983,10 @@
                     "rating": 0,
                     "ratingCount": 0,
                     "isActive": true,
+                    "kycRejectionReason": null,
+                    "kycDocuments": [],
+                    "bankAccount": null,
+                    "attendance": [],
                     "createdAt": "2026-01-15T09:30:00.000Z"
                   }
                 }
@@ -5334,6 +6108,28 @@
                     "rating": 4.6,
                     "ratingCount": 82,
                     "isActive": true,
+                    "kycRejectionReason": null,
+                    "kycDocuments": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0f1",
+                        "type": "GOVERNMENT_ID",
+                        "url": "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg",
+                        "uploadedAt": "2026-01-10T08:00:00.000Z"
+                      }
+                    ],
+                    "bankAccount": {
+                      "accountHolderName": "Rohit Sharma",
+                      "bankName": "HDFC Bank",
+                      "last4": "7890"
+                    },
+                    "attendance": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0f9",
+                        "date": "2026-08-20",
+                        "checkInAt": "2026-08-20T09:00:00.000Z",
+                        "checkOutAt": "2026-08-20T17:00:00.000Z"
+                      }
+                    ],
                     "createdAt": "2026-01-15T09:30:00.000Z"
                   }
                 }
@@ -5419,6 +6215,28 @@
                     "rating": 4.6,
                     "ratingCount": 82,
                     "isActive": true,
+                    "kycRejectionReason": null,
+                    "kycDocuments": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0f1",
+                        "type": "GOVERNMENT_ID",
+                        "url": "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg",
+                        "uploadedAt": "2026-01-10T08:00:00.000Z"
+                      }
+                    ],
+                    "bankAccount": {
+                      "accountHolderName": "Rohit Sharma",
+                      "bankName": "HDFC Bank",
+                      "last4": "7890"
+                    },
+                    "attendance": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0f9",
+                        "date": "2026-08-22",
+                        "checkInAt": "2026-08-22T09:00:00.000Z",
+                        "checkOutAt": null
+                      }
+                    ],
                     "createdAt": "2026-01-15T09:30:00.000Z"
                   }
                 }
@@ -5504,6 +6322,28 @@
                     "rating": 4.6,
                     "ratingCount": 82,
                     "isActive": true,
+                    "kycRejectionReason": null,
+                    "kycDocuments": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0f1",
+                        "type": "GOVERNMENT_ID",
+                        "url": "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg",
+                        "uploadedAt": "2026-01-10T08:00:00.000Z"
+                      }
+                    ],
+                    "bankAccount": {
+                      "accountHolderName": "Rohit Sharma",
+                      "bankName": "HDFC Bank",
+                      "last4": "7890"
+                    },
+                    "attendance": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0f9",
+                        "date": "2026-08-22",
+                        "checkInAt": "2026-08-22T09:00:00.000Z",
+                        "checkOutAt": "2026-08-22T17:00:00.000Z"
+                      }
+                    ],
                     "createdAt": "2026-01-15T09:30:00.000Z"
                   }
                 }
@@ -5536,6 +6376,203 @@
                   "success": false,
                   "error": "UNAUTHORIZED",
                   "message": "Missing or malformed Authorization header"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/providers/me/analytics": {
+      "get": {
+        "tags": [
+          "Providers"
+        ],
+        "summary": "Get own performance analytics (SERVICE_PROVIDER only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "week",
+                "month"
+              ],
+              "default": "week"
+            },
+            "example": "week"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Provider analytics retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "earningsByDay": [
+                      {
+                        "date": "2026-08-16",
+                        "amount": 2400
+                      },
+                      {
+                        "date": "2026-08-17",
+                        "amount": 1800
+                      },
+                      {
+                        "date": "2026-08-20",
+                        "amount": 3200
+                      }
+                    ],
+                    "bookingCount": 14,
+                    "ratingBreakdown": {
+                      "1": 7.1,
+                      "2": 0,
+                      "3": 7.1,
+                      "4": 21.4,
+                      "5": 64.3
+                    },
+                    "repeatClientPercent": 35.7
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Missing or malformed Authorization header"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Provider profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Provider profile not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/providers/me/attendance": {
+      "get": {
+        "tags": [
+          "Providers"
+        ],
+        "summary": "List own attendance history, newest first (SERVICE_PROVIDER only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "20"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attendance history retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0f9",
+                      "date": "2026-08-22",
+                      "checkInAt": "2026-08-22T09:00:00.000Z",
+                      "checkOutAt": null
+                    },
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0f8",
+                      "date": "2026-08-21",
+                      "checkInAt": "2026-08-21T09:05:00.000Z",
+                      "checkOutAt": "2026-08-21T17:10:00.000Z"
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 2,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Missing or malformed Authorization header"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Provider profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Provider profile not found"
                 }
               }
             }
@@ -5615,6 +6652,17 @@
                       "rating": 0,
                       "ratingCount": 0,
                       "isActive": false,
+                      "kycRejectionReason": null,
+                      "kycDocuments": [
+                        {
+                          "id": "64f1a2b3c4d5e6f7a8b9c0f1",
+                          "type": "GOVERNMENT_ID",
+                          "url": "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg",
+                          "uploadedAt": "2026-01-10T08:00:00.000Z"
+                        }
+                      ],
+                      "bankAccount": null,
+                      "attendance": [],
                       "createdAt": "2026-01-20T11:00:00.000Z"
                     }
                   ],
@@ -5710,6 +6758,17 @@
                     "rating": 0,
                     "ratingCount": 0,
                     "isActive": false,
+                    "kycRejectionReason": null,
+                    "kycDocuments": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0f1",
+                        "type": "GOVERNMENT_ID",
+                        "url": "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg",
+                        "uploadedAt": "2026-01-10T08:00:00.000Z"
+                      }
+                    ],
+                    "bankAccount": null,
+                    "attendance": [],
                     "createdAt": "2026-01-20T11:00:00.000Z"
                   }
                 }
@@ -5849,6 +6908,17 @@
                     "rating": 0,
                     "ratingCount": 0,
                     "isActive": false,
+                    "kycRejectionReason": "Business license document is unreadable, please re-upload a clearer scan",
+                    "kycDocuments": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0f1",
+                        "type": "GOVERNMENT_ID",
+                        "url": "https://cdn.petmypet.in/kyc/64f1a2b3c4d5e6f7a8b9c0d1/aadhaar-front.jpg",
+                        "uploadedAt": "2026-01-10T08:00:00.000Z"
+                      }
+                    ],
+                    "bankAccount": null,
+                    "attendance": [],
                     "createdAt": "2026-01-20T11:00:00.000Z"
                   }
                 }
@@ -5908,7 +6978,7 @@
         "tags": [
           "Providers"
         ],
-        "summary": "Get a provider by id",
+        "summary": "Get a provider by id (public summary — omits kycDocuments, kycRejectionReason, bankAccount, attendance; see GET /providers/me for the full self-view)",
         "parameters": [
           {
             "name": "id",
@@ -6738,6 +7808,2884 @@
                   "success": false,
                   "error": "UNAUTHORIZED",
                   "message": "Authentication required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pets/{id}/medical-records/{recordId}": {
+      "delete": {
+        "tags": [
+          "Pets"
+        ],
+        "summary": "Delete a medical record from a pet",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
+          },
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0e9"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Medical record removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Medical record removed",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "ownerId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "name": "Bruno",
+                    "medicalRecords": [],
+                    "vaccinations": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id or recordId parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Invalid record id"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the owner of this pet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "You do not have access to this pet"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Pet or medical record not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Medical record not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pets/{id}/vaccinations/{recordId}": {
+      "delete": {
+        "tags": [
+          "Pets"
+        ],
+        "summary": "Delete a vaccination record from a pet",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
+          },
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0ea"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vaccination removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Vaccination removed",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "ownerId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "name": "Bruno",
+                    "medicalRecords": [],
+                    "vaccinations": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id or recordId parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Invalid record id"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the owner of this pet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "You do not have access to this pet"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Pet or vaccination not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Vaccination not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pets/{id}/companion-profile": {
+      "put": {
+        "tags": [
+          "Pets"
+        ],
+        "summary": "Create or update a pet's companion (playdate) profile",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "isEnabled": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "bio": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "personalityTraits": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "interests": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "lookingFor": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "activityLevel": {
+                    "type": "string",
+                    "enum": [
+                      "LOW",
+                      "MEDIUM",
+                      "HIGH"
+                    ]
+                  },
+                  "temperament": {
+                    "type": "string"
+                  },
+                  "getsAlongWith": {
+                    "type": "object",
+                    "properties": {
+                      "dogs": {
+                        "type": "boolean"
+                      },
+                      "cats": {
+                        "type": "boolean"
+                      },
+                      "kids": {
+                        "type": "boolean"
+                      },
+                      "families": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
+              },
+              "example": {
+                "isEnabled": true,
+                "bio": "Bruno loves fetch and making new furry friends at the park.",
+                "personalityTraits": [
+                  "playful",
+                  "friendly",
+                  "energetic"
+                ],
+                "interests": [
+                  "fetch",
+                  "swimming",
+                  "long walks"
+                ],
+                "lookingFor": [
+                  "playdates",
+                  "running buddy"
+                ],
+                "activityLevel": "HIGH",
+                "temperament": "Gentle with smaller dogs",
+                "getsAlongWith": {
+                  "dogs": true,
+                  "cats": false,
+                  "kids": true,
+                  "families": true
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Companion profile updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Companion profile updated",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "ownerId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "name": "Bruno",
+                    "species": "DOG",
+                    "breed": "Labrador Retriever",
+                    "gender": "MALE",
+                    "dateOfBirth": "2021-05-14T00:00:00.000Z",
+                    "weightKg": 28.5,
+                    "avatarUrl": "https://cdn.petmypet.in/pets/bruno-avatar.jpg",
+                    "notes": "Loves belly rubs, allergic to chicken.",
+                    "medicalRecords": [],
+                    "vaccinations": [],
+                    "companionProfile": {
+                      "isEnabled": true,
+                      "bio": "Bruno loves fetch and making new furry friends at the park.",
+                      "personalityTraits": [
+                        "playful",
+                        "friendly",
+                        "energetic"
+                      ],
+                      "interests": [
+                        "fetch",
+                        "swimming",
+                        "long walks"
+                      ],
+                      "lookingFor": [
+                        "playdates",
+                        "running buddy"
+                      ],
+                      "activityLevel": "HIGH",
+                      "temperament": "Gentle with smaller dogs",
+                      "getsAlongWith": {
+                        "dogs": true,
+                        "cats": false,
+                        "kids": true,
+                        "families": true
+                      }
+                    },
+                    "createdAt": "2026-08-04T08:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body or id parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "bio must be at most 1000 characters"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the owner of this pet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "You do not have access to this pet"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Pet not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Pet not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-taxi/bookings": {
+      "post": {
+        "tags": [
+          "PetTaxi"
+        ],
+        "summary": "Submit a pet taxi booking request",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tripType": {
+                    "type": "string",
+                    "enum": [
+                      "ONE_WAY",
+                      "ROUND_TRIP"
+                    ]
+                  },
+                  "petIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1
+                  },
+                  "pickupAddress": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "dropAddress": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "pickupDate": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2026-08-25"
+                  },
+                  "pickupTime": {
+                    "type": "string",
+                    "pattern": "^\\d{2}:\\d{2}$",
+                    "example": "14:30"
+                  }
+                }
+              },
+              "example": {
+                "tripType": "ONE_WAY",
+                "petIds": [
+                  "64f1a2b3c4d5e6f7a8b9c0d3"
+                ],
+                "pickupAddress": "12, Lavelle Road, Bengaluru",
+                "dropAddress": "Pet Care Clinic, Indiranagar, Bengaluru",
+                "pickupDate": "2026-08-25",
+                "pickupTime": "14:30"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pet taxi booking created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Pet taxi booking created",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "tripType": "ONE_WAY",
+                    "petIds": [
+                      "64f1a2b3c4d5e6f7a8b9c0d3"
+                    ],
+                    "pickupAddress": "12, Lavelle Road, Bengaluru",
+                    "dropAddress": "Pet Care Clinic, Indiranagar, Bengaluru",
+                    "pickupDate": "2026-08-25T00:00:00.000Z",
+                    "pickupTime": "14:30",
+                    "price": 499,
+                    "currency": "INR",
+                    "status": "PENDING",
+                    "cancellationReason": null,
+                    "createdAt": "2026-08-22T08:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body, or one or more pets do not belong to this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "One or more pets were not found for this account"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-taxi/bookings/me": {
+      "get": {
+        "tags": [
+          "PetTaxi"
+        ],
+        "summary": "List the caller's own pet taxi bookings",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "CONFIRMED",
+                "COMPLETED",
+                "CANCELLED"
+              ]
+            },
+            "example": "PENDING"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "20"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of the caller's pet taxi bookings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                      "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                      "tripType": "ROUND_TRIP",
+                      "petIds": [
+                        "64f1a2b3c4d5e6f7a8b9c0d3"
+                      ],
+                      "pickupAddress": "12, Lavelle Road, Bengaluru",
+                      "dropAddress": "Pet Care Clinic, Indiranagar, Bengaluru",
+                      "pickupDate": "2026-08-25T00:00:00.000Z",
+                      "pickupTime": "14:30",
+                      "price": 899,
+                      "currency": "INR",
+                      "status": "PENDING",
+                      "cancellationReason": null,
+                      "createdAt": "2026-08-22T08:00:00.000Z"
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 1,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "limit must be a valid number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-taxi/bookings/{id}": {
+      "get": {
+        "tags": [
+          "PetTaxi"
+        ],
+        "summary": "Get a pet taxi booking by id",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pet taxi booking found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "tripType": "ONE_WAY",
+                    "petIds": [
+                      "64f1a2b3c4d5e6f7a8b9c0d3"
+                    ],
+                    "pickupAddress": "12, Lavelle Road, Bengaluru",
+                    "dropAddress": "Pet Care Clinic, Indiranagar, Bengaluru",
+                    "pickupDate": "2026-08-25T00:00:00.000Z",
+                    "pickupTime": "14:30",
+                    "price": 499,
+                    "currency": "INR",
+                    "status": "PENDING",
+                    "cancellationReason": null,
+                    "createdAt": "2026-08-22T08:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Invalid id"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Pet taxi booking not found, or not accessible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Pet taxi booking not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-taxi/bookings/{id}/cancel": {
+      "patch": {
+        "tags": [
+          "PetTaxi"
+        ],
+        "summary": "Cancel a pet taxi booking",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                }
+              },
+              "example": {
+                "reason": "Change of plans, no longer need the ride."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pet taxi booking cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Booking cancelled",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "tripType": "ONE_WAY",
+                    "petIds": [
+                      "64f1a2b3c4d5e6f7a8b9c0d3"
+                    ],
+                    "pickupAddress": "12, Lavelle Road, Bengaluru",
+                    "dropAddress": "Pet Care Clinic, Indiranagar, Bengaluru",
+                    "pickupDate": "2026-08-25T00:00:00.000Z",
+                    "pickupTime": "14:30",
+                    "price": 499,
+                    "currency": "INR",
+                    "status": "CANCELLED",
+                    "cancellationReason": "Change of plans, no longer need the ride.",
+                    "createdAt": "2026-08-22T08:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request, invalid id, or booking already COMPLETED/CANCELLED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Cannot cancel a booking that is already COMPLETED"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Pet taxi booking not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Pet taxi booking not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-relocation/requests": {
+      "post": {
+        "tags": [
+          "PetRelocation"
+        ],
+        "summary": "Submit a pet relocation request",
+        "description": "Creates a relocation lead for manual ops follow-up. This is not an instant booking - no payment is taken here; the ops team contacts the owner after submission.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ownerName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "ownerPhone": {
+                    "type": "string",
+                    "description": "E.164-ish phone, 7-15 digits"
+                  },
+                  "ownerEmail": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "petId": {
+                    "type": "string"
+                  },
+                  "originAddress": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "destinationAddress": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "relocationDate": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Must be today or in the future"
+                  },
+                  "transportType": {
+                    "type": "string",
+                    "enum": [
+                      "ROAD",
+                      "AIR",
+                      "RAIL"
+                    ]
+                  },
+                  "preferredTimeSlot": {
+                    "type": "string",
+                    "enum": [
+                      "MORNING",
+                      "AFTERNOON",
+                      "EVENING"
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "ownerName": "Rahul Sharma",
+                "ownerPhone": "+919876543210",
+                "ownerEmail": "rahul.sharma@example.com",
+                "petId": "64f1a2b3c4d5e6f7a8b9c0d3",
+                "originAddress": "12th Main, Indiranagar, Bangalore, Karnataka",
+                "destinationAddress": "Park Street, Kolkata, West Bengal",
+                "relocationDate": "2026-09-10T00:00:00.000Z",
+                "transportType": "ROAD",
+                "preferredTimeSlot": "MORNING"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Relocation request submitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Relocation request submitted",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "ownerName": "Rahul Sharma",
+                    "ownerPhone": "+919876543210",
+                    "ownerEmail": "rahul.sharma@example.com",
+                    "petId": "64f1a2b3c4d5e6f7a8b9c0d3",
+                    "originAddress": "12th Main, Indiranagar, Bangalore, Karnataka",
+                    "destinationAddress": "Park Street, Kolkata, West Bengal",
+                    "relocationDate": "2026-09-10T00:00:00.000Z",
+                    "transportType": "ROAD",
+                    "preferredTimeSlot": "MORNING",
+                    "status": "SUBMITTED",
+                    "createdAt": "2026-08-22T08:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body, or pet does not belong to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Pet not found for this account"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "PetRelocation"
+        ],
+        "summary": "List all relocation requests (SUPER_ADMIN only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SUBMITTED",
+                "CONTACTED",
+                "CONFIRMED",
+                "CANCELLED"
+              ]
+            },
+            "example": "SUBMITTED"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "20"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of all relocation requests, including internal adminNotes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                      "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                      "ownerName": "Rahul Sharma",
+                      "ownerPhone": "+919876543210",
+                      "ownerEmail": "rahul.sharma@example.com",
+                      "petId": "64f1a2b3c4d5e6f7a8b9c0d3",
+                      "originAddress": "12th Main, Indiranagar, Bangalore, Karnataka",
+                      "destinationAddress": "Park Street, Kolkata, West Bengal",
+                      "relocationDate": "2026-09-10T00:00:00.000Z",
+                      "transportType": "ROAD",
+                      "preferredTimeSlot": "MORNING",
+                      "status": "SUBMITTED",
+                      "createdAt": "2026-08-22T08:00:00.000Z",
+                      "adminNotes": "Called once, no answer. Will retry tomorrow morning."
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 1,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "limit must be a valid number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not a SUPER_ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "You do not have permission to perform this action"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-relocation/requests/me": {
+      "get": {
+        "tags": [
+          "PetRelocation"
+        ],
+        "summary": "List the authenticated user's own relocation requests",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "20"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of the caller's relocation requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                      "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                      "ownerName": "Rahul Sharma",
+                      "ownerPhone": "+919876543210",
+                      "ownerEmail": "rahul.sharma@example.com",
+                      "petId": "64f1a2b3c4d5e6f7a8b9c0d3",
+                      "originAddress": "12th Main, Indiranagar, Bangalore, Karnataka",
+                      "destinationAddress": "Park Street, Kolkata, West Bengal",
+                      "relocationDate": "2026-09-10T00:00:00.000Z",
+                      "transportType": "ROAD",
+                      "preferredTimeSlot": "MORNING",
+                      "status": "SUBMITTED",
+                      "createdAt": "2026-08-22T08:00:00.000Z"
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 1,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "limit must be a valid number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-relocation/requests/{id}": {
+      "get": {
+        "tags": [
+          "PetRelocation"
+        ],
+        "summary": "Get a relocation request by id",
+        "description": "The requesting owner sees the request without adminNotes. A SUPER_ADMIN sees adminNotes included.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Relocation request found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "ownerName": "Rahul Sharma",
+                    "ownerPhone": "+919876543210",
+                    "ownerEmail": "rahul.sharma@example.com",
+                    "petId": "64f1a2b3c4d5e6f7a8b9c0d3",
+                    "originAddress": "12th Main, Indiranagar, Bangalore, Karnataka",
+                    "destinationAddress": "Park Street, Kolkata, West Bengal",
+                    "relocationDate": "2026-09-10T00:00:00.000Z",
+                    "transportType": "ROAD",
+                    "preferredTimeSlot": "MORNING",
+                    "status": "SUBMITTED",
+                    "createdAt": "2026-08-22T08:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Invalid id"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller does not own this request and is not a SUPER_ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "You do not have access to this request"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Relocation request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Relocation request not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-relocation/requests/{id}/status": {
+      "patch": {
+        "tags": [
+          "PetRelocation"
+        ],
+        "summary": "Update a relocation request's status and admin notes (SUPER_ADMIN only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "CONTACTED",
+                      "CONFIRMED",
+                      "CANCELLED"
+                    ]
+                  },
+                  "adminNotes": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 2000
+                  }
+                }
+              },
+              "example": {
+                "status": "CONTACTED",
+                "adminNotes": "Called owner, confirmed pickup window for the morning slot."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Relocation request updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Relocation request updated",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "ownerName": "Rahul Sharma",
+                    "ownerPhone": "+919876543210",
+                    "ownerEmail": "rahul.sharma@example.com",
+                    "petId": "64f1a2b3c4d5e6f7a8b9c0d3",
+                    "originAddress": "12th Main, Indiranagar, Bangalore, Karnataka",
+                    "destinationAddress": "Park Street, Kolkata, West Bengal",
+                    "relocationDate": "2026-09-10T00:00:00.000Z",
+                    "transportType": "ROAD",
+                    "preferredTimeSlot": "MORNING",
+                    "status": "CONTACTED",
+                    "createdAt": "2026-08-22T08:00:00.000Z",
+                    "adminNotes": "Called owner, confirmed pickup window for the morning slot."
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body or id parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Invalid id"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not a SUPER_ADMIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "You do not have permission to perform this action"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Relocation request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Relocation request not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-insurance/applications": {
+      "post": {
+        "tags": [
+          "PetInsurance"
+        ],
+        "summary": "Submit a pet insurance application",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ownerName",
+                  "ownerEmail",
+                  "ownerPhone",
+                  "petName",
+                  "petType",
+                  "petAge",
+                  "petBreed",
+                  "previousIllness",
+                  "previousSurgery",
+                  "vaccinated"
+                ],
+                "properties": {
+                  "ownerName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "ownerEmail": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "ownerPhone": {
+                    "type": "string",
+                    "description": "E.164-ish phone, 7-15 digits"
+                  },
+                  "petName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
+                  "petType": {
+                    "type": "string",
+                    "enum": [
+                      "DOG",
+                      "CAT",
+                      "OTHER"
+                    ]
+                  },
+                  "petAge": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "description": "Free text, e.g. \"3 years\""
+                  },
+                  "petBreed": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "previousIllness": {
+                    "type": "boolean"
+                  },
+                  "illnessDocumentUrls": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "maxItems": 5,
+                    "description": "Upload files via POST /uploads (category KYC_DOCUMENT) first, then pass the returned URLs here. Ignored server-side unless previousIllness is true."
+                  },
+                  "previousSurgery": {
+                    "type": "boolean"
+                  },
+                  "vaccinated": {
+                    "type": "boolean"
+                  },
+                  "vaccinationDocumentUrls": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "maxItems": 5,
+                    "description": "Upload files via POST /uploads (category KYC_DOCUMENT) first, then pass the returned URLs here. Ignored server-side unless vaccinated is true."
+                  }
+                }
+              },
+              "example": {
+                "ownerName": "Ananya Rao",
+                "ownerEmail": "ananya.rao@example.com",
+                "ownerPhone": "+919876543210",
+                "petName": "Bruno",
+                "petType": "DOG",
+                "petAge": "3 years",
+                "petBreed": "Labrador Retriever",
+                "previousIllness": true,
+                "illnessDocumentUrls": [
+                  "https://res.cloudinary.com/patmypets/image/upload/v1699999999/kyc-documents/bruno-illness.pdf"
+                ],
+                "previousSurgery": false,
+                "vaccinated": true,
+                "vaccinationDocumentUrls": [
+                  "https://res.cloudinary.com/patmypets/image/upload/v1699999999/kyc-documents/bruno-vaccination.pdf"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Insurance application submitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Insurance application submitted",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "ownerName": "Ananya Rao",
+                    "ownerEmail": "ananya.rao@example.com",
+                    "ownerPhone": "+919876543210",
+                    "petName": "Bruno",
+                    "petType": "DOG",
+                    "petAge": "3 years",
+                    "petBreed": "Labrador Retriever",
+                    "previousIllness": true,
+                    "illnessDocumentUrls": [
+                      "https://res.cloudinary.com/patmypets/image/upload/v1699999999/kyc-documents/bruno-illness.pdf"
+                    ],
+                    "previousSurgery": false,
+                    "vaccinated": true,
+                    "vaccinationDocumentUrls": [
+                      "https://res.cloudinary.com/patmypets/image/upload/v1699999999/kyc-documents/bruno-vaccination.pdf"
+                    ],
+                    "status": "SUBMITTED",
+                    "rejectionReason": null,
+                    "createdAt": "2026-08-20T08:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "ownerEmail: Invalid email"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "PetInsurance"
+        ],
+        "summary": "List all insurance applications (SUPER_ADMIN only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SUBMITTED",
+                "UNDER_REVIEW",
+                "APPROVED",
+                "REJECTED"
+              ]
+            },
+            "example": "SUBMITTED"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "20"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of insurance applications",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                      "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                      "ownerName": "Ananya Rao",
+                      "ownerEmail": "ananya.rao@example.com",
+                      "ownerPhone": "+919876543210",
+                      "petName": "Bruno",
+                      "petType": "DOG",
+                      "petAge": "3 years",
+                      "petBreed": "Labrador Retriever",
+                      "previousIllness": true,
+                      "illnessDocumentUrls": [
+                        "https://res.cloudinary.com/patmypets/image/upload/v1699999999/kyc-documents/bruno-illness.pdf"
+                      ],
+                      "previousSurgery": false,
+                      "vaccinated": true,
+                      "vaccinationDocumentUrls": [
+                        "https://res.cloudinary.com/patmypets/image/upload/v1699999999/kyc-documents/bruno-vaccination.pdf"
+                      ],
+                      "status": "SUBMITTED",
+                      "rejectionReason": null,
+                      "createdAt": "2026-08-20T08:00:00.000Z"
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 1,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Invalid enum value for status"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "You do not have permission to perform this action"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-insurance/applications/me": {
+      "get": {
+        "tags": [
+          "PetInsurance"
+        ],
+        "summary": "List the authenticated user's own insurance applications",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "20"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of the caller's insurance applications",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                      "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                      "ownerName": "Ananya Rao",
+                      "ownerEmail": "ananya.rao@example.com",
+                      "ownerPhone": "+919876543210",
+                      "petName": "Bruno",
+                      "petType": "DOG",
+                      "petAge": "3 years",
+                      "petBreed": "Labrador Retriever",
+                      "previousIllness": true,
+                      "illnessDocumentUrls": [
+                        "https://res.cloudinary.com/patmypets/image/upload/v1699999999/kyc-documents/bruno-illness.pdf"
+                      ],
+                      "previousSurgery": false,
+                      "vaccinated": true,
+                      "vaccinationDocumentUrls": [
+                        "https://res.cloudinary.com/patmypets/image/upload/v1699999999/kyc-documents/bruno-vaccination.pdf"
+                      ],
+                      "status": "SUBMITTED",
+                      "rejectionReason": null,
+                      "createdAt": "2026-08-20T08:00:00.000Z"
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 1,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "limit must be a valid number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-insurance/applications/{id}": {
+      "get": {
+        "tags": [
+          "PetInsurance"
+        ],
+        "summary": "Get an insurance application by id (owner or SUPER_ADMIN only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Insurance application found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "ownerName": "Ananya Rao",
+                    "ownerEmail": "ananya.rao@example.com",
+                    "ownerPhone": "+919876543210",
+                    "petName": "Bruno",
+                    "petType": "DOG",
+                    "petAge": "3 years",
+                    "petBreed": "Labrador Retriever",
+                    "previousIllness": true,
+                    "illnessDocumentUrls": [
+                      "https://res.cloudinary.com/patmypets/image/upload/v1699999999/kyc-documents/bruno-illness.pdf"
+                    ],
+                    "previousSurgery": false,
+                    "vaccinated": true,
+                    "vaccinationDocumentUrls": [
+                      "https://res.cloudinary.com/patmypets/image/upload/v1699999999/kyc-documents/bruno-vaccination.pdf"
+                    ],
+                    "status": "SUBMITTED",
+                    "rejectionReason": null,
+                    "createdAt": "2026-08-20T08:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Invalid id"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the owner of this application",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "You do not have access to this application"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Insurance application not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Insurance application not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-insurance/applications/{id}/status": {
+      "patch": {
+        "tags": [
+          "PetInsurance"
+        ],
+        "summary": "Update an insurance application's status (SUPER_ADMIN only)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "UNDER_REVIEW",
+                      "APPROVED",
+                      "REJECTED"
+                    ]
+                  },
+                  "rejectionReason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Required when status is REJECTED"
+                  }
+                }
+              },
+              "example": {
+                "status": "REJECTED",
+                "rejectionReason": "Vaccination document is illegible; please resubmit a clearer scan."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Insurance application status updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Application status updated",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "ownerName": "Ananya Rao",
+                    "ownerEmail": "ananya.rao@example.com",
+                    "ownerPhone": "+919876543210",
+                    "petName": "Bruno",
+                    "petType": "DOG",
+                    "petAge": "3 years",
+                    "petBreed": "Labrador Retriever",
+                    "previousIllness": true,
+                    "illnessDocumentUrls": [
+                      "https://res.cloudinary.com/patmypets/image/upload/v1699999999/kyc-documents/bruno-illness.pdf"
+                    ],
+                    "previousSurgery": false,
+                    "vaccinated": true,
+                    "vaccinationDocumentUrls": [
+                      "https://res.cloudinary.com/patmypets/image/upload/v1699999999/kyc-documents/bruno-vaccination.pdf"
+                    ],
+                    "status": "REJECTED",
+                    "rejectionReason": "Vaccination document is illegible; please resubmit a clearer scan.",
+                    "createdAt": "2026-08-20T08:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body or id parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "rejectionReason is required when status is REJECTED"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "You do not have permission to perform this action"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Insurance application not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Insurance application not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-companion/discover": {
+      "get": {
+        "tags": [
+          "PetCompanion"
+        ],
+        "summary": "Discover nearby pets with companion profiles enabled",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
+          },
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "12.9716"
+          },
+          {
+            "name": "lng",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "77.5946"
+          },
+          {
+            "name": "radiusMeters",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "50000"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "20"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Nearby candidate pets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0e1",
+                      "ownerId": "64f1a2b3c4d5e6f7a8b9c0e2",
+                      "name": "Luna",
+                      "species": "DOG",
+                      "breed": "Golden Retriever",
+                      "gender": "FEMALE",
+                      "weightKg": 24,
+                      "avatarUrl": "https://cdn.petmypet.in/pets/luna-avatar.jpg",
+                      "companionProfile": {
+                        "isEnabled": true,
+                        "bio": "Loves the dog park and fetch.",
+                        "personalityTraits": [
+                          "friendly",
+                          "playful"
+                        ],
+                        "interests": [
+                          "fetch",
+                          "swimming"
+                        ],
+                        "lookingFor": [
+                          "playdates"
+                        ],
+                        "activityLevel": "HIGH",
+                        "temperament": "Great with other dogs",
+                        "getsAlongWith": {
+                          "dogs": true,
+                          "cats": true,
+                          "kids": true,
+                          "families": true
+                        }
+                      },
+                      "distanceMeters": 1240.5
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 1,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "lat and lng must be valid numbers"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the owner of petId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "You do not have access to this pet"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Pet not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Pet not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-companion/swipe": {
+      "post": {
+        "tags": [
+          "PetCompanion"
+        ],
+        "summary": "Swipe on another pet (like, pass, or superlike)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "swiperPetId",
+                  "targetPetId",
+                  "action"
+                ],
+                "properties": {
+                  "swiperPetId": {
+                    "type": "string"
+                  },
+                  "targetPetId": {
+                    "type": "string"
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "LIKE",
+                      "PASS",
+                      "SUPERLIKE"
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "swiperPetId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                "targetPetId": "64f1a2b3c4d5e6f7a8b9c0e1",
+                "action": "LIKE"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Swipe recorded (mutual match info included if applicable)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "examples": {
+                  "match": {
+                    "summary": "Mutual like — match created",
+                    "value": {
+                      "success": true,
+                      "message": "It's a match!",
+                      "data": {
+                        "matched": true,
+                        "matchId": "64f1a2b3c4d5e6f7a8b9c0f1",
+                        "chatRoomId": "64f1a2b3c4d5e6f7a8b9c0f2"
+                      }
+                    }
+                  },
+                  "noMatch": {
+                    "summary": "No mutual match yet",
+                    "value": {
+                      "success": true,
+                      "message": "Swipe recorded",
+                      "data": {
+                        "matched": false
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body, or swiping on the caller's own pet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Cannot swipe on the same pet"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the owner of swiperPetId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "You do not have access to this pet"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Target pet not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Target pet not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-companion/likes-received": {
+      "get": {
+        "tags": [
+          "PetCompanion"
+        ],
+        "summary": "List pets that liked the caller's pet without a mutual match yet",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "20"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pets awaiting a reciprocal swipe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0e1",
+                      "ownerId": "64f1a2b3c4d5e6f7a8b9c0e2",
+                      "name": "Luna",
+                      "species": "DOG",
+                      "breed": "Golden Retriever",
+                      "avatarUrl": "https://cdn.petmypet.in/pets/luna-avatar.jpg",
+                      "action": "SUPERLIKE",
+                      "swipedAt": "2026-08-10T09:00:00.000Z"
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 1,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Invalid id"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the owner of petId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "You do not have access to this pet"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Pet not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Pet not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-companion/matches": {
+      "get": {
+        "tags": [
+          "PetCompanion"
+        ],
+        "summary": "List the caller's pet's mutual matches",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "20"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of matches",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "matchId": "64f1a2b3c4d5e6f7a8b9c0f1",
+                      "otherPet": {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0e1",
+                        "name": "Luna",
+                        "avatarUrl": "https://cdn.petmypet.in/pets/luna-avatar.jpg",
+                        "breed": "Golden Retriever"
+                      },
+                      "chatRoomId": "64f1a2b3c4d5e6f7a8b9c0f2",
+                      "matchedAt": "2026-08-10T09:05:00.000Z"
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 1,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Invalid id"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the owner of petId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "You do not have access to this pet"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Pet not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Pet not found"
                 }
               }
             }
@@ -10351,6 +14299,101 @@
         }
       }
     },
+    "/coupons/me/redemptions": {
+      "get": {
+        "tags": [
+          "Coupons"
+        ],
+        "summary": "Get the authenticated user's own coupon redemption history",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "1"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "20"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of the caller's coupon redemptions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0f1",
+                      "couponId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                      "code": "WELCOME50",
+                      "bookingId": "64f1a2b3c4d5e6f7a8b9c0e5",
+                      "discountAmount": 300,
+                      "redeemedAt": "2026-08-10T12:00:00.000Z"
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 1,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "limit must be a valid number"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/coupons": {
       "get": {
         "tags": [
@@ -13477,6 +17520,41 @@
                   "notes": {
                     "type": "string",
                     "default": ""
+                  },
+                  "addOns": {
+                    "type": "array",
+                    "default": [],
+                    "description": "Each entry must match a name+price pair in the service's addOnCatalog",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "price"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "price": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  },
+                  "durationDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Multi-day stay (e.g. boarding); when set, scheduledEnd = scheduledStart + durationDays"
+                  },
+                  "dropOffTime": {
+                    "type": "string",
+                    "pattern": "^\\d{2}:\\d{2}$",
+                    "description": "HH:mm, only meaningful when durationDays is set"
+                  },
+                  "pickupTime": {
+                    "type": "string",
+                    "pattern": "^\\d{2}:\\d{2}$",
+                    "description": "HH:mm, only meaningful when durationDays is set"
                   }
                 }
               },
@@ -13486,7 +17564,20 @@
                 "petId": "64f1a2b3c4d5e6f7a8b9c0d3",
                 "scheduledStart": "2026-08-10T09:00:00.000Z",
                 "couponCode": "WELCOME10",
-                "notes": "Please ring the doorbell twice"
+                "notes": "Please ring the doorbell twice",
+                "addOns": [
+                  {
+                    "name": "Extra 15 Min",
+                    "price": 79
+                  },
+                  {
+                    "name": "Poo Pickup",
+                    "price": 49
+                  }
+                ],
+                "durationDays": 3,
+                "dropOffTime": "09:00",
+                "pickupTime": "18:00"
               }
             }
           }
@@ -13510,9 +17601,9 @@
                     "serviceId": "64f1a2b3c4d5e6f7a8b9c0d5",
                     "zoneId": "64f1a2b3c4d5e6f7a8b9c0d6",
                     "scheduledStart": "2026-08-10T09:00:00.000Z",
-                    "scheduledEnd": "2026-08-10T10:00:00.000Z",
+                    "scheduledEnd": "2026-08-13T18:00:00.000Z",
                     "status": "PENDING",
-                    "price": 899,
+                    "price": 1027,
                     "currency": "INR",
                     "couponCode": "WELCOME10",
                     "discountAmount": 90,
@@ -13520,6 +17611,21 @@
                     "cancelledBy": null,
                     "cancellationReason": null,
                     "notes": "Please ring the doorbell twice",
+                    "addOns": [
+                      {
+                        "name": "Extra 15 Min",
+                        "price": 79
+                      },
+                      {
+                        "name": "Poo Pickup",
+                        "price": 49
+                      }
+                    ],
+                    "durationDays": 3,
+                    "dropOffTime": "09:00",
+                    "pickupTime": "18:00",
+                    "providerNotes": "",
+                    "photos": [],
                     "createdAt": "2026-08-04T06:30:00.000Z",
                     "otpStart": null,
                     "otpEnd": null
@@ -13846,6 +17952,23 @@
                     "cancelledBy": null,
                     "cancellationReason": null,
                     "notes": "Please ring the doorbell twice",
+                    "addOns": [
+                      {
+                        "name": "Extra 15 Min",
+                        "price": 79
+                      }
+                    ],
+                    "durationDays": null,
+                    "dropOffTime": null,
+                    "pickupTime": null,
+                    "providerNotes": "Pet was calm during the walk, drank plenty of water.",
+                    "photos": [
+                      {
+                        "url": "https://cdn.petmypet.in/bookings/before-1.jpg",
+                        "phase": "BEFORE",
+                        "uploadedAt": "2026-08-10T09:05:00.000Z"
+                      }
+                    ],
                     "createdAt": "2026-08-04T06:30:00.000Z",
                     "otpStart": "482913",
                     "otpEnd": null
@@ -14286,6 +18409,289 @@
                   "success": false,
                   "error": "UNAUTHORIZED",
                   "message": "Authentication required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bookings/{id}/notes": {
+      "patch": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "Set provider session notes for a booking (service provider only, assigned provider only)",
+        "description": "Only the provider assigned to the booking may call this, and only while the booking is ACCEPTED, ON_THE_WAY, or STARTED. This is distinct from the customer's `notes` field set at booking creation.\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "notes"
+                ],
+                "properties": {
+                  "notes": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                }
+              },
+              "example": {
+                "notes": "Pet was calm during the walk, drank plenty of water."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Notes updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Notes updated",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "petId": "64f1a2b3c4d5e6f7a8b9c0d3",
+                    "providerId": "64f1a2b3c4d5e6f7a8b9c0d4",
+                    "serviceId": "64f1a2b3c4d5e6f7a8b9c0d5",
+                    "zoneId": "64f1a2b3c4d5e6f7a8b9c0d6",
+                    "scheduledStart": "2026-08-10T09:00:00.000Z",
+                    "scheduledEnd": "2026-08-10T10:00:00.000Z",
+                    "status": "STARTED",
+                    "price": 899,
+                    "currency": "INR",
+                    "couponCode": null,
+                    "discountAmount": 0,
+                    "paymentStatus": "PENDING",
+                    "cancelledBy": null,
+                    "cancellationReason": null,
+                    "notes": "Please ring the doorbell twice",
+                    "addOns": [],
+                    "durationDays": null,
+                    "dropOffTime": null,
+                    "pickupTime": null,
+                    "providerNotes": "Pet was calm during the walk, drank plenty of water.",
+                    "photos": [],
+                    "createdAt": "2026-08-04T06:30:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or booking not in an editable status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Cannot update booking while it is COMPLETED"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Booking does not belong to this provider",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "This booking does not belong to your provider account"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bookings/{id}/photos": {
+      "post": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "Upload a before/after session photo for a booking (service provider only, assigned provider only)",
+        "description": "Only the provider assigned to the booking may call this, and only while the booking is ACCEPTED, ON_THE_WAY, or STARTED. Appends to the booking's photo list.\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "url",
+                  "phase"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "phase": {
+                    "type": "string",
+                    "enum": [
+                      "BEFORE",
+                      "AFTER"
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "url": "https://cdn.petmypet.in/bookings/before-1.jpg",
+                "phase": "BEFORE"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Photo added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Photo added",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
+                    "petId": "64f1a2b3c4d5e6f7a8b9c0d3",
+                    "providerId": "64f1a2b3c4d5e6f7a8b9c0d4",
+                    "serviceId": "64f1a2b3c4d5e6f7a8b9c0d5",
+                    "zoneId": "64f1a2b3c4d5e6f7a8b9c0d6",
+                    "scheduledStart": "2026-08-10T09:00:00.000Z",
+                    "scheduledEnd": "2026-08-10T10:00:00.000Z",
+                    "status": "STARTED",
+                    "price": 899,
+                    "currency": "INR",
+                    "couponCode": null,
+                    "discountAmount": 0,
+                    "paymentStatus": "PENDING",
+                    "cancelledBy": null,
+                    "cancellationReason": null,
+                    "notes": "Please ring the doorbell twice",
+                    "addOns": [],
+                    "durationDays": null,
+                    "dropOffTime": null,
+                    "pickupTime": null,
+                    "providerNotes": "",
+                    "photos": [
+                      {
+                        "url": "https://cdn.petmypet.in/bookings/before-1.jpg",
+                        "phase": "BEFORE",
+                        "uploadedAt": "2026-08-10T09:05:00.000Z"
+                      }
+                    ],
+                    "createdAt": "2026-08-04T06:30:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or booking not in an editable status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Cannot update booking while it is COMPLETED"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Booking does not belong to this provider",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "This booking does not belong to your provider account"
                 }
               }
             }
@@ -15059,6 +19465,12 @@
                       "SERVICE_PROVIDER"
                     ],
                     "example": "USER"
+                  },
+                  "referralCode": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "description": "Optional referral code shared by an existing user. Silently ignored if it doesn't match any account.",
+                    "example": "A1B2C3D4"
                   }
                 }
               },
@@ -15067,7 +19479,8 @@
                 "email": "priya.sharma@example.com",
                 "phone": "+919876543210",
                 "password": "P@ssw0rd123",
-                "role": "USER"
+                "role": "USER",
+                "referralCode": "A1B2C3D4"
               }
             }
           }
@@ -15313,39 +19726,57 @@
         },
         "responses": {
           "200": {
-            "description": "Login successful",
+            "description": "Login successful, or no account exists for this email (check `data.isRegistered` to decide whether to redirect to sign up)",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object"
                 },
-                "example": {
-                  "success": true,
-                  "message": "Login successful",
-                  "data": {
-                    "user": {
-                      "id": "64f1a2b3c4d5e6f7a8b9c0d1",
-                      "role": "USER",
-                      "name": "Priya Sharma",
-                      "email": "priya.sharma@example.com",
-                      "phone": "+919876543210",
-                      "avatarUrl": null,
-                      "isVerified": true,
-                      "isBlocked": false,
-                      "addresses": [],
-                      "preferences": {
-                        "language": "en",
-                        "smsNotifications": true,
-                        "emailNotifications": true,
-                        "pushNotifications": true
-                      },
-                      "createdAt": "2026-08-01T10:15:00.000Z",
-                      "updatedAt": "2026-08-04T09:30:00.000Z"
-                    },
-                    "tokens": {
-                      "accessToken": "eyJhbGciOi...<truncated>",
-                      "refreshToken": "eyJhbGciOi...<truncated>",
-                      "expiresIn": "15m"
+                "examples": {
+                  "registered": {
+                    "summary": "Account exists, credentials valid",
+                    "value": {
+                      "success": true,
+                      "message": "Login successful",
+                      "data": {
+                        "isRegistered": true,
+                        "user": {
+                          "id": "64f1a2b3c4d5e6f7a8b9c0d1",
+                          "role": "USER",
+                          "name": "Priya Sharma",
+                          "email": "priya.sharma@example.com",
+                          "phone": "+919876543210",
+                          "avatarUrl": null,
+                          "isVerified": true,
+                          "isBlocked": false,
+                          "addresses": [],
+                          "preferences": {
+                            "language": "en",
+                            "smsNotifications": true,
+                            "emailNotifications": true,
+                            "pushNotifications": true
+                          },
+                          "createdAt": "2026-08-01T10:15:00.000Z",
+                          "updatedAt": "2026-08-04T09:30:00.000Z"
+                        },
+                        "tokens": {
+                          "accessToken": "eyJhbGciOi...<truncated>",
+                          "refreshToken": "eyJhbGciOi...<truncated>",
+                          "expiresIn": "15m"
+                        }
+                      }
+                    }
+                  },
+                  "notRegistered": {
+                    "summary": "No account exists for this email",
+                    "value": {
+                      "success": true,
+                      "message": "No account found for this email",
+                      "data": {
+                        "isRegistered": false,
+                        "user": null,
+                        "tokens": null
+                      }
                     }
                   }
                 }
@@ -15363,6 +19794,21 @@
                   "success": false,
                   "error": "BAD_REQUEST",
                   "message": "password is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Incorrect password for an existing account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Invalid email or password"
                 }
               }
             }
@@ -15400,16 +19846,33 @@
         },
         "responses": {
           "200": {
-            "description": "OTP sent",
+            "description": "OTP sent, or no account exists for this identifier (check `data.isRegistered` to decide whether to redirect to sign up)",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object"
                 },
-                "example": {
-                  "success": true,
-                  "message": "OTP sent",
-                  "data": null
+                "examples": {
+                  "registered": {
+                    "summary": "Account exists, OTP sent",
+                    "value": {
+                      "success": true,
+                      "message": "OTP sent",
+                      "data": {
+                        "isRegistered": true
+                      }
+                    }
+                  },
+                  "notRegistered": {
+                    "summary": "No account exists for this identifier",
+                    "value": {
+                      "success": true,
+                      "message": "No account found for this identifier",
+                      "data": {
+                        "isRegistered": false
+                      }
+                    }
+                  }
                 }
               }
             }

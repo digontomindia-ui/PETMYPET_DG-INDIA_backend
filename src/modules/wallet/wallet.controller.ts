@@ -4,7 +4,7 @@ import { sendSuccess, buildPaginationMeta } from '../../common/utils/api-respons
 import { AppError } from '../../common/errors/app-error.js';
 import { HTTP_STATUS } from '../../common/constants/http-status.js';
 import { walletService } from './wallet.service.js';
-import type { AdminAdjustWalletInput } from './wallet.dto.js';
+import type { AdminAdjustWalletInput, TopupWalletInput } from './wallet.dto.js';
 
 function requireAuth(req: Request): string {
   if (!req.user) throw AppError.unauthorized();
@@ -29,6 +29,12 @@ export const walletController = {
       'Success',
       buildPaginationMeta(page, limit, total),
     );
+  }),
+
+  topup: asyncHandler(async (req: Request, res: Response) => {
+    const { amount } = req.body as TopupWalletInput;
+    const result = await walletService.topup(requireAuth(req), amount);
+    sendSuccess(res, HTTP_STATUS.CREATED, result, 'Wallet top-up initiated');
   }),
 
   adminAdjust: asyncHandler(async (req: Request, res: Response) => {

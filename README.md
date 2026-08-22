@@ -33,7 +33,11 @@ Three roles share one authentication system:
 (cities + zones), `pets`, `bookings`, `availability`, `reviews`, `wallet`,
 `coupons`, `payments`, `marketplace` (products/cart/wishlist/orders),
 `notifications`, `chat`, `community` (posts/comments/likes/bookmarks/reports),
-`blogs`, `support`, `lost-and-found`, `uploads`, `search`, `analytics`.
+`blogs`, `support`, `lost-and-found`, `uploads`, `search`, `analytics`,
+`referrals`, `pet-taxi`, `pet-relocation`, `pet-insurance`, `pet-companion`.
+
+See [`SCREEN_TO_API_GUIDE.md`](SCREEN_TO_API_GUIDE.md) for a screen-by-screen
+mapping of every app UI screen to the exact endpoint(s) it calls.
 
 ## Quick start
 

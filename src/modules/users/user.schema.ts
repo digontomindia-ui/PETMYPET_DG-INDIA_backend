@@ -35,26 +35,43 @@ const preferencesSchema = new Schema<IUserPreferences>(
 const userSchema = new Schema<IUser>(
   {
     role: { type: String, enum: Object.values(ROLES), required: true, default: ROLES.USER },
-    name: { type: String, required: true, trim: true, maxlength: 120 },
-    email: { type: String, required: true, trim: true, lowercase: true },
+    // Not required: an account created via phone+OTP (the end-user app's actual LogIn
+    // screen — it never collects a name) only gets one once "Your Profile" onboarding
+    // runs PUT /users/me. Defaults to '' rather than being left unset so PublicUser.name
+    // can stay a plain `string`, matching every other consumer of this field.
+    name: { type: String, trim: true, maxlength: 120, default: '' },
+    // Not required, and no default — must be genuinely absent (not '') for phone-only
+    // accounts so the sparse-style unique index below doesn't collide across them.
+    email: { type: String, trim: true, lowercase: true },
     phone: { type: String, required: true, trim: true },
-    passwordHash: { type: String, required: true, select: false },
+    // Not required: phone+OTP accounts have no password until/unless the user later sets
+    // one. `select: false` already hides it by default; login methods must null-check it.
+    passwordHash: { type: String, select: false, default: null },
     avatarUrl: { type: String, default: null },
     isVerified: { type: Boolean, default: false },
     isBlocked: { type: Boolean, default: false },
     addresses: { type: [addressSchema], default: [] },
     preferences: { type: preferencesSchema, default: () => ({}) },
     deviceTokens: { type: [String], default: [] },
+    // No `default: null` here on purpose — a sparse unique index only excludes documents
+    // where the field is genuinely absent, not ones explicitly set to null. Leaving it
+    // unset until referral.service.ts lazily generates one keeps the index sparse in practice.
+    referralCode: { type: String },
+    referredBy: { type: Schema.Types.ObjectId, ref: USER_MODEL_NAME, default: null },
   },
   { timestamps: true },
 );
 
 // Partial unique indexes so uniqueness only applies to active (non-soft-deleted) accounts,
 // allowing an email/phone to be reused once the original account is deleted.
-userSchema.index({ email: 1 }, { unique: true, partialFilterExpression: { isDeleted: false } });
+userSchema.index(
+  { email: 1 },
+  { unique: true, partialFilterExpression: { isDeleted: false, email: { $exists: true } } },
+);
 userSchema.index({ phone: 1 }, { unique: true, partialFilterExpression: { isDeleted: false } });
 userSchema.index({ role: 1 });
 userSchema.index({ 'addresses.location': '2dsphere' });
+userSchema.index({ referralCode: 1 }, { unique: true, sparse: true });
 
 userSchema.plugin(softDeletePlugin);
 

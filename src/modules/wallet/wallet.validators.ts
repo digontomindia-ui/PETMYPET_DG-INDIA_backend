@@ -14,3 +14,7 @@ export const listTransactionsQuerySchema = z.object({
 export const userIdParamSchema = z.object({
   userId: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid user id'),
 });
+
+export const topupWalletSchema = z.object({
+  amount: z.number().positive().min(1),
+});

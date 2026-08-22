@@ -46,4 +46,19 @@ export const couponController = {
     const result = await couponService.validate(code, userId, bookingAmount, providerType);
     sendSuccess(res, HTTP_STATUS.OK, result);
   }),
+
+  listMyRedemptions: asyncHandler(async (req: Request, res: Response) => {
+    const userId = requireAuth(req);
+    const { redemptions, total, page, limit } = await couponService.listMyRedemptions(
+      userId,
+      req.query,
+    );
+    sendSuccess(
+      res,
+      HTTP_STATUS.OK,
+      redemptions,
+      'Success',
+      buildPaginationMeta(page, limit, total),
+    );
+  }),
 };

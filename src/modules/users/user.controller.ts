@@ -4,7 +4,12 @@ import { sendSuccess, buildPaginationMeta } from '../../common/utils/api-respons
 import { AppError } from '../../common/errors/app-error.js';
 import { HTTP_STATUS } from '../../common/constants/http-status.js';
 import { userService } from './user.service.js';
-import type { AddressInput, RegisterDeviceTokenInput, UpdateProfileInput } from './user.dto.js';
+import type {
+  AddressInput,
+  RegisterDeviceTokenInput,
+  UpdateAddressInput,
+  UpdateProfileInput,
+} from './user.dto.js';
 
 function requireAuth(req: Request): { userId: string } {
   if (!req.user) throw AppError.unauthorized();
@@ -34,6 +39,16 @@ export const userController = {
     const { userId } = requireAuth(req);
     const user = await userService.addAddress(userId, req.body as AddressInput);
     sendSuccess(res, HTTP_STATUS.CREATED, user, 'Address added');
+  }),
+
+  updateAddress: asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = requireAuth(req);
+    const user = await userService.updateAddress(
+      userId,
+      req.params.addressId as string,
+      req.body as UpdateAddressInput,
+    );
+    sendSuccess(res, HTTP_STATUS.OK, user, 'Address updated');
   }),
 
   removeAddress: asyncHandler(async (req: Request, res: Response) => {

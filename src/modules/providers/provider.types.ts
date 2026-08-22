@@ -88,6 +88,26 @@ export interface IProvider extends SoftDeletable {
 
 export type ProviderDocument = HydratedDocument<IProvider>;
 
+export interface PublicKycDocument {
+  id: string;
+  type: KycDocumentType;
+  url: string;
+  uploadedAt: Date;
+}
+
+export interface PublicBankAccount {
+  accountHolderName: string;
+  bankName: string;
+  last4: string;
+}
+
+export interface PublicAttendanceEntry {
+  id: string;
+  date: string;
+  checkInAt: Date;
+  checkOutAt: Date | null;
+}
+
 export interface PublicProvider {
   id: string;
   userId: string;
@@ -95,14 +115,35 @@ export interface PublicProvider {
   businessName: string;
   description: string;
   kycStatus: KycStatus;
+  kycRejectionReason: string | null;
+  kycDocuments: PublicKycDocument[];
   zoneIds: string[];
   location: { type: 'Point'; coordinates: [number, number] };
   address: string;
   workingHours: IWorkingHours[];
   metadata: IProviderMetadata;
+  bankAccount: PublicBankAccount | null;
   commissionPercent: number | null;
   rating: number;
   ratingCount: number;
   isActive: boolean;
+  attendance: PublicAttendanceEntry[];
   createdAt: Date;
+}
+
+/**
+ * Shown on PUBLIC provider endpoints (GET /providers/:id, /providers/nearby) — omits
+ * kycDocuments, kycRejectionReason, bankAccount, and attendance, which are only meant
+ * for the provider's own /me view or admin review, never for a browsing customer.
+ */
+export type PublicProviderSummary = Omit<
+  PublicProvider,
+  'kycRejectionReason' | 'kycDocuments' | 'bankAccount' | 'attendance'
+>;
+
+export interface ProviderAnalytics {
+  earningsByDay: { date: string; amount: number }[];
+  bookingCount: number;
+  ratingBreakdown: { 5: number; 4: number; 3: number; 2: number; 1: number };
+  repeatClientPercent: number;
 }

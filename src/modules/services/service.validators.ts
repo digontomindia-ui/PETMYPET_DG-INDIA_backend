@@ -2,6 +2,11 @@ import { z } from 'zod';
 
 const objectIdSchema = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
 
+const addOnSchema = z.object({
+  name: z.string().min(1).max(100),
+  price: z.number().min(0),
+});
+
 export const createServiceSchema = z.object({
   categoryId: objectIdSchema,
   name: z.string().min(1).max(150),
@@ -9,6 +14,7 @@ export const createServiceSchema = z.object({
   price: z.number().min(0),
   durationMinutes: z.number().int().min(5),
   images: z.array(z.string().url()).default([]),
+  addOnCatalog: z.array(addOnSchema).default([]),
 });
 
 export const updateServiceSchema = createServiceSchema.partial().extend({

@@ -93,3 +93,12 @@ export const setBankAccountSchema = z.object({
 
 export const idParamSchema = z.object({ id: objectIdSchema });
 export const documentIdParamSchema = z.object({ id: objectIdSchema, documentId: objectIdSchema });
+
+export const providerAnalyticsQuerySchema = z.object({
+  range: z.enum(['week', 'month']).optional(),
+});
+
+export const attendanceQuerySchema = z.object({
+  page: z.string().optional(),
+  limit: z.string().optional(),
+});

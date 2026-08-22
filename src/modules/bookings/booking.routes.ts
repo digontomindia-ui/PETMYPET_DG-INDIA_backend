@@ -5,10 +5,12 @@ import { validate } from '../../common/middlewares/validate.middleware.js';
 import { ROLES } from '../../common/constants/roles.js';
 import { bookingController } from './booking.controller.js';
 import {
+  addBookingPhotoSchema,
   cancelBookingSchema,
   createBookingSchema,
   idParamSchema,
   listBookingsQuerySchema,
+  updateProviderNotesSchema,
   verifyOtpSchema,
 } from './booking.validators.js';
 
@@ -39,6 +41,19 @@ bookingRoutes.use(authenticate);
  *               scheduledStart: { type: string, format: date-time, description: Must be in the future }
  *               couponCode: { type: string }
  *               notes: { type: string, default: '' }
+ *               addOns:
+ *                 type: array
+ *                 default: []
+ *                 description: Each entry must match a name+price pair in the service's addOnCatalog
+ *                 items:
+ *                   type: object
+ *                   required: [name, price]
+ *                   properties:
+ *                     name: { type: string }
+ *                     price: { type: number }
+ *               durationDays: { type: integer, minimum: 1, description: 'Multi-day stay (e.g. boarding); when set, scheduledEnd = scheduledStart + durationDays' }
+ *               dropOffTime: { type: string, pattern: '^\d{2}:\d{2}$', description: 'HH:mm, only meaningful when durationDays is set' }
+ *               pickupTime: { type: string, pattern: '^\d{2}:\d{2}$', description: 'HH:mm, only meaningful when durationDays is set' }
  *           example:
  *             providerId: 64f1a2b3c4d5e6f7a8b9c0d4
  *             serviceId: 64f1a2b3c4d5e6f7a8b9c0d5
@@ -46,6 +61,12 @@ bookingRoutes.use(authenticate);
  *             scheduledStart: '2026-08-10T09:00:00.000Z'
  *             couponCode: WELCOME10
  *             notes: Please ring the doorbell twice
+ *             addOns:
+ *               - { name: Extra 15 Min, price: 79 }
+ *               - { name: Poo Pickup, price: 49 }
+ *             durationDays: 3
+ *             dropOffTime: '09:00'
+ *             pickupTime: '18:00'
  *     responses:
  *       201:
  *         description: Booking created
@@ -63,9 +84,9 @@ bookingRoutes.use(authenticate);
  *                 serviceId: 64f1a2b3c4d5e6f7a8b9c0d5
  *                 zoneId: 64f1a2b3c4d5e6f7a8b9c0d6
  *                 scheduledStart: '2026-08-10T09:00:00.000Z'
- *                 scheduledEnd: '2026-08-10T10:00:00.000Z'
+ *                 scheduledEnd: '2026-08-13T18:00:00.000Z'
  *                 status: PENDING
- *                 price: 899
+ *                 price: 1027
  *                 currency: INR
  *                 couponCode: WELCOME10
  *                 discountAmount: 90
@@ -73,6 +94,14 @@ bookingRoutes.use(authenticate);
  *                 cancelledBy: null
  *                 cancellationReason: null
  *                 notes: Please ring the doorbell twice
+ *                 addOns:
+ *                   - { name: Extra 15 Min, price: 79 }
+ *                   - { name: Poo Pickup, price: 49 }
+ *                 durationDays: 3
+ *                 dropOffTime: '09:00'
+ *                 pickupTime: '18:00'
+ *                 providerNotes: ''
+ *                 photos: []
  *                 createdAt: '2026-08-04T06:30:00.000Z'
  *                 otpStart: null
  *                 otpEnd: null
@@ -274,6 +303,14 @@ bookingRoutes.get(
  *                 cancelledBy: null
  *                 cancellationReason: null
  *                 notes: Please ring the doorbell twice
+ *                 addOns:
+ *                   - { name: Extra 15 Min, price: 79 }
+ *                 durationDays: null
+ *                 dropOffTime: null
+ *                 pickupTime: null
+ *                 providerNotes: 'Pet was calm during the walk, drank plenty of water.'
+ *                 photos:
+ *                   - { url: 'https://cdn.petmypet.in/bookings/before-1.jpg', phase: BEFORE, uploadedAt: '2026-08-10T09:05:00.000Z' }
  *                 createdAt: '2026-08-04T06:30:00.000Z'
  *                 otpStart: '482913'
  *                 otpEnd: null
@@ -567,6 +604,194 @@ bookingRoutes.post(
   ...requireProvider,
   validate({ params: idParamSchema, body: verifyOtpSchema }),
   bookingController.verifyEndOtp,
+);
+
+/**
+ * @openapi
+ * /bookings/{id}/notes:
+ *   patch:
+ *     tags: [Bookings]
+ *     summary: Set provider session notes for a booking (service provider only, assigned provider only)
+ *     description: >
+ *       Only the provider assigned to the booking may call this, and only while the booking is
+ *       ACCEPTED, ON_THE_WAY, or STARTED. This is distinct from the customer's `notes` field set at
+ *       booking creation.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string }, example: 64f1a2b3c4d5e6f7a8b9c0d1 }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [notes]
+ *             properties:
+ *               notes: { type: string, maxLength: 2000 }
+ *           example:
+ *             notes: 'Pet was calm during the walk, drank plenty of water.'
+ *     responses:
+ *       200:
+ *         description: Notes updated
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *             example:
+ *               success: true
+ *               message: Notes updated
+ *               data:
+ *                 id: 64f1a2b3c4d5e6f7a8b9c0d1
+ *                 userId: 64f1a2b3c4d5e6f7a8b9c0d2
+ *                 petId: 64f1a2b3c4d5e6f7a8b9c0d3
+ *                 providerId: 64f1a2b3c4d5e6f7a8b9c0d4
+ *                 serviceId: 64f1a2b3c4d5e6f7a8b9c0d5
+ *                 zoneId: 64f1a2b3c4d5e6f7a8b9c0d6
+ *                 scheduledStart: '2026-08-10T09:00:00.000Z'
+ *                 scheduledEnd: '2026-08-10T10:00:00.000Z'
+ *                 status: STARTED
+ *                 price: 899
+ *                 currency: INR
+ *                 couponCode: null
+ *                 discountAmount: 0
+ *                 paymentStatus: PENDING
+ *                 cancelledBy: null
+ *                 cancellationReason: null
+ *                 notes: Please ring the doorbell twice
+ *                 addOns: []
+ *                 durationDays: null
+ *                 dropOffTime: null
+ *                 pickupTime: null
+ *                 providerNotes: 'Pet was calm during the walk, drank plenty of water.'
+ *                 photos: []
+ *                 createdAt: '2026-08-04T06:30:00.000Z'
+ *       400:
+ *         description: Validation error or booking not in an editable status
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: BAD_REQUEST
+ *               message: Cannot update booking while it is COMPLETED
+ *       401:
+ *         description: Not authenticated
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Authentication required
+ *       403:
+ *         description: Booking does not belong to this provider
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: FORBIDDEN
+ *               message: This booking does not belong to your provider account
+ */
+bookingRoutes.patch(
+  '/:id/notes',
+  ...requireProvider,
+  validate({ params: idParamSchema, body: updateProviderNotesSchema }),
+  bookingController.updateNotes,
+);
+
+/**
+ * @openapi
+ * /bookings/{id}/photos:
+ *   post:
+ *     tags: [Bookings]
+ *     summary: Upload a before/after session photo for a booking (service provider only, assigned provider only)
+ *     description: >
+ *       Only the provider assigned to the booking may call this, and only while the booking is
+ *       ACCEPTED, ON_THE_WAY, or STARTED. Appends to the booking's photo list.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string }, example: 64f1a2b3c4d5e6f7a8b9c0d1 }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [url, phase]
+ *             properties:
+ *               url: { type: string, format: uri }
+ *               phase: { type: string, enum: [BEFORE, AFTER] }
+ *           example:
+ *             url: 'https://cdn.petmypet.in/bookings/before-1.jpg'
+ *             phase: BEFORE
+ *     responses:
+ *       201:
+ *         description: Photo added
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *             example:
+ *               success: true
+ *               message: Photo added
+ *               data:
+ *                 id: 64f1a2b3c4d5e6f7a8b9c0d1
+ *                 userId: 64f1a2b3c4d5e6f7a8b9c0d2
+ *                 petId: 64f1a2b3c4d5e6f7a8b9c0d3
+ *                 providerId: 64f1a2b3c4d5e6f7a8b9c0d4
+ *                 serviceId: 64f1a2b3c4d5e6f7a8b9c0d5
+ *                 zoneId: 64f1a2b3c4d5e6f7a8b9c0d6
+ *                 scheduledStart: '2026-08-10T09:00:00.000Z'
+ *                 scheduledEnd: '2026-08-10T10:00:00.000Z'
+ *                 status: STARTED
+ *                 price: 899
+ *                 currency: INR
+ *                 couponCode: null
+ *                 discountAmount: 0
+ *                 paymentStatus: PENDING
+ *                 cancelledBy: null
+ *                 cancellationReason: null
+ *                 notes: Please ring the doorbell twice
+ *                 addOns: []
+ *                 durationDays: null
+ *                 dropOffTime: null
+ *                 pickupTime: null
+ *                 providerNotes: ''
+ *                 photos:
+ *                   - { url: 'https://cdn.petmypet.in/bookings/before-1.jpg', phase: BEFORE, uploadedAt: '2026-08-10T09:05:00.000Z' }
+ *                 createdAt: '2026-08-04T06:30:00.000Z'
+ *       400:
+ *         description: Validation error or booking not in an editable status
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: BAD_REQUEST
+ *               message: Cannot update booking while it is COMPLETED
+ *       401:
+ *         description: Not authenticated
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Authentication required
+ *       403:
+ *         description: Booking does not belong to this provider
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: FORBIDDEN
+ *               message: This booking does not belong to your provider account
+ */
+bookingRoutes.post(
+  '/:id/photos',
+  ...requireProvider,
+  validate({ params: idParamSchema, body: addBookingPhotoSchema }),
+  bookingController.addPhoto,
 );
 
 /**

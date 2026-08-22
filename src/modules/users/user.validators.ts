@@ -25,6 +25,12 @@ export const updateProfileSchema = z.object({
     .optional(),
 });
 
+export const updateAddressSchema = addressSchema.partial();
+
+export const addressIdParamSchema = z.object({
+  addressId: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id'),
+});
+
 export const registerDeviceTokenSchema = z.object({
   deviceToken: z.string().min(1),
 });

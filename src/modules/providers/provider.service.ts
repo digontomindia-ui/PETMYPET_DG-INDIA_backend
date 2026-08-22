@@ -7,21 +7,28 @@ import { notificationService } from '../notifications/notification.service.js';
 import { NOTIFICATION_TYPES } from '../notifications/notification.constants.js';
 import { auditLogService } from '../admin/admin.service.js';
 import { AUDIT_ACTIONS } from '../admin/admin.constants.js';
+import { BookingModel } from '../bookings/booking.schema.js';
+import { BOOKING_STATUSES, PAYMENT_STATUSES } from '../bookings/booking.constants.js';
+import { ReviewModel } from '../reviews/review.schema.js';
 import { providerRepository } from './provider.repository.js';
-import { toPublicProvider } from './provider.mapper.js';
+import { mapAttendanceEntry, toPublicProvider, toPublicProviderSummary } from './provider.mapper.js';
 import { KYC_STATUSES } from './provider.constants.js';
 import type {
+  AttendanceQuery,
   CreateProviderProfileInput,
   NearbyProvidersQuery,
+  ProviderAnalyticsQuery,
   RejectKycInput,
   SetBankAccountInput,
   UpdateProviderProfileInput,
   UploadKycDocumentInput,
 } from './provider.dto.js';
-import type { ProviderDocument } from './provider.types.js';
+import type { ProviderAnalytics, ProviderDocument } from './provider.types.js';
 import type { ProviderType } from '../../common/constants/roles.js';
 
 const DEFAULT_RADIUS_METERS = 15_000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const RANGE_DAYS = { week: 7, month: 30 } as const;
 
 async function requireOwnProvider(userId: string): Promise<ProviderDocument> {
   const provider = await providerRepository.findByUserId(userId);
@@ -83,7 +90,7 @@ export const providerService = {
   async getById(id: string) {
     const provider = await providerRepository.findById(id);
     if (!provider) throw AppError.notFound('Provider not found');
-    return toPublicProvider(provider);
+    return toPublicProviderSummary(provider);
   },
 
   async setActive(userId: string, isActive: boolean) {
@@ -208,6 +215,83 @@ export const providerService = {
       skip,
       limit,
     });
-    return { providers: providers.map(toPublicProvider), page, limit };
+    return { providers: providers.map(toPublicProviderSummary), page, limit };
+  },
+
+  async getMyAnalytics(userId: string, query: ProviderAnalyticsQuery): Promise<ProviderAnalytics> {
+    const provider = await requireOwnProvider(userId);
+    const providerId = provider._id;
+
+    const to = new Date();
+    const from = new Date(to.getTime() - RANGE_DAYS[query.range ?? 'week'] * DAY_MS);
+
+    const [earningsByDay, bookingsInRange, ratingAgg] = await Promise.all([
+      BookingModel.aggregate<{ date: string; amount: number }>([
+        {
+          $match: {
+            providerId,
+            paymentStatus: PAYMENT_STATUSES.PAID,
+            createdAt: { $gte: from, $lte: to },
+          },
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            amount: { $sum: { $subtract: ['$price', '$discountAmount'] } },
+          },
+        },
+        { $sort: { _id: 1 } },
+        { $project: { _id: 0, date: '$_id', amount: 1 } },
+      ]),
+      BookingModel.find({ providerId, createdAt: { $gte: from, $lte: to } })
+        .select('userId')
+        .lean(),
+      ReviewModel.aggregate<{ _id: number; count: number }>([
+        { $match: { providerId } },
+        { $group: { _id: '$rating', count: { $sum: 1 } } },
+      ]),
+    ]);
+
+    const bookingCount = bookingsInRange.length;
+
+    let repeatClientPercent = 0;
+    if (bookingCount > 0) {
+      const userIds = [...new Set(bookingsInRange.map((b) => b.userId.toString()))];
+      const repeatUserIds = await BookingModel.distinct('userId', {
+        providerId,
+        userId: { $in: userIds.map((id) => new Types.ObjectId(id)) },
+        status: BOOKING_STATUSES.COMPLETED,
+        createdAt: { $lt: from },
+      });
+      const repeatSet = new Set(repeatUserIds.map((id) => id.toString()));
+      const repeatBookingCount = bookingsInRange.filter((b) =>
+        repeatSet.has(b.userId.toString()),
+      ).length;
+      repeatClientPercent = Math.round((repeatBookingCount / bookingCount) * 1000) / 10;
+    }
+
+    const totalRatings = ratingAgg.reduce((sum, r) => sum + r.count, 0);
+    const ratingBreakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    for (const r of ratingAgg) {
+      if (r._id in ratingBreakdown && totalRatings > 0) {
+        ratingBreakdown[r._id as 1 | 2 | 3 | 4 | 5] =
+          Math.round((r.count / totalRatings) * 1000) / 10;
+      }
+    }
+
+    return { earningsByDay, bookingCount, ratingBreakdown, repeatClientPercent };
+  },
+
+  async getMyAttendance(userId: string, query: AttendanceQuery) {
+    const provider = await requireOwnProvider(userId);
+    const { page, limit, skip } = parsePagination(query);
+
+    const sorted = [...provider.attendance].sort(
+      (a, b) => b.checkInAt.getTime() - a.checkInAt.getTime(),
+    );
+    const total = sorted.length;
+    const items = sorted.slice(skip, skip + limit).map(mapAttendanceEntry);
+
+    return { items, total, page, limit };
   },
 };

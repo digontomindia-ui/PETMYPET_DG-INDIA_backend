@@ -29,15 +29,17 @@ export interface IUser extends SoftDeletable {
   _id: Types.ObjectId;
   role: Role;
   name: string;
-  email: string;
+  email: string | null;
   phone: string;
-  passwordHash: string;
+  passwordHash: string | null;
   avatarUrl: string | null;
   isVerified: boolean;
   isBlocked: boolean;
   addresses: Types.DocumentArray<IAddress>;
   preferences: IUserPreferences;
   deviceTokens: string[];
+  referralCode: string | null;
+  referredBy: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,13 +50,14 @@ export interface PublicUser {
   id: string;
   role: Role;
   name: string;
-  email: string;
+  email: string | null;
   phone: string;
   avatarUrl: string | null;
   isVerified: boolean;
   isBlocked: boolean;
   addresses: IAddress[];
   preferences: IUserPreferences;
+  referralCode: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

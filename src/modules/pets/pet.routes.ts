@@ -7,6 +7,8 @@ import {
   addVaccinationSchema,
   createPetSchema,
   idParamSchema,
+  recordIdParamSchema,
+  updateCompanionProfileSchema,
   updatePetSchema,
 } from './pet.validators.js';
 
@@ -413,4 +415,237 @@ petRoutes.post(
   '/:id/vaccinations',
   validate({ params: idParamSchema, body: addVaccinationSchema }),
   petController.addVaccination,
+);
+
+/**
+ * @openapi
+ * /pets/{id}/medical-records/{recordId}:
+ *   delete:
+ *     tags: [Pets]
+ *     summary: Delete a medical record from a pet
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: string }
+ *         example: 64f1a2b3c4d5e6f7a8b9c0d1
+ *       - name: recordId
+ *         in: path
+ *         required: true
+ *         schema: { type: string }
+ *         example: 64f1a2b3c4d5e6f7a8b9c0e9
+ *     responses:
+ *       200:
+ *         description: Medical record removed
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *             example:
+ *               success: true
+ *               message: Medical record removed
+ *               data:
+ *                 id: 64f1a2b3c4d5e6f7a8b9c0d1
+ *                 ownerId: 64f1a2b3c4d5e6f7a8b9c0d2
+ *                 name: Bruno
+ *                 medicalRecords: []
+ *                 vaccinations: []
+ *       400:
+ *         description: Invalid id or recordId parameter
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: BAD_REQUEST, message: "Invalid record id" }
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: UNAUTHORIZED, message: "Authentication required" }
+ *       403:
+ *         description: Not the owner of this pet
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: FORBIDDEN, message: "You do not have access to this pet" }
+ *       404:
+ *         description: Pet or medical record not found
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: NOT_FOUND, message: "Medical record not found" }
+ */
+petRoutes.delete(
+  '/:id/medical-records/:recordId',
+  validate({ params: recordIdParamSchema }),
+  petController.removeMedicalRecord,
+);
+/**
+ * @openapi
+ * /pets/{id}/vaccinations/{recordId}:
+ *   delete:
+ *     tags: [Pets]
+ *     summary: Delete a vaccination record from a pet
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: string }
+ *         example: 64f1a2b3c4d5e6f7a8b9c0d1
+ *       - name: recordId
+ *         in: path
+ *         required: true
+ *         schema: { type: string }
+ *         example: 64f1a2b3c4d5e6f7a8b9c0ea
+ *     responses:
+ *       200:
+ *         description: Vaccination removed
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *             example:
+ *               success: true
+ *               message: Vaccination removed
+ *               data:
+ *                 id: 64f1a2b3c4d5e6f7a8b9c0d1
+ *                 ownerId: 64f1a2b3c4d5e6f7a8b9c0d2
+ *                 name: Bruno
+ *                 medicalRecords: []
+ *                 vaccinations: []
+ *       400:
+ *         description: Invalid id or recordId parameter
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: BAD_REQUEST, message: "Invalid record id" }
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: UNAUTHORIZED, message: "Authentication required" }
+ *       403:
+ *         description: Not the owner of this pet
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: FORBIDDEN, message: "You do not have access to this pet" }
+ *       404:
+ *         description: Pet or vaccination not found
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: NOT_FOUND, message: "Vaccination not found" }
+ */
+petRoutes.delete(
+  '/:id/vaccinations/:recordId',
+  validate({ params: recordIdParamSchema }),
+  petController.removeVaccination,
+);
+
+/**
+ * @openapi
+ * /pets/{id}/companion-profile:
+ *   put:
+ *     tags: [Pets]
+ *     summary: Create or update a pet's companion (playdate) profile
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: string }
+ *         example: 64f1a2b3c4d5e6f7a8b9c0d1
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               isEnabled: { type: boolean, default: false }
+ *               bio: { type: string, maxLength: 1000 }
+ *               personalityTraits: { type: array, items: { type: string } }
+ *               interests: { type: array, items: { type: string } }
+ *               lookingFor: { type: array, items: { type: string } }
+ *               activityLevel: { type: string, enum: [LOW, MEDIUM, HIGH] }
+ *               temperament: { type: string }
+ *               getsAlongWith:
+ *                 type: object
+ *                 properties:
+ *                   dogs: { type: boolean }
+ *                   cats: { type: boolean }
+ *                   kids: { type: boolean }
+ *                   families: { type: boolean }
+ *           example:
+ *             isEnabled: true
+ *             bio: Bruno loves fetch and making new furry friends at the park.
+ *             personalityTraits: [playful, friendly, energetic]
+ *             interests: [fetch, swimming, long walks]
+ *             lookingFor: [playdates, running buddy]
+ *             activityLevel: HIGH
+ *             temperament: Gentle with smaller dogs
+ *             getsAlongWith: { dogs: true, cats: false, kids: true, families: true }
+ *     responses:
+ *       200:
+ *         description: Companion profile updated
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *             example:
+ *               success: true
+ *               message: Companion profile updated
+ *               data:
+ *                 id: 64f1a2b3c4d5e6f7a8b9c0d1
+ *                 ownerId: 64f1a2b3c4d5e6f7a8b9c0d2
+ *                 name: Bruno
+ *                 species: DOG
+ *                 breed: Labrador Retriever
+ *                 gender: MALE
+ *                 dateOfBirth: "2021-05-14T00:00:00.000Z"
+ *                 weightKg: 28.5
+ *                 avatarUrl: "https://cdn.petmypet.in/pets/bruno-avatar.jpg"
+ *                 notes: Loves belly rubs, allergic to chicken.
+ *                 medicalRecords: []
+ *                 vaccinations: []
+ *                 companionProfile:
+ *                   isEnabled: true
+ *                   bio: Bruno loves fetch and making new furry friends at the park.
+ *                   personalityTraits: [playful, friendly, energetic]
+ *                   interests: [fetch, swimming, long walks]
+ *                   lookingFor: [playdates, running buddy]
+ *                   activityLevel: HIGH
+ *                   temperament: Gentle with smaller dogs
+ *                   getsAlongWith: { dogs: true, cats: false, kids: true, families: true }
+ *                 createdAt: "2026-08-04T08:00:00.000Z"
+ *       400:
+ *         description: Invalid request body or id parameter
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: BAD_REQUEST, message: "bio must be at most 1000 characters" }
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: UNAUTHORIZED, message: "Authentication required" }
+ *       403:
+ *         description: Not the owner of this pet
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: FORBIDDEN, message: "You do not have access to this pet" }
+ *       404:
+ *         description: Pet not found
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: NOT_FOUND, message: "Pet not found" }
+ */
+petRoutes.put(
+  '/:id/companion-profile',
+  validate({ params: idParamSchema, body: updateCompanionProfileSchema }),
+  petController.updateCompanionProfile,
 );

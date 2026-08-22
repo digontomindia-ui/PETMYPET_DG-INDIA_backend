@@ -39,12 +39,14 @@ authRoutes.use(authRateLimiter);
  *               phone: { type: string, example: "+919876543210" }
  *               password: { type: string, format: password, example: "P@ssw0rd123" }
  *               role: { type: string, enum: [USER, SERVICE_PROVIDER], example: "USER" }
+ *               referralCode: { type: string, maxLength: 20, description: "Optional referral code shared by an existing user. Silently ignored if it doesn't match any account.", example: "A1B2C3D4" }
  *           example:
  *             name: "Priya Sharma"
  *             email: "priya.sharma@example.com"
  *             phone: "+919876543210"
  *             password: "P@ssw0rd123"
  *             role: "USER"
+ *             referralCode: "A1B2C3D4"
  *     responses:
  *       201:
  *         description: Signup successful, OTP sent

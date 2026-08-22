@@ -7,6 +7,7 @@ import { walletController } from './wallet.controller.js';
 import {
   adminAdjustWalletSchema,
   listTransactionsQuerySchema,
+  topupWalletSchema,
   userIdParamSchema,
 } from './wallet.validators.js';
 
@@ -128,6 +129,65 @@ walletRoutes.get(
   validate({ query: listTransactionsQuerySchema }),
   walletController.listMyTransactions,
 );
+
+/**
+ * @openapi
+ * /wallet/me/topup:
+ *   post:
+ *     tags: [Wallet]
+ *     summary: Self-serve wallet top-up - creates a Razorpay order; the wallet is credited once the payment webhook confirms capture
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [amount]
+ *             properties:
+ *               amount: { type: number, minimum: 1 }
+ *           example:
+ *             amount: 500
+ *     responses:
+ *       201:
+ *         description: Razorpay order created for the top-up
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data: { type: object }
+ *             example:
+ *               success: true
+ *               message: Wallet top-up initiated
+ *               data:
+ *                 paymentId: "64f1a2b3c4d5e6f7a8b9c0e1"
+ *                 razorpayOrderId: order_NXtZ4xyzABC123
+ *                 amount: 500
+ *                 currency: INR
+ *                 razorpayKeyId: rzp_test_1234567890abcd
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: BAD_REQUEST
+ *               message: "amount: Number must be greater than or equal to 1"
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Authentication required
+ */
+walletRoutes.post('/me/topup', validate({ body: topupWalletSchema }), walletController.topup);
 
 /**
  * @openapi

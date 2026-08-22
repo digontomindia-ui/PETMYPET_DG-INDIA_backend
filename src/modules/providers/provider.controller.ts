@@ -116,4 +116,20 @@ export const providerController = {
     );
     sendSuccess(res, HTTP_STATUS.OK, provider, 'Provider KYC rejected');
   }),
+
+  getMyAnalytics: asyncHandler(async (req: Request, res: Response) => {
+    const analytics = await providerService.getMyAnalytics(
+      requireAuth(req),
+      req.query,
+    );
+    sendSuccess(res, HTTP_STATUS.OK, analytics);
+  }),
+
+  getMyAttendance: asyncHandler(async (req: Request, res: Response) => {
+    const { items, total, page, limit } = await providerService.getMyAttendance(
+      requireAuth(req),
+      req.query,
+    );
+    sendSuccess(res, HTTP_STATUS.OK, items, 'Success', buildPaginationMeta(page, limit, total));
+  }),
 };

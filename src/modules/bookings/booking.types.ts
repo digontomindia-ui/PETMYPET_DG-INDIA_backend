@@ -1,6 +1,24 @@
 import type { HydratedDocument, Types } from 'mongoose';
 import type { BookingPaymentStatus, BookingStatus, CancelledBy } from './booking.constants.js';
 
+export interface IBookingAddOn {
+  name: string;
+  price: number;
+}
+
+export const BOOKING_PHOTO_PHASES = {
+  BEFORE: 'BEFORE',
+  AFTER: 'AFTER',
+} as const;
+
+export type BookingPhotoPhase = (typeof BOOKING_PHOTO_PHASES)[keyof typeof BOOKING_PHOTO_PHASES];
+
+export interface IBookingPhoto {
+  url: string;
+  phase: BookingPhotoPhase;
+  uploadedAt: Date;
+}
+
 export interface IBooking {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
@@ -27,6 +45,12 @@ export interface IBooking {
   cancelledBy: CancelledBy | null;
   cancellationReason: string | null;
   notes: string;
+  addOns: IBookingAddOn[];
+  durationDays: number | null;
+  dropOffTime: string | null;
+  pickupTime: string | null;
+  providerNotes: string;
+  photos: IBookingPhoto[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -51,6 +75,13 @@ export interface PublicBookingBase {
   cancelledBy: CancelledBy | null;
   cancellationReason: string | null;
   notes: string;
+  addOns: IBookingAddOn[];
+  durationDays: number | null;
+  dropOffTime: string | null;
+  pickupTime: string | null;
+  /** Provider-only session notes; present here because this same shape is the provider's view. */
+  providerNotes: string;
+  photos: IBookingPhoto[];
   createdAt: Date;
 }
 

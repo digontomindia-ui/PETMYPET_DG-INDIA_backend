@@ -1,6 +1,6 @@
 import type { HydratedDocument, Types } from 'mongoose';
 import type { SoftDeletable } from '../../common/database/plugins/soft-delete.plugin.js';
-import type { PetGender, PetSpecies } from './pet.constants.js';
+import type { CompanionActivityLevel, PetGender, PetSpecies } from './pet.constants.js';
 
 export interface IMedicalRecord {
   _id: Types.ObjectId;
@@ -20,6 +20,24 @@ export interface IVaccination {
   providerId: Types.ObjectId | null;
 }
 
+export interface ICompanionGetsAlongWith {
+  dogs: boolean;
+  cats: boolean;
+  kids: boolean;
+  families: boolean;
+}
+
+export interface ICompanionProfile {
+  isEnabled: boolean;
+  bio: string;
+  personalityTraits: string[];
+  interests: string[];
+  lookingFor: string[];
+  activityLevel: CompanionActivityLevel;
+  temperament: string;
+  getsAlongWith: ICompanionGetsAlongWith;
+}
+
 export interface IPet extends SoftDeletable {
   _id: Types.ObjectId;
   ownerId: Types.ObjectId;
@@ -33,6 +51,7 @@ export interface IPet extends SoftDeletable {
   notes: string;
   medicalRecords: Types.DocumentArray<IMedicalRecord>;
   vaccinations: Types.DocumentArray<IVaccination>;
+  companionProfile: ICompanionProfile | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,5 +71,6 @@ export interface PublicPet {
   notes: string;
   medicalRecords: IMedicalRecord[];
   vaccinations: IVaccination[];
+  companionProfile: ICompanionProfile | null;
   createdAt: Date;
 }

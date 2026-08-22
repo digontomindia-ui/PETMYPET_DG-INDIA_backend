@@ -5,9 +5,11 @@ import { validate } from '../../common/middlewares/validate.middleware.js';
 import { ROLES } from '../../common/constants/roles.js';
 import { userController } from './user.controller.js';
 import {
+  addressIdParamSchema,
   addressSchema,
   listUsersQuerySchema,
   registerDeviceTokenSchema,
+  updateAddressSchema,
   updateProfileSchema,
   userIdParamSchema,
 } from './user.validators.js';
@@ -300,6 +302,115 @@ userRoutes.post(
   authenticate,
   validate({ body: addressSchema }),
   userController.addAddress,
+);
+
+/**
+ * @openapi
+ * /users/me/addresses/{addressId}:
+ *   put:
+ *     tags: [Users]
+ *     summary: Edit an existing address on the authenticated user's profile
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: addressId, in: path, required: true, schema: { type: string }, example: "64f1a2b3c4d5e6f7a8b9c0e2" }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               label: { type: string, maxLength: 40 }
+ *               addressLine1: { type: string, maxLength: 200 }
+ *               addressLine2: { type: string, maxLength: 200 }
+ *               city: { type: string, maxLength: 100 }
+ *               state: { type: string, maxLength: 100 }
+ *               postalCode: { type: string, maxLength: 20 }
+ *               country: { type: string, maxLength: 100 }
+ *               coordinates:
+ *                 type: array
+ *                 items: { type: number }
+ *                 minItems: 2
+ *                 maxItems: 2
+ *                 description: "[longitude, latitude]"
+ *               isDefault: { type: boolean }
+ *           example:
+ *             addressLine1: 221B Baker Street, Flat 4
+ *             isDefault: true
+ *     responses:
+ *       200:
+ *         description: Address updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 data: { type: object }
+ *             example:
+ *               success: true
+ *               message: Address updated
+ *               data:
+ *                 id: "64f1a2b3c4d5e6f7a8b9c0d1"
+ *                 role: USER
+ *                 name: Ananya Sharma
+ *                 email: ananya.sharma@example.com
+ *                 phone: "+919876543210"
+ *                 avatarUrl: null
+ *                 isVerified: true
+ *                 isBlocked: false
+ *                 addresses:
+ *                   - _id: "64f1a2b3c4d5e6f7a8b9c0e2"
+ *                     label: Home
+ *                     addressLine1: 221B Baker Street, Flat 4
+ *                     addressLine2: Near Cyber Hub
+ *                     city: Gurugram
+ *                     state: Haryana
+ *                     postalCode: "122002"
+ *                     country: India
+ *                     location: { type: Point, coordinates: [77.0894, 28.4595] }
+ *                     isDefault: true
+ *                 preferences:
+ *                   language: en
+ *                   smsNotifications: true
+ *                   emailNotifications: true
+ *                   pushNotifications: true
+ *                 createdAt: "2024-01-15T10:30:00.000Z"
+ *                 updatedAt: "2024-06-21T09:07:00.000Z"
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: BAD_REQUEST
+ *               message: Invalid id
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Authentication required
+ *       404:
+ *         description: Address not found
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: NOT_FOUND
+ *               message: Address not found
+ */
+userRoutes.put(
+  '/me/addresses/:addressId',
+  authenticate,
+  validate({ params: addressIdParamSchema, body: updateAddressSchema }),
+  userController.updateAddress,
 );
 
 /**
