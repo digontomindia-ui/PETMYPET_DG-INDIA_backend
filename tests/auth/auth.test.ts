@@ -142,12 +142,59 @@ describe('auth flow', () => {
     expect(verifyRes.body.data.user.phone).toBe(phone);
     expect(verifyRes.body.data.user.isVerified).toBe(true);
     expect(verifyRes.body.data.tokens.accessToken).toBeTruthy();
+    // Onboarding (PUT /users/me setting a name) hasn't happened yet, so this must still be
+    // false right after verify too — not just on the follow-up request below.
+    expect(verifyRes.body.data.isRegistered).toBe(false);
 
-    // A second OTP request for the same (now-registered) phone must not re-create anything.
+    // A second OTP request for the same phone must not re-create anything, but since onboarding
+    // was never completed, it must still route back to onboarding, not Home.
     const secondRequestRes = await request(app)
       .post('/api/v1/auth/login/otp/request')
       .send({ identifier: phone });
-    expect(secondRequestRes.body.data.isRegistered).toBe(true);
+    expect(secondRequestRes.body.data.isRegistered).toBe(false);
+  });
+
+  // Regression test for the exact bug reported: a new user verifies OTP, closes the app before
+  // finishing onboarding, then reopens it later — must be sent back into onboarding, not Home,
+  // no matter how many more times they request/verify OTP for the same number in between.
+  it('keeps routing to onboarding across repeated OTP request/verify cycles until PUT /users/me actually sets a name', async () => {
+    const phone = '+919900033344';
+
+    async function requestAndVerifyOtp() {
+      const requestRes = await request(app)
+        .post('/api/v1/auth/login/otp/request')
+        .send({ identifier: phone });
+      const message = vi.mocked(sendSms).mock.calls.at(-1)?.[1] as string;
+      const otp = extractOtp(message);
+      const verifyRes = await request(app)
+        .post('/api/v1/auth/login/otp/verify')
+        .send({ identifier: phone, code: otp });
+      return { requestRes, verifyRes };
+    }
+
+    // First ever OTP cycle: brand-new account, no onboarding done yet.
+    const first = await requestAndVerifyOtp();
+    expect(first.requestRes.body.data.isRegistered).toBe(false);
+    expect(first.verifyRes.body.data.isRegistered).toBe(false);
+    const accessToken = first.verifyRes.body.data.tokens.accessToken as string;
+
+    // "App closed mid-onboarding, reopened" — request/verify OTP again for the same number,
+    // still without ever having called PUT /users/me. Must still say onboarding is needed.
+    const second = await requestAndVerifyOtp();
+    expect(second.requestRes.body.data.isRegistered).toBe(false);
+    expect(second.verifyRes.body.data.isRegistered).toBe(false);
+
+    // Now actually complete onboarding.
+    await request(app)
+      .put('/api/v1/users/me')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ name: 'New User' })
+      .expect(200);
+
+    // From here on, isRegistered must be true.
+    const third = await requestAndVerifyOtp();
+    expect(third.requestRes.body.data.isRegistered).toBe(true);
+    expect(third.verifyRes.body.data.isRegistered).toBe(true);
   });
 
   it('does not create an account for an unrecognized email identifier (auto-signup is phone-only)', async () => {

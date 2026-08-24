@@ -54,6 +54,14 @@ async function findUserByIdentifier(
     : userRepository.findByPhone(identifier, includePassword);
 }
 
+/** A phone-only account is created with an empty `name` (nothing else is collected on the
+ * LogIn screen) — `name` only gets set once the "Your Profile" onboarding step actually runs
+ * (PUT /users/me). Until then, treat the account as not yet registered, no matter how long ago
+ * the row was created or how many times OTP has been requested/verified for it since. */
+function hasCompletedOnboarding(user: UserDocument): boolean {
+  return user.name.trim().length > 0;
+}
+
 async function sendOtpToIdentifier(
   identifier: string,
   code: string,
@@ -221,7 +229,11 @@ export const authService = {
     if (existing) {
       if (existing.isBlocked) throw AppError.forbidden('This account has been blocked');
       await issueOtp(input.identifier, OTP_PURPOSES.LOGIN);
-      return { isRegistered: true };
+      // `isRegistered` means "onboarding actually finished", not just "a row exists" — a
+      // phone-only account is auto-created the moment OTP is first requested (see below), so
+      // if the user closes the app mid-onboarding (before PUT /users/me ever sets a name) and
+      // comes back, this must still send them through onboarding again, not straight to Home.
+      return { isRegistered: hasCompletedOnboarding(existing) };
     }
 
     // Auto-create is phone-only, matching what every screen actually collects here — an
@@ -253,7 +265,7 @@ export const authService = {
   async verifyOtpLogin(
     input: VerifyOtpLoginInput,
     deviceInfo: DeviceInfo,
-  ): Promise<{ user: PublicUser; tokens: AuthTokens }> {
+  ): Promise<{ isRegistered: boolean; user: PublicUser; tokens: AuthTokens }> {
     await verifyOtp(input.identifier, OTP_PURPOSES.LOGIN, input.code);
 
     const user = await findUserByIdentifier(input.identifier);
@@ -263,7 +275,11 @@ export const authService = {
     await user.save();
 
     const tokens = await issueTokens(user, deviceInfo);
-    return { user: toPublicUser(user), tokens };
+    // Returned here too (not just from /login/otp/request) so the client can make this
+    // decision right after verify without depending on a value it cached from an earlier,
+    // possibly stale/lost app session — see requestOtpLogin's comment for why this can't
+    // just be "does the account exist".
+    return { isRegistered: hasCompletedOnboarding(user), user: toPublicUser(user), tokens };
   },
 
   async refresh(refreshToken: string): Promise<AuthTokens> {

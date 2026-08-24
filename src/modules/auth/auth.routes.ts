@@ -284,30 +284,46 @@ authRoutes.post('/login', validate({ body: loginSchema }), authController.login)
  *             referralCode: "PETJOY25"
  *     responses:
  *       200:
- *         description: OTP sent — `isRegistered` tells the client whether to route to onboarding (false, brand-new account) or straight home (true) after OTP verify
+ *         description: >-
+ *           OTP sent — `isRegistered` means "this account exists AND has finished onboarding"
+ *           (i.e. `PUT /users/me` has set a name at least once), NOT just "a row exists for
+ *           this phone number". A phone-only account is created the moment OTP is first
+ *           requested for it, so relying on mere existence would wrongly send a user who
+ *           closed the app mid-onboarding straight to Home instead of back into onboarding on
+ *           their next login. `false` means route to onboarding either way (new account or an
+ *           old one that never finished it); `true` means route straight to Home. The same
+ *           field is also returned from `/auth/login/otp/verify` — prefer checking it there,
+ *           right after verify, rather than a value cached from this earlier call.
  *         content:
  *           application/json:
  *             schema: { type: object }
  *             examples:
  *               registered:
- *                 summary: Account exists, OTP sent
+ *                 summary: Account exists and has completed onboarding
  *                 value:
  *                   success: true
  *                   message: "OTP sent"
  *                   data:
  *                     isRegistered: true
  *               newAccount:
- *                 summary: New phone number — account auto-created, OTP sent
+ *                 summary: New phone number — account auto-created, OTP sent, onboarding still needed
+ *                 value:
+ *                   success: true
+ *                   message: "OTP sent"
+ *                   data:
+ *                     isRegistered: false
+ *               existingIncomplete:
+ *                 summary: Account already existed but never finished onboarding (e.g. app was closed mid-signup) — still routes to onboarding
  *                 value:
  *                   success: true
  *                   message: "OTP sent"
  *                   data:
  *                     isRegistered: false
  *               notRegistered:
- *                 summary: Unrecognized email identifier (auto-signup is phone-only, so nothing was created)
+ *                 summary: Unrecognized email identifier (auto-signup is phone-only, so nothing was created, no OTP sent — still a 200)
  *                 value:
  *                   success: true
- *                   message: "OTP sent"
+ *                   message: "No account found for this identifier"
  *                   data:
  *                     isRegistered: false
  *       400:
@@ -331,7 +347,7 @@ authRoutes.post(
  * /auth/login/otp/verify:
  *   post:
  *     tags: [Auth]
- *     summary: Verify OTP and log in
+ *     summary: Verify OTP and log in — check `data.isRegistered` here (don't rely on the value cached from /auth/login/otp/request; a lost/restarted app session shouldn't be able to skip onboarding)
  *     requestBody:
  *       required: true
  *       content:
@@ -347,7 +363,7 @@ authRoutes.post(
  *             code: "482913"
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: Login successful — `isRegistered:false` means onboarding (PUT /users/me etc.) was never completed for this account, even if it already existed; route to onboarding, not Home
  *         content:
  *           application/json:
  *             schema: { type: object }
@@ -355,6 +371,7 @@ authRoutes.post(
  *               success: true
  *               message: "Login successful"
  *               data:
+ *                 isRegistered: true
  *                 user:
  *                   id: "64f1a2b3c4d5e6f7a8b9c0d1"
  *                   role: "USER"

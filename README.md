@@ -71,7 +71,7 @@ docker compose up --build
 | `npm test` | Run the Vitest suite once |
 | `npm run test:watch` | Vitest in watch mode |
 | `npm run test:coverage` | Vitest with coverage |
-| `npm run seed` | Seed reference data (categories, cities, etc.) |
+| `npm run seed` | Seed a full cross-referenced dev dataset — cities/zones/categories, an admin, 3 end users (one referred by another), 8 providers (one per `providerType`) with services/packages, products, coupons, bookings in different lifecycle states, a Pet Companion match, pet-taxi/relocation/insurance records, and more. Idempotent — skips if city "Bangalore" already exists. Prints test credentials to the console on completion. |
 
 ## Testing
 
