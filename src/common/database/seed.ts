@@ -62,6 +62,11 @@ const daysFromNow = (n: number) => new Date(Date.now() + n * DAY_MS);
 /** Koramangala, Bangalore — every seeded address/provider sits within a few km of here so
  * geo queries (nearby providers, lost & found radius, pet companion discover) return results. */
 const KORAMANGALA: [number, number] = [77.6146, 12.9352];
+/** GeoJSON is [lng, lat] — the app's test/dev location is fixed here (22.5753941N, 88.4797903E,
+ * Kolkata), so a second full provider/service set is seeded around this point too, or nearby
+ * searches from this location come back empty and the booking wizard never gets a provider to
+ * even ask /availability about. */
+const KOLKATA: [number, number] = [88.47979029999999, 22.575393100000003];
 function jitter([lng, lat]: [number, number], meters: number): [number, number] {
   const deg = meters / 111_320; // ~meters per degree latitude
   return [lng + (Math.random() - 0.5) * deg, lat + (Math.random() - 0.5) * deg];
@@ -93,10 +98,17 @@ async function seed(): Promise<void> {
   // ---- Geography ----------------------------------------------------------
   const bangalore = await CityModel.create({ name: 'Bangalore', state: 'Karnataka', country: 'India' });
   await CityModel.create({ name: 'Mumbai', state: 'Maharashtra', country: 'India' });
+  const kolkata = await CityModel.create({ name: 'Kolkata', state: 'West Bengal', country: 'India' });
   const koramangala = await ZoneModel.create({
     name: 'Koramangala',
     cityId: bangalore._id,
     center: { type: 'Point', coordinates: KORAMANGALA },
+    radiusMeters: 8000,
+  });
+  const kolkataZone = await ZoneModel.create({
+    name: 'Kolkata Central',
+    cityId: kolkata._id,
+    center: { type: 'Point', coordinates: KOLKATA },
     radiusMeters: 8000,
   });
 
@@ -202,6 +214,9 @@ async function seed(): Promise<void> {
     metadata: Record<string, unknown>;
     commissionPercent?: number;
     bankAccount?: boolean;
+    zoneId?: Types.ObjectId;
+    center?: [number, number];
+    addressLabel?: string;
   }) {
     const email = `${opts.name.toLowerCase().replace(/[^a-z]+/g, '.')}@seed.patmypets-partner.in`;
     const providerUser = await UserModel.create({
@@ -213,17 +228,21 @@ async function seed(): Promise<void> {
       isVerified: true,
     });
 
+    const zoneId = opts.zoneId ?? koramangala._id;
+    const center = opts.center ?? KORAMANGALA;
+    const addressLabel = opts.addressLabel ?? `${opts.businessName}, Koramangala, Bangalore, Karnataka 560034`;
+
     const provider = await ProviderModel.create({
       userId: providerUser._id,
       providerType: opts.providerType,
       businessName: opts.businessName,
-      description: `${opts.businessName} — trusted Patmypets partner in Bangalore.`,
+      description: `${opts.businessName} — trusted Patmypets partner.`,
       experienceYears: opts.experienceYears,
       languages: opts.languages,
       kycStatus: KYC_STATUSES.APPROVED,
-      zoneIds: [koramangala._id],
-      location: { type: 'Point', coordinates: jitter(KORAMANGALA, 1000) },
-      address: `${opts.businessName}, Koramangala, Bangalore, Karnataka 560034`,
+      zoneIds: [zoneId],
+      location: { type: 'Point', coordinates: jitter(center, 1000) },
+      address: addressLabel,
       workingHours: STANDARD_WORKING_HOURS,
       metadata: opts.metadata,
       commissionPercent: opts.commissionPercent ?? null,
@@ -333,6 +352,83 @@ async function seed(): Promise<void> {
     experienceYears: 7,
     languages: ['English', 'Hindi'],
     metadata: { relocation: { vehicleTypes: ['AC Van', 'Cargo Vehicle'] } },
+  });
+
+  // ---- Kolkata providers (distinct names to avoid colliding with the Bangalore set's
+  // auto-generated emails) — same shape, anchored at the app's actual test/dev location. ----
+  const kolkataOpts = { zoneId: kolkataZone._id, center: KOLKATA };
+  const groomerKolkata = await createProviderWithUser({
+    ...kolkataOpts,
+    name: 'Priyanka Grooming',
+    businessName: 'Kolkata Paws Grooming Studio',
+    providerType: PROVIDER_TYPES.GROOMER,
+    experienceYears: 6,
+    languages: ['English', 'Hindi', 'Bengali'],
+    metadata: { groomer: { specializations: ['bathing', 'haircut', 'deshedding'] } },
+    addressLabel: 'Kolkata Paws Grooming Studio, Park Street, Kolkata, West Bengal 700016',
+  });
+  const vetKolkata = await createProviderWithUser({
+    ...kolkataOpts,
+    name: 'Dr Ananya Chatterjee',
+    businessName: 'Kolkata Pet Care Clinic',
+    providerType: PROVIDER_TYPES.VET,
+    experienceYears: 10,
+    languages: ['English', 'Hindi', 'Bengali'],
+    metadata: {
+      vet: {
+        specializations: ['General', 'Surgery', 'Vaccination'],
+        consultationFee: 599,
+        licenseNumber: 'VET-WB-5678',
+        supportsVideoConsultation: true,
+      },
+    },
+    addressLabel: 'Kolkata Pet Care Clinic, Park Street, Kolkata, West Bengal 700016',
+  });
+  const boardingKolkata = await createProviderWithUser({
+    ...kolkataOpts,
+    name: 'Kolkata Paw Stay',
+    businessName: 'Kolkata Paw Stay Boarding Center',
+    providerType: PROVIDER_TYPES.BOARDING,
+    experienceYears: 5,
+    languages: ['English', 'Bengali'],
+    metadata: { boarding: { capacity: 15, availableKennels: 6, amenities: ['24/7 Care', 'Play Area', 'CCTV Monitored'] } },
+    addressLabel: 'Kolkata Paw Stay Boarding Center, Salt Lake, Kolkata, West Bengal 700091',
+  });
+  const walkerKolkata = await createProviderWithUser({
+    ...kolkataOpts,
+    name: 'Souvik Walker',
+    businessName: "Souvik's Dog Walking",
+    providerType: PROVIDER_TYPES.PET_WALKER,
+    experienceYears: 4,
+    languages: ['English', 'Bengali'],
+    metadata: { petWalker: { maxPetsPerWalk: 3 } },
+    addressLabel: 'Salt Lake, Kolkata, West Bengal 700091',
+  });
+  const trainerKolkata = await createProviderWithUser({
+    ...kolkataOpts,
+    name: 'Ritwik Behaviorist',
+    businessName: 'Kolkata K9 Training',
+    providerType: PROVIDER_TYPES.TRAINER,
+    experienceYears: 5,
+    languages: ['English', 'Bengali'],
+    metadata: {
+      trainer: {
+        trainingPlans: [
+          { name: 'Popular Package', description: '4-session obedience program', price: 3999, durationDays: 30 },
+        ],
+      },
+    },
+    addressLabel: 'Salt Lake, Kolkata, West Bengal 700091',
+  });
+  const sitterKolkata = await createProviderWithUser({
+    ...kolkataOpts,
+    name: 'Kolkata Trusted Sitters',
+    businessName: 'Kolkata Trusted Pet Sitters',
+    providerType: PROVIDER_TYPES.PET_SITTER,
+    experienceYears: 3,
+    languages: ['English', 'Bengali'],
+    metadata: { petSitter: { maxPetsAtOnce: 2 } },
+    addressLabel: 'Park Street, Kolkata, West Bengal 700016',
   });
 
   // ---- Services (= "packages" shown in the app) --------------------------
@@ -450,6 +546,123 @@ async function seed(): Promise<void> {
 
   await ServiceModel.create({
     providerId: sitter.provider._id,
+    categoryId: categoryPetSitting._id,
+    name: 'Pet Sitting Visit',
+    description: 'In-home pet sitting visit',
+    price: 399,
+    durationMinutes: 60,
+  });
+
+  // ---- Kolkata services — same package structure as Bangalore, different providers ------
+  await ServiceModel.create({
+    providerId: groomerKolkata.provider._id,
+    categoryId: categoryGrooming._id,
+    name: 'Basic Grooming',
+    description: 'Bath, Blow Dry, Nail Trim',
+    price: 499,
+    originalPrice: 799,
+    durationMinutes: 45,
+  });
+  await ServiceModel.create({
+    providerId: groomerKolkata.provider._id,
+    categoryId: categoryGrooming._id,
+    name: 'Standard Grooming',
+    description: 'Bath, Blow Dry, Nail Trim, Hair Trim, Ear Cleaning',
+    price: 899,
+    originalPrice: 1199,
+    durationMinutes: 60,
+  });
+  await ServiceModel.create({
+    providerId: groomerKolkata.provider._id,
+    categoryId: categoryGrooming._id,
+    name: 'Premium Grooming',
+    description: 'Full Grooming, Styling, De-shedding, Paw Care',
+    price: 1299,
+    originalPrice: 1799,
+    durationMinutes: 90,
+  });
+
+  await ServiceModel.create({
+    providerId: vetKolkata.provider._id,
+    categoryId: categoryVeterinary._id,
+    name: 'Online Video Consultation',
+    description: 'Video consultation with a licensed vet',
+    price: 599,
+    originalPrice: 999,
+    durationMinutes: 20,
+  });
+  await ServiceModel.create({
+    providerId: vetKolkata.provider._id,
+    categoryId: categoryVeterinary._id,
+    name: 'Clinic Consultation',
+    description: 'In-clinic consultation',
+    price: 799,
+    originalPrice: 1599,
+    durationMinutes: 30,
+  });
+  await ServiceModel.create({
+    providerId: vetKolkata.provider._id,
+    categoryId: categoryVeterinary._id,
+    name: 'Essential Vaccination Package',
+    description: 'DHPPi + Anti-Rabies + Deworming Consultation',
+    price: 1299,
+    originalPrice: 1599,
+    durationMinutes: 20,
+  });
+
+  await ServiceModel.create({
+    providerId: walkerKolkata.provider._id,
+    categoryId: categoryDogWalking._id,
+    name: '30 Min Walk',
+    description: 'Standard 30-minute walk',
+    price: 199,
+    durationMinutes: 30,
+    addOnCatalog: walkAddOns,
+  });
+  await ServiceModel.create({
+    providerId: walkerKolkata.provider._id,
+    categoryId: categoryDogWalking._id,
+    name: '45 Min Walk',
+    description: 'Extended 45-minute walk',
+    price: 249,
+    durationMinutes: 45,
+    addOnCatalog: walkAddOns,
+  });
+  await ServiceModel.create({
+    providerId: walkerKolkata.provider._id,
+    categoryId: categoryDogWalking._id,
+    name: '60 Min Walk',
+    description: 'Adventure 60-minute walk',
+    price: 299,
+    durationMinutes: 60,
+    addOnCatalog: walkAddOns,
+  });
+
+  await ServiceModel.create({
+    providerId: boardingKolkata.provider._id,
+    categoryId: categoryBoarding._id,
+    name: 'Standard Boarding',
+    description: 'Per-day boarding with daily walks',
+    price: 899,
+    durationMinutes: 1440,
+    addOnCatalog: [
+      { name: 'Extra Playtime', price: 150 },
+      { name: 'Grooming', price: 300 },
+      { name: 'Special Diet', price: 100 },
+    ],
+  });
+
+  await ServiceModel.create({
+    providerId: trainerKolkata.provider._id,
+    categoryId: categoryDogTraining._id,
+    name: 'Basic Obedience Training',
+    description: 'One-on-one obedience session',
+    price: 799,
+    durationMinutes: 60,
+  });
+
+  await ServiceModel.create({
+    providerId: sitterKolkata.provider._id,
     categoryId: categoryPetSitting._id,
     name: 'Pet Sitting Visit',
     description: 'In-home pet sitting visit',
