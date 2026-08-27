@@ -138,7 +138,7 @@ bookingRoutes.post(
  * /bookings/me:
  *   get:
  *     tags: [Bookings]
- *     summary: List bookings for the current user
+ *     summary: List "my bookings" — works for both a USER token (their own bookings) and a SERVICE_PROVIDER token (bookings against their provider profile), same filters either way
  *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - { name: status, in: query, required: false, schema: { type: string }, description: 'Single status, or comma-separated list e.g. PENDING,ACCEPTED,ON_THE_WAY,STARTED for an "Upcoming" bucket', example: 'PENDING,ACCEPTED,ON_THE_WAY,STARTED' }
@@ -206,7 +206,8 @@ bookingRoutes.get('/me', validate({ query: listBookingsQuerySchema }), bookingCo
  * /bookings/provider/me:
  *   get:
  *     tags: [Bookings]
- *     summary: List bookings for the current service provider (service provider only)
+ *     deprecated: true
+ *     summary: 'Deprecated — use GET /bookings/me instead, it now returns this same view for a service-provider token'
  *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - { name: status, in: query, required: false, schema: { type: string }, description: 'Single status, or comma-separated list e.g. PENDING,ACCEPTED,ON_THE_WAY,STARTED for an "Upcoming" bucket', example: 'PENDING,ACCEPTED,ON_THE_WAY,STARTED' }
@@ -270,7 +271,7 @@ bookingRoutes.get(
   '/provider/me',
   ...requireProvider,
   validate({ query: listBookingsQuerySchema }),
-  bookingController.listForProvider,
+  bookingController.listMine,
 );
 
 /**

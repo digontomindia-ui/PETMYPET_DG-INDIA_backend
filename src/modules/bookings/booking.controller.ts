@@ -3,12 +3,14 @@ import { asyncHandler } from '../../common/utils/async-handler.js';
 import { sendSuccess, buildPaginationMeta } from '../../common/utils/api-response.js';
 import { AppError } from '../../common/errors/app-error.js';
 import { HTTP_STATUS } from '../../common/constants/http-status.js';
+import { ROLES } from '../../common/constants/roles.js';
 import type { AuthenticatedUser } from '../../common/types/express.js';
 import { bookingService } from './booking.service.js';
 import type {
   AddBookingPhotoInput,
   CancelBookingInput,
   CreateBookingInput,
+  ListBookingsQuery,
   UpdateProviderNotesInput,
   VerifyOtpInput,
 } from './booking.dto.js';
@@ -31,18 +33,15 @@ export const bookingController = {
     sendSuccess(res, HTTP_STATUS.OK, booking);
   }),
 
+  /** One "my bookings" endpoint for both roles — dispatches by the caller's role instead of
+   * making the app pick between two near-identical endpoints (see GET /bookings/me docs). */
   listMine: asyncHandler(async (req: Request, res: Response) => {
-    const { userId } = requireAuth(req);
-    const { bookings, total, page, limit } = await bookingService.listMine(userId, req.query);
-    sendSuccess(res, HTTP_STATUS.OK, bookings, 'Success', buildPaginationMeta(page, limit, total));
-  }),
-
-  listForProvider: asyncHandler(async (req: Request, res: Response) => {
-    const { userId } = requireAuth(req);
-    const { bookings, total, page, limit } = await bookingService.listForProvider(
-      userId,
-      req.query,
-    );
+    const { userId, role } = requireAuth(req);
+    const query = req.query as unknown as ListBookingsQuery;
+    const { bookings, total, page, limit } =
+      role === ROLES.SERVICE_PROVIDER
+        ? await bookingService.listForProvider(userId, query)
+        : await bookingService.listMine(userId, query);
     sendSuccess(res, HTTP_STATUS.OK, bookings, 'Success', buildPaginationMeta(page, limit, total));
   }),
 
