@@ -18,7 +18,7 @@ services:
 
       JWT_ACCESS_SECRET: HCF2vli9n8Gxc1tsUW394AU/U4yfaoe3YqqHS0PGS0r0GsIAXRbqjOT/VxC0AK4O
       JWT_REFRESH_SECRET: jgkkFZJDgnHHJhUhernIn5tnOrzrPWzwAnL15nW934kfln0PFdkzrRW0Zmkng+cg
-      JWT_ACCESS_TTL: 15m
+      JWT_ACCESS_TTL: 30d
       JWT_REFRESH_TTL: 30d
 
       OTP_LENGTH: 6
@@ -83,7 +83,7 @@ services:
 
       JWT_ACCESS_SECRET: HCF2vli9n8Gxc1tsUW394AU/U4yfaoe3YqqHS0PGS0r0GsIAXRbqjOT/VxC0AK4O
       JWT_REFRESH_SECRET: jgkkFZJDgnHHJhUhernIn5tnOrzrPWzwAnL15nW934kfln0PFdkzrRW0Zmkng+cg
-      JWT_ACCESS_TTL: 15m
+      JWT_ACCESS_TTL: 30d
       JWT_REFRESH_TTL: 30d
 
       OTP_LENGTH: 6

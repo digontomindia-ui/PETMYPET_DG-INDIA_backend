@@ -8,11 +8,21 @@ import { KYC_DOCUMENT_TYPES, KYC_STATUSES, PROVIDER_MODEL_NAME } from './provide
 import type {
   IAttendanceEntry,
   IBankAccount,
+  ICertification,
   IKycDocument,
   IProvider,
   IProviderMetadata,
   ITrainingPlan,
 } from './provider.types.js';
+
+const certificationSchema = new Schema<ICertification>(
+  {
+    title: { type: String, required: true, trim: true, maxlength: 150 },
+    issuedBy: { type: String, required: true, trim: true, maxlength: 150 },
+    issuedYear: { type: Number, default: null },
+  },
+  { _id: true },
+);
 
 const kycDocumentSchema = new Schema<IKycDocument>(
   {
@@ -48,6 +58,7 @@ const trainingPlanSchema = new Schema<ITrainingPlan>(
     description: { type: String, default: '' },
     price: { type: Number, required: true, min: 0 },
     durationDays: { type: Number, required: true, min: 1 },
+    goals: { type: [String], default: [] },
   },
   { _id: true },
 );
@@ -113,6 +124,10 @@ const providerSchema = new Schema<IProvider>(
     ratingCount: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
     attendance: { type: [attendanceEntrySchema], default: [] },
+    profileImageUrl: { type: String, default: null },
+    galleryUrls: { type: [String], default: [] },
+    certifications: { type: [certificationSchema], default: [] },
+    successRatePercent: { type: Number, default: null, min: 0, max: 100 },
   },
   { timestamps: true },
 );

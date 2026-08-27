@@ -30,7 +30,13 @@ const metadataSchema = z
         amenities: z.array(z.string()).default([]),
       })
       .optional(),
-    trainer: z.object({ trainingPlans: z.array(trainingPlanInputSchema).default([]) }).optional(),
+    trainer: z
+      .object({
+        trainingPlans: z
+          .array(trainingPlanInputSchema.extend({ goals: z.array(z.string()).default([]) }))
+          .default([]),
+      })
+      .optional(),
     petWalker: z.object({ maxPetsPerWalk: z.number().int().min(1) }).optional(),
     petSitter: z.object({ maxPetsAtOnce: z.number().int().min(1) }).optional(),
     pharmacy: z.object({ licenseNumber: z.string().min(1) }).optional(),
@@ -60,6 +66,18 @@ export const createProviderProfileSchema = z.object({
   zoneIds: z.array(objectIdSchema).default([]),
   workingHours: z.array(workingHoursInputSchema).default([]),
   metadata: metadataSchema,
+  profileImageUrl: z.string().url().optional(),
+  galleryUrls: z.array(z.string().url()).default([]),
+  certifications: z
+    .array(
+      z.object({
+        title: z.string().min(1).max(150),
+        issuedBy: z.string().min(1).max(150),
+        issuedYear: z.number().int().min(1900).max(2100).optional(),
+      }),
+    )
+    .default([]),
+  successRatePercent: z.number().min(0).max(100).optional(),
 });
 
 export const updateProviderProfileSchema = createProviderProfileSchema.partial();
@@ -86,6 +104,11 @@ export const nearbyProvidersQuerySchema = z.object({
   providerType: z.string().optional(),
   page: z.string().optional(),
   limit: z.string().optional(),
+  /** VET only — filter to vets offering video consultation (ONLINE) vs in-person (CLINIC). */
+  consultationMode: z.enum(['CLINIC', 'ONLINE']).optional(),
+  /** TRAINER only — filter to trainers with a training plan tagged for this goal
+   * (e.g. PUPPY_TRAINING, BASIC_OBEDIENCE). */
+  trainingGoal: z.string().optional(),
 });
 
 export const setBankAccountSchema = z.object({

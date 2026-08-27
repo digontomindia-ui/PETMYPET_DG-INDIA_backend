@@ -205,6 +205,12 @@ async function seed(): Promise<void> {
   });
 
   // ---- Providers --------------------------------------------------------
+  // picsum.photos serves a real (if generic) photo per seed string — unlike the old
+  // https://cdn.petmypet.in/... placeholders, which point at a domain nobody ever stood up
+  // and so rendered as broken images everywhere in the app.
+  const seedImage = (seedKey: string, w = 600, h = 600) =>
+    `https://picsum.photos/seed/${seedKey}/${w}/${h}`;
+
   async function createProviderWithUser(opts: {
     name: string;
     businessName: string;
@@ -217,8 +223,11 @@ async function seed(): Promise<void> {
     zoneId?: Types.ObjectId;
     center?: [number, number];
     addressLabel?: string;
+    certifications?: { title: string; issuedBy: string; issuedYear: number }[];
+    successRatePercent?: number;
   }) {
     const email = `${opts.name.toLowerCase().replace(/[^a-z]+/g, '.')}@seed.patmypets-partner.in`;
+    const slug = opts.businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     const providerUser = await UserModel.create({
       role: ROLES.SERVICE_PROVIDER,
       name: opts.name,
@@ -253,6 +262,12 @@ async function seed(): Promise<void> {
         { date: new Date(daysAgo(1)).toISOString().slice(0, 10), checkInAt: daysAgo(1), checkOutAt: daysAgo(1) },
       ],
       unavailableDates: [daysFromNow(20)],
+      profileImageUrl: seedImage(slug, 400, 400),
+      galleryUrls: [seedImage(`${slug}-1`, 800, 600), seedImage(`${slug}-2`, 800, 600)],
+      certifications: opts.certifications ?? [
+        { title: 'Certified Pet Care Professional', issuedBy: 'Indian Canine Training', issuedYear: 2022 },
+      ],
+      successRatePercent: opts.successRatePercent ?? Math.floor(92 + Math.random() * 7),
       ...(opts.bankAccount
         ? {
             bankAccount: {
@@ -321,7 +336,13 @@ async function seed(): Promise<void> {
     metadata: {
       trainer: {
         trainingPlans: [
-          { name: 'Popular Package', description: '4-session obedience program', price: 3999, durationDays: 30 },
+          {
+            name: 'Popular Package',
+            description: '4-session obedience program',
+            price: 3999,
+            durationDays: 30,
+            goals: ['PUPPY_TRAINING', 'BASIC_OBEDIENCE'],
+          },
         ],
       },
     },
@@ -414,7 +435,13 @@ async function seed(): Promise<void> {
     metadata: {
       trainer: {
         trainingPlans: [
-          { name: 'Popular Package', description: '4-session obedience program', price: 3999, durationDays: 30 },
+          {
+            name: 'Popular Package',
+            description: '4-session obedience program',
+            price: 3999,
+            durationDays: 30,
+            goals: ['PUPPY_TRAINING', 'BASIC_OBEDIENCE'],
+          },
         ],
       },
     },
@@ -741,7 +768,7 @@ async function seed(): Promise<void> {
     category: PRODUCT_CATEGORIES.FOOD,
     price: 1499,
     mrp: 1699,
-    images: ['https://cdn.petmypet.in/products/royal-canin-3kg.jpg'],
+    images: [seedImage('product-royal-canin-3kg', 600, 600)],
     stock: 50,
     sku: 'RC-ADT-3KG',
   });
@@ -750,7 +777,7 @@ async function seed(): Promise<void> {
     category: PRODUCT_CATEGORIES.PHARMACY,
     price: 499,
     mrp: 599,
-    images: ['https://cdn.petmypet.in/products/multivitamin.jpg'],
+    images: [seedImage('product-multivitamin', 600, 600)],
     stock: 80,
     sku: 'PH-MVIT-001',
   });
@@ -759,7 +786,7 @@ async function seed(): Promise<void> {
     category: PRODUCT_CATEGORIES.PHARMACY,
     price: 349,
     mrp: 399,
-    images: ['https://cdn.petmypet.in/products/flea-spray.jpg'],
+    images: [seedImage('product-flea-spray', 600, 600)],
     stock: 60,
     sku: 'PH-FTS-001',
   });
@@ -768,7 +795,7 @@ async function seed(): Promise<void> {
     category: PRODUCT_CATEGORIES.ACCESSORIES,
     price: 1299,
     mrp: 1599,
-    images: ['https://cdn.petmypet.in/products/pet-bed.jpg'],
+    images: [seedImage('product-pet-bed', 600, 600)],
     stock: 25,
     sku: 'ACC-BED-001',
   });
@@ -777,7 +804,7 @@ async function seed(): Promise<void> {
     category: PRODUCT_CATEGORIES.ACCESSORIES,
     price: 349,
     mrp: 399,
-    images: ['https://cdn.petmypet.in/products/collar.jpg'],
+    images: [seedImage('product-collar', 600, 600)],
     stock: 100,
     sku: 'ACC-COL-001',
   });
@@ -786,7 +813,7 @@ async function seed(): Promise<void> {
     category: PRODUCT_CATEGORIES.TOYS,
     price: 249,
     mrp: 299,
-    images: ['https://cdn.petmypet.in/products/rope-toy.jpg'],
+    images: [seedImage('product-rope-toy', 600, 600)],
     stock: 120,
     sku: 'TOY-ROPE-001',
   });
@@ -954,7 +981,7 @@ async function seed(): Promise<void> {
     gender: PET_GENDERS.MALE,
     rewardAmount: 5000,
     description: "Last seen near Cubbon Park wearing a red collar.",
-    photoUrls: ['https://cdn.petmypet.in/lost-and-found/tommy.jpg'],
+    photoUrls: [seedImage('lost-and-found-tommy', 600, 600)],
     lastSeenLocation: { type: 'Point', coordinates: jitter(KORAMANGALA, 3000) },
     contactPhone: ananya.phone,
     approvalStatus: APPROVAL_STATUSES.APPROVED,
@@ -1071,7 +1098,8 @@ async function seed(): Promise<void> {
 
   await BannerModel.create({
     title: 'Grooming at Home — Book Now',
-    imageUrl: 'https://cdn.petmypet.in/banners/grooming-home.jpg',
+    subtitle: 'Certified groomers, right at your doorstep',
+    imageUrl: seedImage('banner-grooming-home', 1200, 500),
     linkUrl: '/services?categoryId=grooming',
     order: 1,
   });

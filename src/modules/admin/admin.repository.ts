@@ -41,6 +41,7 @@ export const settingRepository = {
 export const bannerRepository = {
   async create(data: {
     title: string;
+    subtitle?: string;
     imageUrl: string;
     linkUrl?: string;
     order?: number;
@@ -75,6 +76,7 @@ export const bannerRepository = {
     id: string,
     data: Partial<{
       title: string;
+      subtitle: string;
       imageUrl: string;
       linkUrl: string;
       order: number;

@@ -31,6 +31,16 @@ export interface ITrainingPlan {
   description: string;
   price: number;
   durationDays: number;
+  /** Training goals this plan serves (e.g. PUPPY_TRAINING) — lets /providers/nearby?trainingGoal=
+   * filter trainers down to ones actually offering that goal. */
+  goals: string[];
+}
+
+export interface ICertification {
+  _id: Types.ObjectId;
+  title: string;
+  issuedBy: string;
+  issuedYear: number | null;
 }
 
 export interface IProviderMetadata {
@@ -88,6 +98,14 @@ export interface IProvider extends SoftDeletable {
   ratingCount: number;
   isActive: boolean;
   attendance: Types.DocumentArray<IAttendanceEntry>;
+  /** Profile photo shown on listing cards and the detail page. */
+  profileImageUrl: string | null;
+  /** Extra photos for the detail page's gallery. */
+  galleryUrls: string[];
+  /** Displayed on the detail page under "Experience & Certifications". */
+  certifications: Types.DocumentArray<ICertification>;
+  /** Displayed as a "98% success rate" stat on the detail page. */
+  successRatePercent: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -114,6 +132,13 @@ export interface PublicAttendanceEntry {
   checkOutAt: Date | null;
 }
 
+export interface PublicCertification {
+  id: string;
+  title: string;
+  issuedBy: string;
+  issuedYear: number | null;
+}
+
 export interface PublicProvider {
   id: string;
   userId: string;
@@ -137,6 +162,15 @@ export interface PublicProvider {
   ratingCount: number;
   isActive: boolean;
   attendance: PublicAttendanceEntry[];
+  profileImageUrl: string | null;
+  galleryUrls: string[];
+  certifications: PublicCertification[];
+  successRatePercent: number | null;
+  /** Populated by the service layer from the linked user account — not stored on Provider itself. */
+  contactPhone: string | null;
+  /** Cheapest active service price for this provider, or null if it has none yet. Populated by
+   * the service layer (Provider has no price of its own — price lives on Service). */
+  startingPrice: number | null;
   createdAt: Date;
 }
 

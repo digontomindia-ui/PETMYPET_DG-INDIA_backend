@@ -14,6 +14,7 @@ export const upsertSettingSchema = z.object({
 
 export const createBannerSchema = z.object({
   title: z.string().min(1).max(200),
+  subtitle: z.string().max(300).default(''),
   imageUrl: z.string().url(),
   linkUrl: z.string().url().optional(),
   order: z.number().int().default(0),

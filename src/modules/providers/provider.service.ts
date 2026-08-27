@@ -3,6 +3,7 @@ import { AppError } from '../../common/errors/app-error.js';
 import { parsePagination } from '../../common/utils/pagination.js';
 import { ROLES } from '../../common/constants/roles.js';
 import { userRepository } from '../users/user.repository.js';
+import { UserModel } from '../users/user.schema.js';
 import { notificationService } from '../notifications/notification.service.js';
 import { NOTIFICATION_TYPES } from '../notifications/notification.constants.js';
 import { auditLogService } from '../admin/admin.service.js';
@@ -25,7 +26,12 @@ import type {
   UpdateProviderProfileInput,
   UploadKycDocumentInput,
 } from './provider.dto.js';
-import type { ProviderAnalytics, ProviderDocument } from './provider.types.js';
+import type {
+  IProvider,
+  ProviderAnalytics,
+  ProviderDocument,
+  PublicProviderSummary,
+} from './provider.types.js';
 import type { ProviderType } from '../../common/constants/roles.js';
 
 const DEFAULT_RADIUS_METERS = 15_000;
@@ -36,6 +42,31 @@ async function requireOwnProvider(userId: string): Promise<ProviderDocument> {
   const provider = await providerRepository.findByUserId(userId);
   if (!provider) throw AppError.notFound('Provider profile not found');
   return provider;
+}
+
+/** Provider has no phone or price of its own (phone lives on User, price on Service) — batch-fetch
+ * both and stitch them onto the public summary so listing/detail cards don't have to make N calls. */
+async function enrichSummaries(providers: ProviderDocument[]): Promise<PublicProviderSummary[]> {
+  if (providers.length === 0) return [];
+
+  const [users, priceAgg] = await Promise.all([
+    UserModel.find({ _id: { $in: providers.map((p) => p.userId) } })
+      .select('phone')
+      .lean(),
+    ServiceModel.aggregate<{ _id: Types.ObjectId; minPrice: number }>([
+      { $match: { providerId: { $in: providers.map((p) => p._id) }, isActive: true } },
+      { $group: { _id: '$providerId', minPrice: { $min: '$price' } } },
+    ]),
+  ]);
+  const phoneByUserId = new Map(users.map((u) => [u._id.toString(), u.phone]));
+  const priceByProviderId = new Map(priceAgg.map((p) => [p._id.toString(), p.minPrice]));
+
+  return providers.map((provider) => {
+    const summary = toPublicProviderSummary(provider);
+    summary.contactPhone = phoneByUserId.get(provider.userId.toString()) ?? null;
+    summary.startingPrice = priceByProviderId.get(provider._id.toString()) ?? null;
+    return summary;
+  });
 }
 
 export const providerService = {
@@ -61,6 +92,12 @@ export const providerService = {
       address: input.address,
       workingHours: input.workingHours,
       metadata: input.metadata,
+      profileImageUrl: input.profileImageUrl ?? null,
+      galleryUrls: input.galleryUrls,
+      // Mongoose accepts a plain array for a DocumentArray field at creation time (it hydrates
+      // the subdocuments itself) — the cast just satisfies BaseRepository's stricter TS signature.
+      certifications: input.certifications as unknown as IProvider['certifications'],
+      successRatePercent: input.successRatePercent ?? null,
     });
 
     return toPublicProvider(provider);
@@ -88,6 +125,12 @@ export const providerService = {
     if (input.metadata !== undefined) {
       provider.metadata = { ...provider.metadata, ...input.metadata };
     }
+    if (input.profileImageUrl !== undefined) provider.profileImageUrl = input.profileImageUrl;
+    if (input.galleryUrls !== undefined) provider.galleryUrls = input.galleryUrls;
+    if (input.certifications !== undefined) {
+      provider.certifications.splice(0, provider.certifications.length, ...input.certifications);
+    }
+    if (input.successRatePercent !== undefined) provider.successRatePercent = input.successRatePercent;
 
     await provider.save();
     return toPublicProvider(provider);
@@ -96,7 +139,8 @@ export const providerService = {
   async getById(id: string) {
     const provider = await providerRepository.findById(id);
     if (!provider) throw AppError.notFound('Provider not found');
-    return toPublicProviderSummary(provider);
+    const [summary] = await enrichSummaries([provider]);
+    return summary;
   },
 
   async setActive(userId: string, isActive: boolean) {
@@ -240,10 +284,12 @@ export const providerService = {
       lng: Number(query.lng),
       radiusMeters: query.radiusMeters ? Number(query.radiusMeters) : DEFAULT_RADIUS_METERS,
       providerType: query.providerType as ProviderType | undefined,
+      consultationMode: query.consultationMode,
+      trainingGoal: query.trainingGoal,
       skip,
       limit,
     });
-    return { providers: providers.map(toPublicProviderSummary), page, limit };
+    return { providers: await enrichSummaries(providers), page, limit };
   },
 
   async getMyAnalytics(userId: string, query: ProviderAnalyticsQuery): Promise<ProviderAnalytics> {

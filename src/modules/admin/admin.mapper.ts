@@ -29,6 +29,7 @@ export function toBannerDto(banner: BannerDocument) {
   return {
     id: banner._id.toString(),
     title: banner.title,
+    subtitle: banner.subtitle,
     imageUrl: banner.imageUrl,
     linkUrl: banner.linkUrl,
     order: banner.order,

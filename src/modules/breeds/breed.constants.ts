@@ -1,0 +1,46 @@
+import { PET_SPECIES } from '../pets/pet.constants.js';
+
+/** Static catalog — breed lists change rarely enough that a DB collection + admin CRUD would be
+ * pure overhead. Add a species key here to support it on GET /breeds. */
+export const BREED_CATALOG: Record<string, string[]> = {
+  [PET_SPECIES.DOG]: [
+    'Labrador Retriever',
+    'Golden Retriever',
+    'German Shepherd',
+    'Beagle',
+    'Pug',
+    'Shih Tzu',
+    'Rottweiler',
+    'Dachshund',
+    'Doberman',
+    'Indian Pariah Dog',
+    'Siberian Husky',
+    'Great Dane',
+    'Cocker Spaniel',
+    'Boxer',
+    'Pomeranian',
+    'French Bulldog',
+    'Bulldog',
+    'Poodle',
+    'Chihuahua',
+    'Other',
+  ],
+  [PET_SPECIES.CAT]: [
+    'Persian',
+    'Siamese',
+    'Maine Coon',
+    'British Shorthair',
+    'Indian Billi (Domestic Shorthair)',
+    'Ragdoll',
+    'Bengal',
+    'Sphynx',
+    'Himalayan',
+    'Russian Blue',
+    'Scottish Fold',
+    'Other',
+  ],
+  [PET_SPECIES.BIRD]: ['Budgerigar', 'Cockatiel', 'Lovebird', 'Indian Ringneck', 'Other'],
+  [PET_SPECIES.RABBIT]: ['Holland Lop', 'Dutch Rabbit', 'Angora', 'Other'],
+  [PET_SPECIES.FISH]: ['Goldfish', 'Betta', 'Guppy', 'Koi', 'Other'],
+  [PET_SPECIES.OTHER]: ['Other'],
+};

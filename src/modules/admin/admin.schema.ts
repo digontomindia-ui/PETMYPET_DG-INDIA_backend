@@ -34,6 +34,7 @@ export const SettingModel = model<ISetting>(SETTING_MODEL_NAME, settingSchema);
 const bannerSchema = new Schema<IBanner>(
   {
     title: { type: String, required: true, maxlength: 200 },
+    subtitle: { type: String, default: '', maxlength: 300 },
     imageUrl: { type: String, required: true },
     linkUrl: { type: String, default: null },
     order: { type: Number, default: 0 },

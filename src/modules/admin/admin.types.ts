@@ -24,6 +24,7 @@ export type SettingDocument = HydratedDocument<ISetting>;
 export interface IBanner {
   _id: Types.ObjectId;
   title: string;
+  subtitle: string;
   imageUrl: string;
   linkUrl: string | null;
   order: number;

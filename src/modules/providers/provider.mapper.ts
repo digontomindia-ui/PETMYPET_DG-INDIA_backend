@@ -1,10 +1,12 @@
 import type {
   IAttendanceEntry,
   IBankAccount,
+  ICertification,
   IKycDocument,
   ProviderDocument,
   PublicAttendanceEntry,
   PublicBankAccount,
+  PublicCertification,
   PublicKycDocument,
   PublicProvider,
   PublicProviderSummary,
@@ -23,6 +25,15 @@ function maskBankAccount(bankAccount: IBankAccount | null): PublicBankAccount | 
 
 export function mapKycDocument(doc: IKycDocument): PublicKycDocument {
   return { id: doc._id.toString(), type: doc.type, url: doc.url, uploadedAt: doc.uploadedAt };
+}
+
+function mapCertification(cert: ICertification): PublicCertification {
+  return {
+    id: cert._id.toString(),
+    title: cert.title,
+    issuedBy: cert.issuedBy,
+    issuedYear: cert.issuedYear,
+  };
 }
 
 export function mapAttendanceEntry(entry: IAttendanceEntry): PublicAttendanceEntry {
@@ -66,6 +77,12 @@ export function toPublicProvider(provider: ProviderDocument): PublicProvider {
     ratingCount: provider.ratingCount,
     isActive: provider.isActive,
     attendance: mapRecentAttendance(provider.attendance),
+    profileImageUrl: provider.profileImageUrl,
+    galleryUrls: provider.galleryUrls,
+    certifications: provider.certifications.map(mapCertification),
+    successRatePercent: provider.successRatePercent,
+    contactPhone: null,
+    startingPrice: null,
     createdAt: provider.createdAt,
   };
 }
@@ -92,6 +109,12 @@ export function toPublicProviderSummary(provider: ProviderDocument): PublicProvi
     rating: full.rating,
     ratingCount: full.ratingCount,
     isActive: full.isActive,
+    profileImageUrl: full.profileImageUrl,
+    galleryUrls: full.galleryUrls,
+    certifications: full.certifications,
+    successRatePercent: full.successRatePercent,
+    contactPhone: full.contactPhone,
+    startingPrice: full.startingPrice,
     createdAt: full.createdAt,
   };
 }

@@ -15,7 +15,9 @@ const envSchema = z.object({
 
   JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
-  JWT_ACCESS_TTL: z.string().default('15m'),
+  // 30d so the access token effectively never expires mid-session — logout invalidates the
+  // refresh token/session server-side instead of relying on a short access-token TTL.
+  JWT_ACCESS_TTL: z.string().default('30d'),
   JWT_REFRESH_TTL: z.string().default('30d'),
 
   OTP_LENGTH: z.coerce.number().int().min(4).max(10).default(6),

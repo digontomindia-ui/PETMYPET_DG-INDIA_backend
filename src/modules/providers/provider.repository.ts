@@ -8,6 +8,8 @@ export interface NearbySearchFilter {
   lat: number;
   radiusMeters: number;
   providerType?: ProviderType;
+  consultationMode?: 'CLINIC' | 'ONLINE';
+  trainingGoal?: string;
   skip: number;
   limit: number;
 }
@@ -33,6 +35,14 @@ export class ProviderRepository extends BaseRepository<IProvider> {
       },
     };
     if (filter.providerType) query.providerType = filter.providerType;
+    if (filter.consultationMode === 'ONLINE') {
+      query['metadata.vet.supportsVideoConsultation'] = true;
+    } else if (filter.consultationMode === 'CLINIC') {
+      query['metadata.vet.supportsVideoConsultation'] = { $ne: true };
+    }
+    if (filter.trainingGoal) {
+      query['metadata.trainer.trainingPlans.goals'] = filter.trainingGoal;
+    }
 
     return this.model.find(query).skip(filter.skip).limit(filter.limit).exec();
   }
