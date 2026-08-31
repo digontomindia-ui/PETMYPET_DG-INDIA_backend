@@ -148,6 +148,16 @@ export const paymentService = {
     return toPaymentDto(payment);
   },
 
+  async listMine(userId: string, query: { page?: string; limit?: string }) {
+    const { page, limit, skip } = parsePagination(query);
+    const filter = { userId };
+    const [items, total] = await Promise.all([
+      paymentRepository.findMany(filter, { skip, limit, sort: { createdAt: -1 } }),
+      paymentRepository.count(filter),
+    ]);
+    return { payments: items.map(toPaymentDto), total, page, limit };
+  },
+
   async listAll(query: { page?: string; limit?: string }) {
     const { page, limit, skip } = parsePagination(query);
     const [items, total] = await Promise.all([

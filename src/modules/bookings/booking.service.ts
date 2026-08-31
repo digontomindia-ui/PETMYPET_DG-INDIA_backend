@@ -224,7 +224,7 @@ export const bookingService = {
       data: { bookingId: booking._id.toString() },
     });
 
-    return toOwnerBookingView(booking);
+    return await toOwnerBookingView(booking);
   },
 
   async getById(bookingId: string, userId: string, role: Role) {
@@ -237,7 +237,7 @@ export const bookingService = {
     if (role === ROLES.SERVICE_PROVIDER) {
       const provider = await requireProviderProfile(userId);
       if (booking.providerId.toString() === provider._id.toString()) {
-        return toProviderBookingView(booking);
+        return await toProviderBookingView(booking);
       }
     }
 
@@ -254,7 +254,7 @@ export const bookingService = {
       skip,
       limit,
     );
-    return { bookings: items.map(toOwnerBookingView), total, page, limit };
+    return { bookings: await Promise.all(items.map(toOwnerBookingView)), total, page, limit };
   },
 
   async listForProvider(providerUserId: string, query: ListBookingsQuery) {
@@ -268,7 +268,7 @@ export const bookingService = {
       skip,
       limit,
     );
-    return { bookings: items.map(toProviderBookingView), total, page, limit };
+    return { bookings: await Promise.all(items.map(toProviderBookingView)), total, page, limit };
   },
 
   async accept(bookingId: string, providerUserId: string) {
@@ -285,7 +285,7 @@ export const bookingService = {
       data: { bookingId: booking._id.toString() },
     });
 
-    return toProviderBookingView(booking);
+    return await toProviderBookingView(booking);
   },
 
   async startJourney(bookingId: string, providerUserId: string) {
@@ -302,7 +302,7 @@ export const bookingService = {
       data: { bookingId: booking._id.toString() },
     });
 
-    return toProviderBookingView(booking);
+    return await toProviderBookingView(booking);
   },
 
   async verifyStartOtp(bookingId: string, providerUserId: string, code: string) {
@@ -313,7 +313,7 @@ export const bookingService = {
     booking.status = BOOKING_STATUSES.STARTED;
     booking.otpStartVerifiedAt = new Date();
     await booking.save();
-    return toProviderBookingView(booking);
+    return await toProviderBookingView(booking);
   },
 
   async verifyEndOtp(bookingId: string, providerUserId: string, code: string) {
@@ -343,7 +343,7 @@ export const bookingService = {
 
     await referralService.onFirstBookingCompleted(booking.userId.toString());
 
-    return toProviderBookingView(booking);
+    return await toProviderBookingView(booking);
   },
 
   async updateProviderNotes(
@@ -355,7 +355,7 @@ export const bookingService = {
     assertBookingEditableByProvider(booking.status);
     booking.providerNotes = input.notes;
     await booking.save();
-    return toProviderBookingView(booking);
+    return await toProviderBookingView(booking);
   },
 
   async addPhoto(bookingId: string, providerUserId: string, input: AddBookingPhotoInput) {
@@ -363,7 +363,7 @@ export const bookingService = {
     assertBookingEditableByProvider(booking.status);
     booking.photos.push({ url: input.url, phase: input.phase, uploadedAt: new Date() });
     await booking.save();
-    return toProviderBookingView(booking);
+    return await toProviderBookingView(booking);
   },
 
   async cancel(bookingId: string, actorUserId: string, actorRole: Role, input: CancelBookingInput) {
@@ -410,7 +410,7 @@ export const bookingService = {
       ),
     );
 
-    return toOwnerBookingView(booking);
+    return await toOwnerBookingView(booking);
   },
 
   /** Called by the Payments module once a gateway refund succeeds; not exposed as its own route. */

@@ -9,6 +9,7 @@
  */
 import 'dotenv/config';
 import type { Types } from 'mongoose';
+import { env } from '../config/env.js';
 import { connectDatabase, disconnectDatabase } from './mongoose.js';
 import { hashPassword } from '../utils/password.js';
 import { logger } from '../utils/logger.js';
@@ -113,8 +114,20 @@ async function seed(): Promise<void> {
   });
 
   // ---- Categories -----------------------------------------------------------
+  // picsum.photos serves a real (if generic) photo per seed string — unlike the old
+  // https://cdn.petmypet.in/... placeholders, which point at a domain nobody ever stood up
+  // and so rendered as broken images everywhere in the app.
+  const seedImage = (seedKey: string, w = 600, h = 600) =>
+    `https://picsum.photos/seed/${seedKey}/${w}/${h}`;
+
   async function createCategory(name: string, slug: string, providerTypes: string[]) {
-    return CategoryModel.create({ name, slug, providerTypes, description: `${name} services` });
+    return CategoryModel.create({
+      name,
+      slug,
+      providerTypes,
+      description: `${name} services`,
+      iconUrl: seedImage(`category-${slug}`, 200, 200),
+    });
   }
   const categoryGrooming = await createCategory('Grooming', 'grooming', [PROVIDER_TYPES.GROOMER]);
   const categoryVeterinary = await createCategory('Veterinary', 'veterinary', [PROVIDER_TYPES.VET]);
@@ -205,12 +218,6 @@ async function seed(): Promise<void> {
   });
 
   // ---- Providers --------------------------------------------------------
-  // picsum.photos serves a real (if generic) photo per seed string — unlike the old
-  // https://cdn.petmypet.in/... placeholders, which point at a domain nobody ever stood up
-  // and so rendered as broken images everywhere in the app.
-  const seedImage = (seedKey: string, w = 600, h = 600) =>
-    `https://picsum.photos/seed/${seedKey}/${w}/${h}`;
-
   async function createProviderWithUser(opts: {
     name: string;
     businessName: string;
@@ -225,6 +232,7 @@ async function seed(): Promise<void> {
     addressLabel?: string;
     certifications?: { title: string; issuedBy: string; issuedYear: number }[];
     successRatePercent?: number;
+    profileImageUrl?: string;
   }) {
     const email = `${opts.name.toLowerCase().replace(/[^a-z]+/g, '.')}@seed.patmypets-partner.in`;
     const slug = opts.businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
@@ -262,8 +270,10 @@ async function seed(): Promise<void> {
         { date: new Date(daysAgo(1)).toISOString().slice(0, 10), checkInAt: daysAgo(1), checkOutAt: daysAgo(1) },
       ],
       unavailableDates: [daysFromNow(20)],
-      profileImageUrl: seedImage(slug, 400, 400),
-      galleryUrls: [seedImage(`${slug}-1`, 800, 600), seedImage(`${slug}-2`, 800, 600)],
+      profileImageUrl: opts.profileImageUrl ?? seedImage(slug, 400, 400),
+      galleryUrls: opts.profileImageUrl
+        ? [opts.profileImageUrl, seedImage(`${slug}-1`, 800, 600)]
+        : [seedImage(`${slug}-1`, 800, 600), seedImage(`${slug}-2`, 800, 600)],
       certifications: opts.certifications ?? [
         { title: 'Certified Pet Care Professional', issuedBy: 'Indian Canine Training', issuedYear: 2022 },
       ],
@@ -414,6 +424,8 @@ async function seed(): Promise<void> {
     languages: ['English', 'Bengali'],
     metadata: { boarding: { capacity: 15, availableKennels: 6, amenities: ['24/7 Care', 'Play Area', 'CCTV Monitored'] } },
     addressLabel: 'Kolkata Paw Stay Boarding Center, Salt Lake, Kolkata, West Bengal 700091',
+    // Real storefront photo (until Cloudinary creds are configured) served from /static.
+    profileImageUrl: `${env.PUBLIC_BASE_URL}/static/seed/kolkata-boarding-center.jpg`,
   });
   const walkerKolkata = await createProviderWithUser({
     ...kolkataOpts,
@@ -733,6 +745,22 @@ async function seed(): Promise<void> {
     gender: PET_GENDERS.MALE,
     dateOfBirth: daysAgo(365 * 3),
     weightKg: 30,
+    companionProfile: {
+      isEnabled: true,
+      bio: 'Max is a laid-back lab who loves the dog park and long walks.',
+      personalityTraits: ['calm', 'friendly'],
+      interests: ['long walks', 'fetch'],
+      lookingFor: ['walking buddy', 'playdates'],
+      activityLevel: COMPANION_ACTIVITY_LEVELS.MEDIUM,
+      temperament: 'Easygoing with other dogs',
+      neutered: true,
+      getsAlongWith: {
+        dogs: GETS_ALONG_WITH_STATUS.YES,
+        cats: GETS_ALONG_WITH_STATUS.YES,
+        kids: GETS_ALONG_WITH_STATUS.YES,
+        families: GETS_ALONG_WITH_STATUS.YES,
+      },
+    },
   });
 
   const luna = await PetModel.create({

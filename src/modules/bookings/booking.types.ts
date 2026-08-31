@@ -69,6 +69,8 @@ export interface PublicBookingBase {
   petId: string | null;
   providerId: string;
   serviceId: string;
+  serviceName: string;
+  serviceDescription: string;
   zoneId: string | null;
   scheduledStart: Date;
   scheduledEnd: Date;

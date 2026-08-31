@@ -19,6 +19,7 @@ ENV NODE_ENV=production
 RUN addgroup -S app && adduser -S app -G app
 COPY --from=production-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+COPY public ./public
 COPY package.json ./
 USER app
 EXPOSE 4000

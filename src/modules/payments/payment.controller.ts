@@ -31,6 +31,12 @@ export const paymentController = {
     sendSuccess(res, HTTP_STATUS.OK, payment);
   }),
 
+  listMine: asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = requireAuth(req);
+    const { payments, total, page, limit } = await paymentService.listMine(userId, req.query);
+    sendSuccess(res, HTTP_STATUS.OK, payments, 'Success', buildPaginationMeta(page, limit, total));
+  }),
+
   listAll: asyncHandler(async (req: Request, res: Response) => {
     const { payments, total, page, limit } = await paymentService.listAll(req.query);
     sendSuccess(res, HTTP_STATUS.OK, payments, 'Success', buildPaginationMeta(page, limit, total));

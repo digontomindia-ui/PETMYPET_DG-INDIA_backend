@@ -317,6 +317,58 @@ paymentRoutes.get(
 
 /**
  * @openapi
+ * /payments/me:
+ *   get:
+ *     tags: [Payments]
+ *     summary: List the current user's own payment history
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: page, in: query, required: false, schema: { type: string }, example: '1' }
+ *       - { name: limit, in: query, required: false, schema: { type: string }, example: '20' }
+ *     responses:
+ *       200:
+ *         description: List of the caller's payments
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *             example:
+ *               success: true
+ *               message: Success
+ *               data:
+ *                 - id: 64f1a2b3c4d5e6f7a8b9c0e1
+ *                   bookingId: 64f1a2b3c4d5e6f7a8b9c0d1
+ *                   amount: 899
+ *                   currency: INR
+ *                   method: RAZORPAY
+ *                   status: CAPTURED
+ *                   razorpayOrderId: order_NXtZ4xyzABC123
+ *                   refundedAmount: 0
+ *                   failureReason: null
+ *                   createdAt: '2026-08-04T06:35:00.000Z'
+ *               meta:
+ *                 page: 1
+ *                 limit: 20
+ *                 total: 1
+ *                 totalPages: 1
+ *       401:
+ *         description: Not authenticated
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Authentication required
+ */
+paymentRoutes.get(
+  '/me',
+  authenticate,
+  validate({ query: listPaymentsQuerySchema }),
+  paymentController.listMine,
+);
+
+/**
+ * @openapi
  * /payments/{id}:
  *   get:
  *     tags: [Payments]

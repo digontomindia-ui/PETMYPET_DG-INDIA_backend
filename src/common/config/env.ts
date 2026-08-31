@@ -7,6 +7,9 @@ const envSchema = z.object({
   API_VERSION: z.string().default('v1'),
   APP_NAME: z.string().default('Patmypets'),
   CORS_ORIGINS: z.string().default(''),
+  /** Public origin this server is reachable at (e.g. https://api.example.com), used to build
+   * absolute URLs for assets served from /static — no trailing slash. */
+  PUBLIC_BASE_URL: z.string().default(''),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 
   MONGO_URI: z.string().min(1, 'MONGO_URI is required'),
@@ -39,6 +42,9 @@ const envSchema = z.object({
   RAZORPAY_KEY_ID: z.string().default(''),
   RAZORPAY_KEY_SECRET: z.string().default(''),
   RAZORPAY_WEBHOOK_SECRET: z.string().default(''),
+
+  GEMINI_API_KEY: z.string().default(''),
+  GEMINI_MODEL: z.string().default('gemini-1.5-flash'),
 
   FIREBASE_PROJECT_ID: z.string().default(''),
   FIREBASE_CLIENT_EMAIL: z.string().default(''),
