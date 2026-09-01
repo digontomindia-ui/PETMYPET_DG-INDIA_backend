@@ -27,7 +27,15 @@ reviewSchema.pre('validate', function enforceExactlyOneTarget(next) {
 });
 
 reviewSchema.index({ bookingId: 1 }, { unique: true, sparse: true });
-reviewSchema.index({ productId: 1, userId: 1 }, { unique: true, sparse: true });
+// `sparse` alone doesn't help here — every provider review still has productId explicitly set
+// to null (the schema default), so it's never "missing" and sparse can't exclude it. Without a
+// partial filter this index lets each user leave at most one provider review, ever, across every
+// provider — a real correctness bug, not a seed-only one. Scope the uniqueness to actual product
+// reviews only.
+reviewSchema.index(
+  { productId: 1, userId: 1 },
+  { unique: true, partialFilterExpression: { productId: { $type: 'objectId' } } },
+);
 reviewSchema.index({ providerId: 1, createdAt: -1 });
 reviewSchema.index({ productId: 1, createdAt: -1 });
 

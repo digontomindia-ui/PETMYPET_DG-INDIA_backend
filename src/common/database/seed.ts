@@ -162,6 +162,7 @@ async function seed(): Promise<void> {
   const priya = await UserModel.create({
     role: ROLES.USER,
     name: 'Priya Sharma',
+    avatarUrl: seedImage('user-priya-sharma', 300, 300),
     email: 'priya.sharma@seed.patmypets.in',
     phone: '+919111000001',
     passwordHash: userPasswordHash,
@@ -186,6 +187,7 @@ async function seed(): Promise<void> {
   const rahul = await UserModel.create({
     role: ROLES.USER,
     name: 'Rahul Verma',
+    avatarUrl: seedImage('user-rahul-verma', 300, 300),
     email: 'rahul.verma@seed.patmypets.in',
     phone: '+919111000002',
     passwordHash: userPasswordHash,
@@ -208,6 +210,7 @@ async function seed(): Promise<void> {
   const ananya = await UserModel.create({
     role: ROLES.USER,
     name: 'Ananya S.',
+    avatarUrl: seedImage('user-ananya-s', 300, 300),
     email: 'ananya.s@seed.patmypets.in',
     phone: '+919111000003',
     passwordHash: userPasswordHash,
@@ -779,6 +782,7 @@ async function seed(): Promise<void> {
   const bruno = await PetModel.create({
     ownerId: priya._id,
     name: 'Bruno',
+    avatarUrl: seedImage('pet-bruno', 400, 400),
     species: PET_SPECIES.DOG,
     breed: 'Golden Retriever',
     gender: PET_GENDERS.MALE,
@@ -806,6 +810,7 @@ async function seed(): Promise<void> {
   const max = await PetModel.create({
     ownerId: rahul._id,
     name: 'Max',
+    avatarUrl: seedImage('pet-max', 400, 400),
     species: PET_SPECIES.DOG,
     breed: 'Labrador Retriever',
     gender: PET_GENDERS.MALE,
@@ -832,6 +837,7 @@ async function seed(): Promise<void> {
   const luna = await PetModel.create({
     ownerId: ananya._id,
     name: 'Luna',
+    avatarUrl: seedImage('pet-luna', 400, 400),
     species: PET_SPECIES.DOG,
     breed: 'Golden Retriever',
     gender: PET_GENDERS.FEMALE,
@@ -989,6 +995,68 @@ async function seed(): Promise<void> {
     rating: 5,
     comment: 'My dog loves this food, great quality.',
   });
+
+  // A few more provider reviews so the detail page's "Reviews" section isn't empty for
+  // boarding/walker/vet/etc — the ones above only ever covered the one groomer.
+  async function seedReview(
+    user: { _id: Types.ObjectId },
+    providerWithUser: Awaited<ReturnType<typeof createProviderWithUser>>,
+    rating: number,
+    comment: string,
+    daysBack: number,
+  ) {
+    const service = await ServiceModel.findOne({
+      providerId: providerWithUser.provider._id,
+      isActive: true,
+    });
+    if (!service) return;
+
+    const start = daysAgo(daysBack);
+    const end = new Date(start.getTime() + service.durationMinutes * 60_000);
+    const commissionPercent = providerWithUser.provider.commissionPercent ?? 15;
+    const { commissionAmount, providerPayoutAmount } = computeAmounts(
+      service.price,
+      commissionPercent,
+    );
+
+    const booking = await BookingModel.create({
+      userId: user._id,
+      providerId: providerWithUser.provider._id,
+      serviceId: service._id,
+      zoneId: providerWithUser.provider.zoneIds[0] ?? null,
+      scheduledStart: start,
+      scheduledEnd: end,
+      status: BOOKING_STATUSES.COMPLETED,
+      otpStart: '112211',
+      otpStartVerifiedAt: start,
+      otpEnd: '445566',
+      otpEndVerifiedAt: end,
+      price: service.price,
+      commissionPercent,
+      commissionAmount,
+      providerPayoutAmount,
+      paymentStatus: BOOKING_PAYMENT_STATUSES.PAID,
+    });
+
+    await ReviewModel.create({
+      bookingId: booking._id,
+      userId: user._id,
+      providerId: providerWithUser.provider._id,
+      rating,
+      comment,
+    });
+  }
+
+  await seedReview(priya, boarding, 5, 'Great stay for my dog, clean kennels and attentive staff.', 4);
+  await seedReview(rahul, boardingKolkata, 4, 'Good boarding experience, would book again.', 6);
+  await seedReview(ananya, boardingDigha, 5, 'Loved how well they took care of my pet during our Digha trip.', 3);
+  await seedReview(ananya, walker, 5, 'Reliable and punctual, my dog is always happy after walks.', 5);
+  await seedReview(priya, walkerKolkata, 4, 'Good walker, communicates well.', 7);
+  await seedReview(rahul, vetKolkata, 5, 'Very knowledgeable vet, explained everything clearly.', 8);
+  await seedReview(priya, vetDigha, 5, 'Quick consultation, helped a lot.', 2);
+  await seedReview(ananya, trainer, 5, 'My puppy learned basic commands in just a few sessions.', 10);
+  await seedReview(priya, sitter, 4, 'Took great care of my cat while I was away.', 6);
+  await seedReview(rahul, groomerKolkata, 5, 'Professional grooming, my dog looks amazing.', 4);
 
   const upcomingStart = daysFromNow(2);
   await BookingModel.create({
@@ -1185,6 +1253,7 @@ async function seed(): Promise<void> {
     title: 'Protect Your Pet with Timely Vaccinations',
     slug: 'protect-your-pet-with-timely-vaccinations',
     content: 'Regular vaccinations keep your pet healthy and protected against common diseases...',
+    coverImageUrl: seedImage('blog-vaccinations', 1200, 630),
     tags: ['pet-care', 'vaccination'],
     isPublished: true,
     publishedAt: daysAgo(5),
@@ -1196,6 +1265,29 @@ async function seed(): Promise<void> {
     imageUrl: seedImage('banner-grooming-home', 1200, 500),
     linkUrl: '/services?categoryId=grooming',
     order: 1,
+  });
+
+  // Home screen's "Featured Services" tile row.
+  await BannerModel.create({
+    title: 'Pet Grooming',
+    subtitle: 'Bath, Haircut, Spa & more',
+    imageUrl: seedImage('tile-pet-grooming', 400, 400),
+    linkUrl: `/categories/${categoryGrooming._id.toString()}`,
+    order: 2,
+  });
+  await BannerModel.create({
+    title: 'Pet Vaccination',
+    subtitle: 'Safe & timely vaccinations',
+    imageUrl: seedImage('tile-pet-vaccination', 400, 400),
+    linkUrl: `/categories/${categoryVeterinary._id.toString()}`,
+    order: 3,
+  });
+  await BannerModel.create({
+    title: 'Boarding',
+    subtitle: 'Safe, cozy & comfortable',
+    imageUrl: seedImage('tile-pet-boarding', 400, 400),
+    linkUrl: `/categories/${categoryBoarding._id.toString()}`,
+    order: 4,
   });
 
   await FeatureFlagModel.create({
