@@ -39,6 +39,9 @@ export interface IUser extends SoftDeletable {
   passwordHash: string | null;
   avatarUrl: string | null;
   isVerified: boolean;
+  /** No real identity-verification flow exists yet (no KYC/ID-upload for end users) — this
+   * stays false until one is built; admins can flip it manually in the meantime. */
+  identityVerified: boolean;
   isBlocked: boolean;
   addresses: Types.DocumentArray<IAddress>;
   preferences: IUserPreferences;

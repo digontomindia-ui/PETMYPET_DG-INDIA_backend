@@ -23,3 +23,5 @@ export const petIdQuerySchema = z.object({
   page: z.string().optional(),
   limit: z.string().optional(),
 });
+
+export const petIdParamSchema = z.object({ id: objectIdSchema });

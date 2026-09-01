@@ -57,6 +57,7 @@ const userSchema = new Schema<IUser>(
     passwordHash: { type: String, select: false, default: null },
     avatarUrl: { type: String, default: null },
     isVerified: { type: Boolean, default: false },
+    identityVerified: { type: Boolean, default: false },
     isBlocked: { type: Boolean, default: false },
     addresses: { type: [addressSchema], default: [] },
     preferences: { type: preferencesSchema, default: () => ({}) },

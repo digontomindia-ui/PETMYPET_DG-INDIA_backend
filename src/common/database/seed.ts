@@ -22,7 +22,7 @@ import { ProviderModel } from '../../modules/providers/provider.schema.js';
 import { KYC_STATUSES } from '../../modules/providers/provider.constants.js';
 import { ServiceModel } from '../../modules/services/service.schema.js';
 import { PetModel } from '../../modules/pets/pet.schema.js';
-import { PET_SPECIES, PET_GENDERS, COMPANION_ACTIVITY_LEVELS, GETS_ALONG_WITH_STATUS } from '../../modules/pets/pet.constants.js';
+import { PET_SPECIES, PET_GENDERS, COMPANION_ACTIVITY_LEVELS, GETS_ALONG_WITH_STATUS, PET_ACTIVITY_TYPES } from '../../modules/pets/pet.constants.js';
 import { ProductModel } from '../../modules/marketplace/product.schema.js';
 import { PRODUCT_CATEGORIES } from '../../modules/marketplace/product.constants.js';
 import { CartModel } from '../../modules/marketplace/cart.schema.js';
@@ -167,6 +167,7 @@ async function seed(): Promise<void> {
     phone: '+919111000001',
     passwordHash: userPasswordHash,
     isVerified: true,
+    identityVerified: true,
     referralCode: 'PRIYA001',
     serviceInterests: ['Grooming', 'Veterinary', 'Vaccination'],
     emergencyContact: { name: 'Anil Sharma', phone: '+919111011111' },
@@ -783,12 +784,24 @@ async function seed(): Promise<void> {
     ownerId: priya._id,
     name: 'Bruno',
     avatarUrl: seedImage('pet-bruno', 400, 400),
+    galleryUrls: [
+      seedImage('pet-bruno-1', 800, 800),
+      seedImage('pet-bruno-2', 800, 800),
+      seedImage('pet-bruno-3', 800, 800),
+    ],
     species: PET_SPECIES.DOG,
     breed: 'Golden Retriever',
     gender: PET_GENDERS.MALE,
     dateOfBirth: daysAgo(365 * 2),
     weightKg: 28,
     notes: 'Loves belly rubs, allergic to chicken.',
+    activities: [
+      { type: PET_ACTIVITY_TYPES.PARK_VISIT, title: 'Carter Road Park', location: 'Carter Road, Bandra West', occurredAt: daysAgo(0) },
+      { type: PET_ACTIVITY_TYPES.MEETUP, title: 'Dog Social Meetup', location: 'Koramangala', occurredAt: daysAgo(1) },
+      { type: PET_ACTIVITY_TYPES.PLAYDATE, title: 'Weekend Playdate', location: 'Cubbon Park', occurredAt: daysAgo(4) },
+    ],
+    viewCount: 341,
+    vaccinations: [{ name: 'Rabies', administeredAt: daysAgo(300), expiresAt: daysFromNow(65) }],
     companionProfile: {
       isEnabled: true,
       bio: 'Bruno loves fetch and making new furry friends at the park.',
@@ -1187,6 +1200,20 @@ async function seed(): Promise<void> {
   const [petAId, petBId] =
     bruno._id.toString() < luna._id.toString() ? [bruno._id, luna._id] : [luna._id, bruno._id];
   await PetMatchModel.create({ petAId, petBId, chatRoomId: companionChatRoom._id });
+
+  // Pet-to-pet companion reviews — only valid between matched pets (Bruno <-> Luna above).
+  await ReviewModel.create({
+    petId: bruno._id,
+    userId: ananya._id,
+    rating: 5,
+    comment: 'Bruno is extremely friendly and gentle. My dog loved spending time with him.',
+  });
+  await ReviewModel.create({
+    petId: luna._id,
+    userId: priya._id,
+    rating: 4,
+    comment: 'Great companion for playdates and walks.',
+  });
 
   // ---- Pet Taxi / Pet Relocation / Pet Insurance -------------------------
   await PetTaxiBookingModel.create({

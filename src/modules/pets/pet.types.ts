@@ -3,6 +3,7 @@ import type { SoftDeletable } from '../../common/database/plugins/soft-delete.pl
 import type {
   CompanionActivityLevel,
   GetsAlongWithStatus,
+  PetActivityType,
   PetGender,
   PetSpecies,
 } from './pet.constants.js';
@@ -23,6 +24,14 @@ export interface IVaccination {
   expiresAt: Date | null;
   certificateUrl: string | null;
   providerId: Types.ObjectId | null;
+}
+
+export interface IPetActivity {
+  _id: Types.ObjectId;
+  type: PetActivityType;
+  title: string;
+  location: string | null;
+  occurredAt: Date;
 }
 
 export interface ICompanionGetsAlongWith {
@@ -54,10 +63,17 @@ export interface IPet extends SoftDeletable {
   dateOfBirth: Date | null;
   weightKg: number | null;
   avatarUrl: string | null;
+  /** Extra photos for the companion detail page's gallery. */
+  galleryUrls: string[];
   notes: string;
   medicalRecords: Types.DocumentArray<IMedicalRecord>;
   vaccinations: Types.DocumentArray<IVaccination>;
+  /** Manually logged by the owner — "Recent Activities" on the companion detail page. */
+  activities: Types.DocumentArray<IPetActivity>;
   companionProfile: ICompanionProfile | null;
+  /** Companion-profile page views by other users. Only incremented via
+   * GET /pet-companion/pets/:id, never by the owner's own /pets/:id. */
+  viewCount: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -74,9 +90,11 @@ export interface PublicPet {
   dateOfBirth: Date | null;
   weightKg: number | null;
   avatarUrl: string | null;
+  galleryUrls: string[];
   notes: string;
   medicalRecords: IMedicalRecord[];
   vaccinations: IVaccination[];
+  activities: IPetActivity[];
   companionProfile: ICompanionProfile | null;
   createdAt: Date;
 }

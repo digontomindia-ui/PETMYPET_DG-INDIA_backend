@@ -28,3 +28,13 @@ export const GETS_ALONG_WITH_STATUS = {
 
 export type GetsAlongWithStatus =
   (typeof GETS_ALONG_WITH_STATUS)[keyof typeof GETS_ALONG_WITH_STATUS];
+
+export const PET_ACTIVITY_TYPES = {
+  PARK_VISIT: 'PARK_VISIT',
+  MEETUP: 'MEETUP',
+  PLAYDATE: 'PLAYDATE',
+  WALK: 'WALK',
+  OTHER: 'OTHER',
+} as const;
+
+export type PetActivityType = (typeof PET_ACTIVITY_TYPES)[keyof typeof PET_ACTIVITY_TYPES];

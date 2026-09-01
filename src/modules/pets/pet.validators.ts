@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   COMPANION_ACTIVITY_LEVELS,
   GETS_ALONG_WITH_STATUS,
+  PET_ACTIVITY_TYPES,
   PET_GENDERS,
   PET_SPECIES,
 } from './pet.constants.js';
@@ -23,6 +24,7 @@ export const createPetSchema = z.object({
   dateOfBirth: z.coerce.date().optional(),
   weightKg: z.number().min(0).max(500).optional(),
   avatarUrl: z.string().url().optional(),
+  galleryUrls: z.array(z.string().url()).optional(),
   notes: z.string().max(2000).default(''),
 });
 
@@ -90,8 +92,25 @@ export const updateCompanionProfileSchema = z.object({
     .optional(),
 });
 
+export const addActivitySchema = z.object({
+  type: z.enum([
+    PET_ACTIVITY_TYPES.PARK_VISIT,
+    PET_ACTIVITY_TYPES.MEETUP,
+    PET_ACTIVITY_TYPES.PLAYDATE,
+    PET_ACTIVITY_TYPES.WALK,
+    PET_ACTIVITY_TYPES.OTHER,
+  ]),
+  title: z.string().min(1).max(150),
+  location: z.string().max(150).optional(),
+  occurredAt: z.coerce.date().optional(),
+});
+
 export const idParamSchema = z.object({ id: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id') });
 export const recordIdParamSchema = z.object({
   id: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id'),
   recordId: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid record id'),
+});
+export const activityIdParamSchema = z.object({
+  id: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id'),
+  activityId: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid activity id'),
 });

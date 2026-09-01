@@ -11,9 +11,11 @@ export function toPublicPet(pet: PetDocument): PublicPet {
     dateOfBirth: pet.dateOfBirth,
     weightKg: pet.weightKg,
     avatarUrl: pet.avatarUrl,
+    galleryUrls: pet.galleryUrls,
     notes: pet.notes,
     medicalRecords: pet.medicalRecords,
     vaccinations: pet.vaccinations,
+    activities: pet.activities,
     companionProfile: pet.companionProfile,
     createdAt: pet.createdAt,
   };

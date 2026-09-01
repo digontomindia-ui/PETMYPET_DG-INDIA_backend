@@ -6,12 +6,20 @@ import { HTTP_STATUS } from '../../common/constants/http-status.js';
 import { petCompanionService } from './pet-companion.service.js';
 import type { DiscoverQuery, PetIdQuery, SwipeInput } from './pet-companion.dto.js';
 
+
+
 function requireAuth(req: Request) {
   if (!req.user) throw AppError.unauthorized();
   return req.user;
 }
 
 export const petCompanionController = {
+  getProfile: asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = requireAuth(req);
+    const profile = await petCompanionService.getProfile(req.params.id as string, userId);
+    sendSuccess(res, HTTP_STATUS.OK, profile);
+  }),
+
   discover: asyncHandler(async (req: Request, res: Response) => {
     const { userId, role } = requireAuth(req);
     const { pets, total, page, limit } = await petCompanionService.discover(

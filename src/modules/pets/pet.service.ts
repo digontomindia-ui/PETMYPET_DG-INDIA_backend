@@ -5,6 +5,7 @@ import { COMPANION_ACTIVITY_LEVELS, GETS_ALONG_WITH_STATUS } from './pet.constan
 import { petRepository } from './pet.repository.js';
 import { toPublicPet } from './pet.mapper.js';
 import type {
+  AddActivityInput,
   AddMedicalRecordInput,
   AddVaccinationInput,
   CreatePetInput,
@@ -95,6 +96,27 @@ export const petService = {
     const record = pet.vaccinations.id(recordId);
     if (!record) throw AppError.notFound('Vaccination not found');
     record.deleteOne();
+    await pet.save();
+    return toPublicPet(pet);
+  },
+
+  async addActivity(petId: string, userId: string, role: string, input: AddActivityInput) {
+    const pet = await requireOwnedPet(petId, userId, role);
+    pet.activities.push({
+      type: input.type,
+      title: input.title,
+      location: input.location ?? null,
+      occurredAt: input.occurredAt ?? new Date(),
+    });
+    await pet.save();
+    return toPublicPet(pet);
+  },
+
+  async removeActivity(petId: string, userId: string, role: string, activityId: string) {
+    const pet = await requireOwnedPet(petId, userId, role);
+    const activity = pet.activities.id(activityId);
+    if (!activity) throw AppError.notFound('Activity not found');
+    activity.deleteOne();
     await pet.save();
     return toPublicPet(pet);
   },

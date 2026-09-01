@@ -5,11 +5,18 @@ import { PROVIDER_MODEL_NAME } from '../providers/provider.constants.js';
 import {
   COMPANION_ACTIVITY_LEVELS,
   GETS_ALONG_WITH_STATUS,
+  PET_ACTIVITY_TYPES,
   PET_GENDERS,
   PET_MODEL_NAME,
   PET_SPECIES,
 } from './pet.constants.js';
-import type { ICompanionProfile, IMedicalRecord, IPet, IVaccination } from './pet.types.js';
+import type {
+  ICompanionProfile,
+  IMedicalRecord,
+  IPet,
+  IPetActivity,
+  IVaccination,
+} from './pet.types.js';
 
 const medicalRecordSchema = new Schema<IMedicalRecord>(
   {
@@ -29,6 +36,16 @@ const vaccinationSchema = new Schema<IVaccination>(
     expiresAt: { type: Date, default: null },
     certificateUrl: { type: String, default: null },
     providerId: { type: Schema.Types.ObjectId, ref: PROVIDER_MODEL_NAME, default: null },
+  },
+  { _id: true },
+);
+
+const petActivitySchema = new Schema<IPetActivity>(
+  {
+    type: { type: String, enum: Object.values(PET_ACTIVITY_TYPES), required: true },
+    title: { type: String, required: true, trim: true, maxlength: 150 },
+    location: { type: String, default: null, trim: true },
+    occurredAt: { type: Date, default: () => new Date() },
   },
   { _id: true },
 );
@@ -83,10 +100,13 @@ const petSchema = new Schema<IPet>(
     dateOfBirth: { type: Date, default: null },
     weightKg: { type: Number, default: null, min: 0 },
     avatarUrl: { type: String, default: null },
+    galleryUrls: { type: [String], default: [] },
     notes: { type: String, default: '', maxlength: 2000 },
     medicalRecords: { type: [medicalRecordSchema], default: [] },
     vaccinations: { type: [vaccinationSchema], default: [] },
+    activities: { type: [petActivitySchema], default: [] },
     companionProfile: { type: companionProfileSchema, default: null },
+    viewCount: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true },
 );

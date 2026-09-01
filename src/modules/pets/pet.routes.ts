@@ -3,6 +3,8 @@ import { authenticate } from '../../common/middlewares/auth.middleware.js';
 import { validate } from '../../common/middlewares/validate.middleware.js';
 import { petController } from './pet.controller.js';
 import {
+  activityIdParamSchema,
+  addActivitySchema,
   addMedicalRecordSchema,
   addVaccinationSchema,
   createPetSchema,
@@ -542,6 +544,60 @@ petRoutes.delete(
   '/:id/vaccinations/:recordId',
   validate({ params: recordIdParamSchema }),
   petController.removeVaccination,
+);
+
+/**
+ * @openapi
+ * /pets/{id}/activities:
+ *   post:
+ *     tags: [Pets]
+ *     summary: Log an activity for a pet (shown on the companion detail page's "Recent Activities")
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [type, title]
+ *             properties:
+ *               type: { type: string, enum: [PARK_VISIT, MEETUP, PLAYDATE, WALK, OTHER] }
+ *               title: { type: string, maxLength: 150 }
+ *               location: { type: string, maxLength: 150 }
+ *               occurredAt: { type: string, format: date-time }
+ *           example:
+ *             type: PARK_VISIT
+ *             title: Carter Road Park
+ *             location: Carter Road, Bandra West
+ *     responses:
+ *       201:
+ *         description: Activity added
+ */
+petRoutes.post(
+  '/:id/activities',
+  validate({ params: idParamSchema, body: addActivitySchema }),
+  petController.addActivity,
+);
+/**
+ * @openapi
+ * /pets/{id}/activities/{activityId}:
+ *   delete:
+ *     tags: [Pets]
+ *     summary: Delete a logged activity from a pet
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string } }
+ *       - { name: activityId, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200:
+ *         description: Activity removed
+ */
+petRoutes.delete(
+  '/:id/activities/:activityId',
+  validate({ params: activityIdParamSchema }),
+  petController.removeActivity,
 );
 
 /**

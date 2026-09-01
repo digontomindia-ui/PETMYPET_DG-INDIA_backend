@@ -5,6 +5,9 @@ import { bookingRepository } from '../bookings/booking.repository.js';
 import { BOOKING_STATUSES } from '../bookings/booking.constants.js';
 import { providerRepository } from '../providers/provider.repository.js';
 import { productRepository } from '../marketplace/product.repository.js';
+import { petRepository } from '../pets/pet.repository.js';
+import { petMatchRepository } from '../pet-companion/pet-companion.repository.js';
+import { UserModel } from '../users/user.schema.js';
 import { reviewRepository } from './review.repository.js';
 import { toReviewDto } from './review.mapper.js';
 import type { CreateReviewInput, ListReviewsQuery } from './review.dto.js';
@@ -57,18 +60,78 @@ async function createProductReview(userId: string, productId: string, input: Cre
   return toReviewDto(review);
 }
 
+async function createPetReview(userId: string, petId: string, input: CreateReviewInput) {
+  const targetPet = await petRepository.findById(petId);
+  if (!targetPet) throw AppError.notFound('Pet not found');
+  if (targetPet.ownerId.toString() === userId) {
+    throw AppError.badRequest('You cannot review your own pet');
+  }
+
+  const reviewerPets = await petRepository.findByOwner(userId);
+  if (reviewerPets.length === 0) {
+    throw AppError.badRequest('You need a pet to leave a companion review');
+  }
+  const reviewerPetIds = reviewerPets.map((pet) => pet._id.toString());
+  const matches = await petMatchRepository.findMany({
+    $or: [
+      { petAId: { $in: reviewerPetIds }, petBId: petId },
+      { petAId: petId, petBId: { $in: reviewerPetIds } },
+    ],
+  });
+  if (matches.length === 0) {
+    throw AppError.badRequest('You can only review pets your pet has matched with');
+  }
+
+  const existing = await reviewRepository.findByPetAndUser(petId, userId);
+  if (existing) throw AppError.conflict('You have already reviewed this pet');
+
+  const review = await reviewRepository.create({
+    petId: targetPet._id,
+    userId: new Types.ObjectId(userId),
+    rating: input.rating,
+    comment: input.comment,
+  });
+
+  return toReviewDto(review);
+}
+
+/** Batches in each review's author name/avatar — used for pet reviews, where the UI shows
+ * "Reviews From Other Pet Parents" with the reviewer's photo, not just a rating. */
+async function withAuthors<T extends { userId: string }>(
+  reviews: T[],
+): Promise<(T & { authorName: string; authorAvatarUrl: string | null })[]> {
+  if (reviews.length === 0) return [];
+  const authors = await UserModel.find({ _id: { $in: reviews.map((r) => r.userId) } })
+    .select('name avatarUrl')
+    .lean();
+  const authorById = new Map(authors.map((author) => [author._id.toString(), author]));
+  return reviews.map((review) => {
+    const author = authorById.get(review.userId);
+    return {
+      ...review,
+      authorName: author?.name ?? '',
+      authorAvatarUrl: author?.avatarUrl ?? null,
+    };
+  });
+}
+
 export const reviewService = {
   async create(userId: string, input: CreateReviewInput) {
-    return input.bookingId
-      ? createBookingReview(userId, input.bookingId, input)
-      : createProductReview(userId, input.productId as string, input);
+    if (input.bookingId) return createBookingReview(userId, input.bookingId, input);
+    if (input.productId) return createProductReview(userId, input.productId, input);
+    return createPetReview(userId, input.petId as string, input);
   },
 
   async listForProvider(query: ListReviewsQuery) {
     const { page, limit, skip } = parsePagination(query);
     const { items, total } = query.productId
       ? await reviewRepository.findForProduct(query.productId, skip, limit)
-      : await reviewRepository.findForProvider(query.providerId as string, skip, limit);
-    return { reviews: items.map(toReviewDto), total, page, limit };
+      : query.petId
+        ? await reviewRepository.findForPet(query.petId, skip, limit)
+        : await reviewRepository.findForProvider(query.providerId as string, skip, limit);
+
+    const dtos = items.map(toReviewDto);
+    const reviews = query.petId ? await withAuthors(dtos) : dtos;
+    return { reviews, total, page, limit };
   },
 };

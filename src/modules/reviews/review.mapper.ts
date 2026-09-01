@@ -5,6 +5,7 @@ export function toReviewDto(review: ReviewDocument) {
     id: review._id.toString(),
     bookingId: review.bookingId ? review.bookingId.toString() : null,
     productId: review.productId ? review.productId.toString() : null,
+    petId: review.petId ? review.petId.toString() : null,
     userId: review.userId.toString(),
     providerId: review.providerId ? review.providerId.toString() : null,
     rating: review.rating,

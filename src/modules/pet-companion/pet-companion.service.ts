@@ -6,11 +6,20 @@ import { petRepository } from '../pets/pet.repository.js';
 import { PetModel } from '../pets/pet.schema.js';
 import { UserModel } from '../users/user.schema.js';
 import { chatService } from '../chat/chat.service.js';
+import { reviewRepository } from '../reviews/review.repository.js';
 import { petMatchRepository, petSwipeRepository } from './pet-companion.repository.js';
-import { toCandidatePetDto, toLikeReceivedDto, toMatchDto } from './pet-companion.mapper.js';
+import {
+  toCandidatePetDto,
+  toCompanionProfileDto,
+  toLikeReceivedDto,
+  toMatchDto,
+} from './pet-companion.mapper.js';
+import type { CompanionReview } from './pet-companion.mapper.js';
 import { DEFAULT_DISCOVER_RADIUS_METERS, LIKE_ACTIONS, SWIPE_ACTIONS } from './pet-companion.constants.js';
 import type { DiscoverQuery, PetIdQuery, SwipeInput } from './pet-companion.dto.js';
 import type { IPet, PetDocument } from '../pets/pet.types.js';
+
+const RECENT_REVIEWS_LIMIT = 5;
 
 const EARTH_RADIUS_METERS = 6_378_100;
 
@@ -118,6 +127,48 @@ export const petCompanionService = {
     );
 
     return { pets, total: sorted.length, page, limit };
+  },
+
+  /** Another pet's full companion profile — gallery, activities, reviews, likes/views, and the
+   * owner's verification badges. Increments viewCount unless the viewer is the pet's own owner. */
+  async getProfile(petId: string, viewerUserId: string) {
+    const pet = await petRepository.findById(petId);
+    if (!pet) throw AppError.notFound('Pet not found');
+
+    const isOwnPet = pet.ownerId.toString() === viewerUserId;
+    if (!isOwnPet) {
+      await PetModel.updateOne({ _id: petId }, { $inc: { viewCount: 1 } }).exec();
+    }
+
+    const owner = await UserModel.findById(pet.ownerId)
+      .select('name isVerified identityVerified addresses')
+      .lean();
+    if (!owner) throw AppError.notFound('Pet owner not found');
+
+    const [likesCount, { items: reviewDocs }] = await Promise.all([
+      petSwipeRepository.count({ targetPetId: petId, action: { $in: LIKE_ACTIONS } }),
+      reviewRepository.findForPet(petId, 0, RECENT_REVIEWS_LIMIT),
+    ]);
+
+    const authorIds = [...new Set(reviewDocs.map((review) => review.userId.toString()))];
+    const authors = await UserModel.find({ _id: { $in: authorIds } })
+      .select('name avatarUrl')
+      .lean();
+    const authorById = new Map(authors.map((author) => [author._id.toString(), author]));
+    const recentReviews: CompanionReview[] = reviewDocs.map((review) => {
+      const author = authorById.get(review.userId.toString());
+      return {
+        _id: review._id,
+        userId: review.userId,
+        rating: review.rating,
+        comment: review.comment,
+        createdAt: review.createdAt,
+        authorName: author?.name ?? '',
+        authorAvatarUrl: author?.avatarUrl ?? null,
+      };
+    });
+
+    return toCompanionProfileDto(pet, owner, likesCount, recentReviews, isOwnPet);
   },
 
   async swipe(userId: string, role: string, input: SwipeInput) {

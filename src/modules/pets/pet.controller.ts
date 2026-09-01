@@ -5,6 +5,7 @@ import { AppError } from '../../common/errors/app-error.js';
 import { HTTP_STATUS } from '../../common/constants/http-status.js';
 import { petService } from './pet.service.js';
 import type {
+  AddActivityInput,
   AddMedicalRecordInput,
   AddVaccinationInput,
   CreatePetInput,
@@ -95,6 +96,28 @@ export const petController = {
       req.params.recordId as string,
     );
     sendSuccess(res, HTTP_STATUS.OK, pet, 'Vaccination removed');
+  }),
+
+  addActivity: asyncHandler(async (req: Request, res: Response) => {
+    const { userId, role } = requireAuth(req);
+    const pet = await petService.addActivity(
+      req.params.id as string,
+      userId,
+      role,
+      req.body as AddActivityInput,
+    );
+    sendSuccess(res, HTTP_STATUS.CREATED, pet, 'Activity added');
+  }),
+
+  removeActivity: asyncHandler(async (req: Request, res: Response) => {
+    const { userId, role } = requireAuth(req);
+    const pet = await petService.removeActivity(
+      req.params.id as string,
+      userId,
+      role,
+      req.params.activityId as string,
+    );
+    sendSuccess(res, HTTP_STATUS.OK, pet, 'Activity removed');
   }),
 
   updateCompanionProfile: asyncHandler(async (req: Request, res: Response) => {

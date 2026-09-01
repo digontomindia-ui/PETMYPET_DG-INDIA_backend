@@ -2,11 +2,80 @@ import { Router } from 'express';
 import { authenticate } from '../../common/middlewares/auth.middleware.js';
 import { validate } from '../../common/middlewares/validate.middleware.js';
 import { petCompanionController } from './pet-companion.controller.js';
-import { discoverQuerySchema, petIdQuerySchema, swipeSchema } from './pet-companion.validators.js';
+import {
+  discoverQuerySchema,
+  petIdParamSchema,
+  petIdQuerySchema,
+  swipeSchema,
+} from './pet-companion.validators.js';
 
 export const petCompanionRoutes = Router();
 
 petCompanionRoutes.use(authenticate);
+
+/**
+ * @openapi
+ * /pet-companion/pets/{id}:
+ *   get:
+ *     tags: [PetCompanion]
+ *     summary: Get another pet's full companion profile (gallery, activities, reviews, likes/views, verification badges)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200:
+ *         description: Companion profile
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *             example:
+ *               success: true
+ *               message: Success
+ *               data:
+ *                 id: 64f1a2b3c4d5e6f7a8b9c0e1
+ *                 ownerId: 64f1a2b3c4d5e6f7a8b9c0e2
+ *                 ownerName: Ananya S.
+ *                 name: Luna
+ *                 species: DOG
+ *                 breed: Golden Retriever
+ *                 gender: FEMALE
+ *                 avatarUrl: "https://picsum.photos/seed/pet-luna/400/400"
+ *                 galleryUrls: []
+ *                 activities:
+ *                   - id: 64f1a2b3c4d5e6f7a8b9c0f1
+ *                     type: PARK_VISIT
+ *                     title: Carter Road Park
+ *                     location: Carter Road, Bandra West
+ *                     occurredAt: "2026-09-01T08:30:00.000Z"
+ *                 companionProfile: { isEnabled: true, bio: "Loves the dog park." }
+ *                 likesCount: 12
+ *                 viewCount: 341
+ *                 verification: { mobileVerified: true, identityVerified: false, vaccinationVerified: true, locationVerified: true }
+ *                 isOwnPet: false
+ *                 recentReviews:
+ *                   - id: 64f1a2b3c4d5e6f7a8b9c0f2
+ *                     userId: 64f1a2b3c4d5e6f7a8b9c0d1
+ *                     authorName: Priya Sharma
+ *                     authorAvatarUrl: "https://picsum.photos/seed/user-priya-sharma/300/300"
+ *                     rating: 5
+ *                     comment: "Extremely friendly and gentle."
+ *                     createdAt: "2026-08-20T10:00:00.000Z"
+ *       401:
+ *         description: Authentication required
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *       404:
+ *         description: Pet not found
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ */
+petCompanionRoutes.get(
+  '/pets/:id',
+  validate({ params: petIdParamSchema }),
+  petCompanionController.getProfile,
+);
 
 /**
  * @openapi
