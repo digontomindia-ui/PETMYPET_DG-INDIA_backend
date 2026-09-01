@@ -68,6 +68,8 @@ const KORAMANGALA: [number, number] = [77.6146, 12.9352];
  * searches from this location come back empty and the booking wizard never gets a provider to
  * even ask /availability about. */
 const KOLKATA: [number, number] = [88.47979029999999, 22.575393100000003];
+/** Digha, West Bengal — requested test location so nearby searches from there return results too. */
+const DIGHA: [number, number] = [87.55930839999999, 21.674505699999997];
 function jitter([lng, lat]: [number, number], meters: number): [number, number] {
   const deg = meters / 111_320; // ~meters per degree latitude
   return [lng + (Math.random() - 0.5) * deg, lat + (Math.random() - 0.5) * deg];
@@ -110,6 +112,13 @@ async function seed(): Promise<void> {
     name: 'Kolkata Central',
     cityId: kolkata._id,
     center: { type: 'Point', coordinates: KOLKATA },
+    radiusMeters: 8000,
+  });
+  const digha = await CityModel.create({ name: 'Digha', state: 'West Bengal', country: 'India' });
+  const dighaZone = await ZoneModel.create({
+    name: 'Digha Central',
+    cityId: digha._id,
+    center: { type: 'Point', coordinates: DIGHA },
     radiusMeters: 8000,
   });
 
@@ -470,8 +479,43 @@ async function seed(): Promise<void> {
     addressLabel: 'Park Street, Kolkata, West Bengal 700016',
   });
 
+  // ---- Digha providers (requested test location) --------------------------
+  const dighaOpts = { zoneId: dighaZone._id, center: DIGHA };
+  const boardingDigha = await createProviderWithUser({
+    ...dighaOpts,
+    name: 'Digha Paw Stay',
+    businessName: 'Digha Paw Stay Boarding Center',
+    providerType: PROVIDER_TYPES.BOARDING,
+    experienceYears: 6,
+    languages: ['English', 'Bengali'],
+    metadata: { boarding: { capacity: 12, availableKennels: 5, amenities: ['24/7 Care', 'Play Area', 'CCTV Monitored'] } },
+    addressLabel: 'Digha Paw Stay Boarding Center, New Digha, West Bengal 721428',
+  });
+  const vetDigha = await createProviderWithUser({
+    ...dighaOpts,
+    name: 'Dr Aniket Roy',
+    businessName: 'Digha Popular Pet Clinic',
+    providerType: PROVIDER_TYPES.VET,
+    experienceYears: 9,
+    languages: ['English', 'Hindi', 'Bengali'],
+    metadata: {
+      vet: {
+        specializations: ['General', 'Surgery', 'Vaccination'],
+        consultationFee: 499,
+        licenseNumber: 'VET-WB-9012',
+        supportsVideoConsultation: true,
+      },
+    },
+    addressLabel: 'Digha Popular Pet Clinic, New Digha, West Bengal 721428',
+  });
+
   // ---- Services (= "packages" shown in the app) --------------------------
-  const groomingBasic = await ServiceModel.create({
+  async function createService(data: Record<string, unknown> & { name: string }) {
+    const slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    return ServiceModel.create({ ...data, images: [seedImage(`service-${slug}`, 600, 600)] });
+  }
+
+  const groomingBasic = await createService({
     providerId: groomer.provider._id,
     categoryId: categoryGrooming._id,
     name: 'Basic Grooming',
@@ -480,7 +524,7 @@ async function seed(): Promise<void> {
     originalPrice: 799,
     durationMinutes: 45,
   });
-  await ServiceModel.create({
+  await createService({
     providerId: groomer.provider._id,
     categoryId: categoryGrooming._id,
     name: 'Standard Grooming',
@@ -489,7 +533,7 @@ async function seed(): Promise<void> {
     originalPrice: 1199,
     durationMinutes: 60,
   });
-  await ServiceModel.create({
+  await createService({
     providerId: groomer.provider._id,
     categoryId: categoryGrooming._id,
     name: 'Premium Grooming',
@@ -499,7 +543,7 @@ async function seed(): Promise<void> {
     durationMinutes: 90,
   });
 
-  const onlineConsult = await ServiceModel.create({
+  const onlineConsult = await createService({
     providerId: vet.provider._id,
     categoryId: categoryVeterinary._id,
     name: 'Online Video Consultation',
@@ -508,7 +552,7 @@ async function seed(): Promise<void> {
     originalPrice: 999,
     durationMinutes: 20,
   });
-  await ServiceModel.create({
+  await createService({
     providerId: vet.provider._id,
     categoryId: categoryVeterinary._id,
     name: 'Clinic Consultation',
@@ -517,7 +561,7 @@ async function seed(): Promise<void> {
     originalPrice: 1599,
     durationMinutes: 30,
   });
-  await ServiceModel.create({
+  await createService({
     providerId: vet.provider._id,
     categoryId: categoryVeterinary._id,
     name: 'Essential Vaccination Package',
@@ -532,7 +576,7 @@ async function seed(): Promise<void> {
     { name: 'Poo Pickup', price: 49 },
     { name: 'Hydration Break', price: 29 },
   ];
-  await ServiceModel.create({
+  await createService({
     providerId: walker.provider._id,
     categoryId: categoryDogWalking._id,
     name: '30 Min Walk',
@@ -541,7 +585,7 @@ async function seed(): Promise<void> {
     durationMinutes: 30,
     addOnCatalog: walkAddOns,
   });
-  await ServiceModel.create({
+  await createService({
     providerId: walker.provider._id,
     categoryId: categoryDogWalking._id,
     name: '45 Min Walk',
@@ -550,7 +594,7 @@ async function seed(): Promise<void> {
     durationMinutes: 45,
     addOnCatalog: walkAddOns,
   });
-  await ServiceModel.create({
+  await createService({
     providerId: walker.provider._id,
     categoryId: categoryDogWalking._id,
     name: '60 Min Walk',
@@ -560,7 +604,7 @@ async function seed(): Promise<void> {
     addOnCatalog: walkAddOns,
   });
 
-  const boardingService = await ServiceModel.create({
+  const boardingService = await createService({
     providerId: boarding.provider._id,
     categoryId: categoryBoarding._id,
     name: 'Standard Boarding',
@@ -574,7 +618,7 @@ async function seed(): Promise<void> {
     ],
   });
 
-  await ServiceModel.create({
+  await createService({
     providerId: trainer.provider._id,
     categoryId: categoryDogTraining._id,
     name: 'Basic Obedience Training',
@@ -583,7 +627,7 @@ async function seed(): Promise<void> {
     durationMinutes: 60,
   });
 
-  await ServiceModel.create({
+  await createService({
     providerId: sitter.provider._id,
     categoryId: categoryPetSitting._id,
     name: 'Pet Sitting Visit',
@@ -593,7 +637,7 @@ async function seed(): Promise<void> {
   });
 
   // ---- Kolkata services — same package structure as Bangalore, different providers ------
-  await ServiceModel.create({
+  await createService({
     providerId: groomerKolkata.provider._id,
     categoryId: categoryGrooming._id,
     name: 'Basic Grooming',
@@ -602,7 +646,7 @@ async function seed(): Promise<void> {
     originalPrice: 799,
     durationMinutes: 45,
   });
-  await ServiceModel.create({
+  await createService({
     providerId: groomerKolkata.provider._id,
     categoryId: categoryGrooming._id,
     name: 'Standard Grooming',
@@ -611,7 +655,7 @@ async function seed(): Promise<void> {
     originalPrice: 1199,
     durationMinutes: 60,
   });
-  await ServiceModel.create({
+  await createService({
     providerId: groomerKolkata.provider._id,
     categoryId: categoryGrooming._id,
     name: 'Premium Grooming',
@@ -621,7 +665,7 @@ async function seed(): Promise<void> {
     durationMinutes: 90,
   });
 
-  await ServiceModel.create({
+  await createService({
     providerId: vetKolkata.provider._id,
     categoryId: categoryVeterinary._id,
     name: 'Online Video Consultation',
@@ -630,7 +674,7 @@ async function seed(): Promise<void> {
     originalPrice: 999,
     durationMinutes: 20,
   });
-  await ServiceModel.create({
+  await createService({
     providerId: vetKolkata.provider._id,
     categoryId: categoryVeterinary._id,
     name: 'Clinic Consultation',
@@ -639,7 +683,7 @@ async function seed(): Promise<void> {
     originalPrice: 1599,
     durationMinutes: 30,
   });
-  await ServiceModel.create({
+  await createService({
     providerId: vetKolkata.provider._id,
     categoryId: categoryVeterinary._id,
     name: 'Essential Vaccination Package',
@@ -649,7 +693,7 @@ async function seed(): Promise<void> {
     durationMinutes: 20,
   });
 
-  await ServiceModel.create({
+  await createService({
     providerId: walkerKolkata.provider._id,
     categoryId: categoryDogWalking._id,
     name: '30 Min Walk',
@@ -658,7 +702,7 @@ async function seed(): Promise<void> {
     durationMinutes: 30,
     addOnCatalog: walkAddOns,
   });
-  await ServiceModel.create({
+  await createService({
     providerId: walkerKolkata.provider._id,
     categoryId: categoryDogWalking._id,
     name: '45 Min Walk',
@@ -667,7 +711,7 @@ async function seed(): Promise<void> {
     durationMinutes: 45,
     addOnCatalog: walkAddOns,
   });
-  await ServiceModel.create({
+  await createService({
     providerId: walkerKolkata.provider._id,
     categoryId: categoryDogWalking._id,
     name: '60 Min Walk',
@@ -677,7 +721,7 @@ async function seed(): Promise<void> {
     addOnCatalog: walkAddOns,
   });
 
-  await ServiceModel.create({
+  await createService({
     providerId: boardingKolkata.provider._id,
     categoryId: categoryBoarding._id,
     name: 'Standard Boarding',
@@ -691,7 +735,7 @@ async function seed(): Promise<void> {
     ],
   });
 
-  await ServiceModel.create({
+  await createService({
     providerId: trainerKolkata.provider._id,
     categoryId: categoryDogTraining._id,
     name: 'Basic Obedience Training',
@@ -700,13 +744,35 @@ async function seed(): Promise<void> {
     durationMinutes: 60,
   });
 
-  await ServiceModel.create({
+  await createService({
     providerId: sitterKolkata.provider._id,
     categoryId: categoryPetSitting._id,
     name: 'Pet Sitting Visit',
     description: 'In-home pet sitting visit',
     price: 399,
     durationMinutes: 60,
+  });
+
+  await createService({
+    providerId: boardingDigha.provider._id,
+    categoryId: categoryBoarding._id,
+    name: 'Standard Boarding',
+    description: 'Per-day boarding with daily walks',
+    price: 799,
+    durationMinutes: 1440,
+    addOnCatalog: [
+      { name: 'Extra Playtime', price: 150 },
+      { name: 'Grooming', price: 300 },
+    ],
+  });
+
+  await createService({
+    providerId: vetDigha.provider._id,
+    categoryId: categoryVeterinary._id,
+    name: 'General Consultation',
+    description: 'In-clinic or video vet consultation',
+    price: 499,
+    durationMinutes: 30,
   });
 
   // ---- Pets ---------------------------------------------------------------
