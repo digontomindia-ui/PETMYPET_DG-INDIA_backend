@@ -12,7 +12,7 @@ export const shippingAddressSchema = z.object({
 
 export const placeOrderSchema = z.object({
   shippingAddress: shippingAddressSchema,
-  paymentMethod: z.enum([ORDER_PAYMENT_METHODS.WALLET, ORDER_PAYMENT_METHODS.CASH_ON_DELIVERY]),
+  paymentMethod: z.enum([ORDER_PAYMENT_METHODS.WALLET, ORDER_PAYMENT_METHODS.CASH_ON_DELIVERY, ORDER_PAYMENT_METHODS.RAZORPAY]),
 });
 
 export const updateOrderStatusSchema = z.object({

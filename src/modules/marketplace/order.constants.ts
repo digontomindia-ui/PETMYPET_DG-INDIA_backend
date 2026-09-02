@@ -24,6 +24,7 @@ export const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 export const ORDER_PAYMENT_METHODS = {
   WALLET: 'WALLET',
   CASH_ON_DELIVERY: 'CASH_ON_DELIVERY',
+  RAZORPAY: 'RAZORPAY',
 } as const;
 
 export type OrderPaymentMethod = (typeof ORDER_PAYMENT_METHODS)[keyof typeof ORDER_PAYMENT_METHODS];
