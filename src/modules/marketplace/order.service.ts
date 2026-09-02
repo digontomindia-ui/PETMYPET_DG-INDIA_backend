@@ -68,7 +68,13 @@ export const orderService = {
       paymentMethod: input.paymentMethod,
     });
 
-    let razorpay: { razorpayOrderId: string; amount: number; currency: string; razorpayKeyId: string } | null = null;
+    let razorpay: {
+      paymentId: string;
+      razorpayOrderId: string;
+      amount: number;
+      currency: string;
+      razorpayKeyId: string;
+    } | null = null;
 
     if (input.paymentMethod === ORDER_PAYMENT_METHODS.WALLET) {
       try {
@@ -94,7 +100,7 @@ export const orderService = {
           notes: { orderId: order._id.toString() },
         });
 
-        await paymentRepository.create({
+        const payment = await paymentRepository.create({
           orderId: order._id,
           userId: order.userId,
           amount: totalAmount,
@@ -106,6 +112,7 @@ export const orderService = {
         });
 
         razorpay = {
+          paymentId: payment._id.toString(),
           razorpayOrderId: razorpayOrder.id,
           amount: totalAmount,
           currency: order.currency,
