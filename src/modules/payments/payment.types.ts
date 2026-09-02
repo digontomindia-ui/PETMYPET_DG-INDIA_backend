@@ -4,6 +4,7 @@ import type { PaymentMethod, PaymentPurpose, PaymentTransactionStatus } from './
 export interface IPayment {
   _id: Types.ObjectId;
   bookingId: Types.ObjectId | null;
+  orderId: Types.ObjectId | null;
   userId: Types.ObjectId;
   amount: number;
   currency: string;

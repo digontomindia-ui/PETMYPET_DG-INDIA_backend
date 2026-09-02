@@ -230,6 +230,28 @@ async function seed(): Promise<void> {
     ],
   });
 
+  const sourav = await UserModel.create({
+    role: ROLES.USER,
+    name: 'Sourav Das',
+    avatarUrl: seedImage('user-sourav-das', 300, 300),
+    email: 'sourav.das@seed.patmypets.in',
+    phone: '+919111000004',
+    passwordHash: userPasswordHash,
+    isVerified: true,
+    addresses: [
+      {
+        label: 'Home',
+        addressLine1: 'Sea View Road, New Digha',
+        city: 'Digha',
+        state: 'West Bengal',
+        postalCode: '721428',
+        country: 'India',
+        location: { type: 'Point', coordinates: jitter(DIGHA, 500) },
+        isDefault: true,
+      },
+    ],
+  });
+
   // ---- Providers --------------------------------------------------------
   async function createProviderWithUser(opts: {
     name: string;
@@ -512,6 +534,16 @@ async function seed(): Promise<void> {
     },
     addressLabel: 'Digha Popular Pet Clinic, New Digha, West Bengal 721428',
   });
+  const sitterDigha = await createProviderWithUser({
+    ...dighaOpts,
+    name: 'Moumita Das',
+    businessName: 'Digha Trusted Pet Sitters',
+    providerType: PROVIDER_TYPES.PET_SITTER,
+    experienceYears: 4,
+    languages: ['English', 'Bengali'],
+    metadata: { petSitter: { maxPetsAtOnce: 2 } },
+    addressLabel: 'New Digha, West Bengal 721428',
+  });
 
   // ---- Services (= "packages" shown in the app) --------------------------
   async function createService(data: Record<string, unknown> & { name: string }) {
@@ -779,6 +811,15 @@ async function seed(): Promise<void> {
     durationMinutes: 30,
   });
 
+  await createService({
+    providerId: sitterDigha.provider._id,
+    categoryId: categoryPetSitting._id,
+    name: 'Half-Day Pet Sitting',
+    description: 'In-home pet sitting for up to 4 hours',
+    price: 449,
+    durationMinutes: 240,
+  });
+
   // ---- Pets ---------------------------------------------------------------
   const bruno = await PetModel.create({
     ownerId: priya._id,
@@ -868,6 +909,33 @@ async function seed(): Promise<void> {
       getsAlongWith: {
         dogs: GETS_ALONG_WITH_STATUS.YES,
         cats: GETS_ALONG_WITH_STATUS.YES,
+        kids: GETS_ALONG_WITH_STATUS.YES,
+        families: GETS_ALONG_WITH_STATUS.YES,
+      },
+    },
+  });
+
+  await PetModel.create({
+    ownerId: sourav._id,
+    name: 'Rocky',
+    avatarUrl: seedImage('pet-rocky', 400, 400),
+    species: PET_SPECIES.DOG,
+    breed: 'Indian Pariah',
+    gender: PET_GENDERS.MALE,
+    dateOfBirth: daysAgo(365 * 2),
+    weightKg: 20,
+    companionProfile: {
+      isEnabled: true,
+      bio: 'Rocky loves running on the beach and meeting new dogs.',
+      personalityTraits: ['playful', 'energetic'],
+      interests: ['beach walks', 'fetch'],
+      lookingFor: ['playdates', 'running buddy'],
+      activityLevel: COMPANION_ACTIVITY_LEVELS.HIGH,
+      temperament: 'Friendly with other dogs',
+      neutered: true,
+      getsAlongWith: {
+        dogs: GETS_ALONG_WITH_STATUS.YES,
+        cats: GETS_ALONG_WITH_STATUS.NEEDS_INTRODUCTION,
         kids: GETS_ALONG_WITH_STATUS.YES,
         families: GETS_ALONG_WITH_STATUS.YES,
       },

@@ -4,6 +4,7 @@ export function toPaymentDto(payment: PaymentDocument) {
   return {
     id: payment._id.toString(),
     bookingId: payment.bookingId ? payment.bookingId.toString() : null,
+    orderId: payment.orderId ? payment.orderId.toString() : null,
     amount: payment.amount,
     currency: payment.currency,
     method: payment.method,

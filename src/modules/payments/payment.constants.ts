@@ -21,6 +21,7 @@ export type PaymentTransactionStatus =
 
 export const PAYMENT_PURPOSES = {
   BOOKING: 'BOOKING',
+  ORDER: 'ORDER',
   WALLET_TOPUP: 'WALLET_TOPUP',
 } as const;
 

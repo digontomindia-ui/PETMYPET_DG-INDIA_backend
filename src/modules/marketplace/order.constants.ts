@@ -32,6 +32,7 @@ export type OrderPaymentMethod = (typeof ORDER_PAYMENT_METHODS)[keyof typeof ORD
 export const ORDER_PAYMENT_STATUSES = {
   PENDING: 'PENDING',
   PAID: 'PAID',
+  FAILED: 'FAILED',
   REFUNDED: 'REFUNDED',
 } as const;
 

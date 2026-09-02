@@ -7,6 +7,8 @@ import { ROLES, type Role } from '../../common/constants/roles.js';
 import { bookingRepository } from '../bookings/booking.repository.js';
 import { bookingService } from '../bookings/booking.service.js';
 import { BOOKING_STATUSES, PAYMENT_STATUSES } from '../bookings/booking.constants.js';
+import { orderRepository } from '../marketplace/order.repository.js';
+import { ORDER_PAYMENT_STATUSES } from '../marketplace/order.constants.js';
 import { walletService } from '../wallet/wallet.service.js';
 import { WALLET_TRANSACTION_REASONS } from '../wallet/wallet.constants.js';
 import { providerRepository } from '../providers/provider.repository.js';
@@ -218,6 +220,20 @@ export const paymentService = {
         body: `We received your payment of ${payment.currency} ${payment.amount}`,
         data: { bookingId: payment.bookingId.toString() },
       });
+    } else if (payment.purpose === PAYMENT_PURPOSES.ORDER) {
+      if (!payment.orderId) throw AppError.internal('Order payment is missing an orderId');
+
+      await orderRepository.updateById(payment.orderId.toString(), {
+        paymentStatus: ORDER_PAYMENT_STATUSES.PAID,
+      });
+
+      await notificationService.notify({
+        userId: payment.userId.toString(),
+        type: NOTIFICATION_TYPES.PAYMENT_RECEIVED,
+        title: 'Payment received',
+        body: `We received your payment of ${payment.currency} ${payment.amount}`,
+        data: { orderId: payment.orderId.toString() },
+      });
     } else {
       await walletService.credit(
         payment.userId.toString(),
@@ -258,6 +274,20 @@ export const paymentService = {
         title: 'Payment failed',
         body: reason,
         data: { bookingId: payment.bookingId.toString() },
+      });
+    } else if (payment.purpose === PAYMENT_PURPOSES.ORDER) {
+      if (!payment.orderId) throw AppError.internal('Order payment is missing an orderId');
+
+      await orderRepository.updateById(payment.orderId.toString(), {
+        paymentStatus: ORDER_PAYMENT_STATUSES.FAILED,
+      });
+
+      await notificationService.notify({
+        userId: payment.userId.toString(),
+        type: NOTIFICATION_TYPES.PAYMENT_FAILED,
+        title: 'Payment failed',
+        body: reason,
+        data: { orderId: payment.orderId.toString() },
       });
     } else {
       await notificationService.notify({

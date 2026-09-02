@@ -1,12 +1,16 @@
 import { AppError } from '../../common/errors/app-error.js';
 import { parsePagination } from '../../common/utils/pagination.js';
 import { ROLES, type Role } from '../../common/constants/roles.js';
+import { env } from '../../common/config/env.js';
+import { getRazorpayClient } from '../../common/integrations/razorpay.js';
 import { walletService } from '../wallet/wallet.service.js';
 import { WALLET_TRANSACTION_REASONS } from '../wallet/wallet.constants.js';
 import { notificationService } from '../notifications/notification.service.js';
 import { NOTIFICATION_TYPES } from '../notifications/notification.constants.js';
 import { auditLogService } from '../admin/admin.service.js';
 import { AUDIT_ACTIONS } from '../admin/admin.constants.js';
+import { paymentRepository } from '../payments/payment.repository.js';
+import { PAYMENT_METHODS, PAYMENT_PURPOSES, PAYMENT_TRANSACTION_STATUSES } from '../payments/payment.constants.js';
 import { ProductModel } from './product.schema.js';
 import { cartRepository } from './cart.repository.js';
 import { orderRepository } from './order.repository.js';
@@ -64,6 +68,8 @@ export const orderService = {
       paymentMethod: input.paymentMethod,
     });
 
+    let razorpay: { razorpayOrderId: string; amount: number; currency: string; razorpayKeyId: string } | null = null;
+
     if (input.paymentMethod === ORDER_PAYMENT_METHODS.WALLET) {
       try {
         await walletService.debit(
@@ -75,6 +81,36 @@ export const orderService = {
         );
         order.paymentStatus = ORDER_PAYMENT_STATUSES.PAID;
         await order.save();
+      } catch (err) {
+        await restockAndCancel(order._id.toString(), items);
+        throw err;
+      }
+    } else if (input.paymentMethod === ORDER_PAYMENT_METHODS.RAZORPAY) {
+      try {
+        const razorpayOrder = await getRazorpayClient().orders.create({
+          amount: Math.round(totalAmount * 100),
+          currency: order.currency,
+          receipt: order._id.toString(),
+          notes: { orderId: order._id.toString() },
+        });
+
+        await paymentRepository.create({
+          orderId: order._id,
+          userId: order.userId,
+          amount: totalAmount,
+          currency: order.currency,
+          method: PAYMENT_METHODS.RAZORPAY,
+          purpose: PAYMENT_PURPOSES.ORDER,
+          status: PAYMENT_TRANSACTION_STATUSES.CREATED,
+          razorpayOrderId: razorpayOrder.id,
+        });
+
+        razorpay = {
+          razorpayOrderId: razorpayOrder.id,
+          amount: totalAmount,
+          currency: order.currency,
+          razorpayKeyId: env.RAZORPAY_KEY_ID,
+        };
       } catch (err) {
         await restockAndCancel(order._id.toString(), items);
         throw err;
@@ -91,7 +127,7 @@ export const orderService = {
       data: { orderId: order._id.toString() },
     });
 
-    return toOrderDto(order);
+    return { ...toOrderDto(order), razorpay };
   },
 
   async getById(orderId: string, userId: string, role: Role) {

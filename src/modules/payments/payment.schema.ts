@@ -1,6 +1,7 @@
 import { model, Schema } from 'mongoose';
 import { USER_MODEL_NAME } from '../users/user.constants.js';
 import { BOOKING_MODEL_NAME } from '../bookings/booking.constants.js';
+import { ORDER_MODEL_NAME } from '../marketplace/order.constants.js';
 import {
   PAYMENT_METHODS,
   PAYMENT_MODEL_NAME,
@@ -14,6 +15,12 @@ const paymentSchema = new Schema<IPayment>(
     bookingId: {
       type: Schema.Types.ObjectId,
       ref: BOOKING_MODEL_NAME,
+      required: false,
+      default: null,
+    },
+    orderId: {
+      type: Schema.Types.ObjectId,
+      ref: ORDER_MODEL_NAME,
       required: false,
       default: null,
     },
