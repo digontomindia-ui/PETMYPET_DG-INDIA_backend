@@ -2,7 +2,11 @@ import { AppError } from '../../common/errors/app-error.js';
 import { parsePagination } from '../../common/utils/pagination.js';
 import { logger } from '../../common/utils/logger.js';
 import { env } from '../../common/config/env.js';
-import { getRazorpayClient, verifyWebhookSignature } from '../../common/integrations/razorpay.js';
+import {
+  getRazorpayClient,
+  verifyWebhookSignature,
+  verifyPaymentSignature,
+} from '../../common/integrations/razorpay.js';
 import { ROLES, type Role } from '../../common/constants/roles.js';
 import { bookingRepository } from '../bookings/booking.repository.js';
 import { bookingService } from '../bookings/booking.service.js';
@@ -115,6 +119,41 @@ export const paymentService = {
       currency: booking.currency,
       razorpayKeyId: env.RAZORPAY_KEY_ID,
     };
+  },
+
+  /**
+   * Synchronous fallback for the frontend to call right after Razorpay checkout succeeds —
+   * the webhook is async (and depends on RAZORPAY_WEBHOOK_SECRET being correctly configured on
+   * this environment), so without this the client has no way to confirm payment immediately.
+   */
+  async verifyPayment(
+    paymentId: string,
+    userId: string,
+    input: { razorpayOrderId: string; razorpayPaymentId: string; razorpaySignature: string },
+  ) {
+    const payment = await paymentRepository.findById(paymentId);
+    if (!payment) throw AppError.notFound('Payment not found');
+    if (payment.userId.toString() !== userId) {
+      throw AppError.forbidden('This payment does not belong to you');
+    }
+    if (payment.method !== PAYMENT_METHODS.RAZORPAY) {
+      throw AppError.badRequest('This payment is not a Razorpay payment');
+    }
+    if (payment.razorpayOrderId !== input.razorpayOrderId) {
+      throw AppError.badRequest('razorpayOrderId does not match this payment');
+    }
+
+    const isValid = verifyPaymentSignature(
+      input.razorpayOrderId,
+      input.razorpayPaymentId,
+      input.razorpaySignature,
+    );
+    if (!isValid) throw AppError.unauthorized('Invalid payment signature');
+
+    await this.onPaymentCaptured(input.razorpayOrderId, input.razorpayPaymentId);
+
+    const updated = await paymentRepository.findById(paymentId);
+    return toPaymentDto(updated!);
   },
 
   async markCashCollected(paymentId: string, providerUserId: string) {

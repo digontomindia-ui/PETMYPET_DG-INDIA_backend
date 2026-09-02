@@ -9,6 +9,7 @@ import {
   createOrderSchema,
   listPaymentsQuerySchema,
   paymentIdParamSchema,
+  verifyPaymentSchema,
 } from './payment.validators.js';
 
 export const paymentRoutes = Router();
@@ -136,6 +137,74 @@ paymentRoutes.post(
   requireRole(ROLES.USER),
   validate({ params: bookingIdParamSchema, body: createOrderSchema }),
   paymentController.createOrder,
+);
+
+/**
+ * @openapi
+ * /payments/{id}/verify:
+ *   post:
+ *     tags: [Payments]
+ *     summary: Confirm a RAZORPAY payment right after checkout succeeds on the client (USER only) — synchronous alternative to waiting on the webhook
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string }, example: 64f1a2b3c4d5e6f7a8b9c0e1, description: The paymentId returned by POST /payments/bookings/{bookingId}/order }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [razorpayOrderId, razorpayPaymentId, razorpaySignature]
+ *             properties:
+ *               razorpayOrderId: { type: string }
+ *               razorpayPaymentId: { type: string }
+ *               razorpaySignature: { type: string }
+ *           example:
+ *             razorpayOrderId: order_NXtZ4xyzABC123
+ *             razorpayPaymentId: pay_NXtZ9xyzDEF456
+ *             razorpaySignature: 9ef4dffbc55c8...
+ *     responses:
+ *       200:
+ *         description: Payment verified and booking marked paid
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *             example:
+ *               success: true
+ *               message: Payment verified
+ *               data:
+ *                 id: 64f1a2b3c4d5e6f7a8b9c0e1
+ *                 bookingId: 64f1a2b3c4d5e6f7a8b9c0d1
+ *                 amount: 899
+ *                 currency: INR
+ *                 method: RAZORPAY
+ *                 status: CAPTURED
+ *                 razorpayOrderId: order_NXtZ4xyzABC123
+ *                 razorpayPaymentId: pay_NXtZ9xyzDEF456
+ *       400:
+ *         description: Validation error, or razorpayOrderId does not match this payment
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: BAD_REQUEST
+ *               message: razorpayOrderId does not match this payment
+ *       401:
+ *         description: Not authenticated, or invalid payment signature
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example:
+ *               success: false
+ *               error: UNAUTHORIZED
+ *               message: Invalid payment signature
+ */
+paymentRoutes.post(
+  '/:id/verify',
+  authenticate,
+  validate({ params: paymentIdParamSchema, body: verifyPaymentSchema }),
+  paymentController.verifyPayment,
 );
 
 /**

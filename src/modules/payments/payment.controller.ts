@@ -4,7 +4,7 @@ import { sendSuccess, buildPaginationMeta } from '../../common/utils/api-respons
 import { AppError } from '../../common/errors/app-error.js';
 import { HTTP_STATUS } from '../../common/constants/http-status.js';
 import { paymentService } from './payment.service.js';
-import type { CreateOrderInput } from './payment.dto.js';
+import type { CreateOrderInput, VerifyPaymentInput } from './payment.dto.js';
 
 function requireAuth(req: Request) {
   if (!req.user) throw AppError.unauthorized();
@@ -17,6 +17,16 @@ export const paymentController = {
     const { method } = req.body as CreateOrderInput;
     const result = await paymentService.createOrder(req.params.bookingId as string, userId, method);
     sendSuccess(res, HTTP_STATUS.CREATED, result, 'Payment initiated');
+  }),
+
+  verifyPayment: asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = requireAuth(req);
+    const payment = await paymentService.verifyPayment(
+      req.params.id as string,
+      userId,
+      req.body as VerifyPaymentInput,
+    );
+    sendSuccess(res, HTTP_STATUS.OK, payment, 'Payment verified');
   }),
 
   markCashCollected: asyncHandler(async (req: Request, res: Response) => {

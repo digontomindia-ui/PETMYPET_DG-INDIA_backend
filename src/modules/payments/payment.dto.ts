@@ -1,7 +1,8 @@
 import type { z } from 'zod';
-import type { createOrderSchema } from './payment.validators.js';
+import type { createOrderSchema, verifyPaymentSchema } from './payment.validators.js';
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+export type VerifyPaymentInput = z.infer<typeof verifyPaymentSchema>;
 
 export interface RazorpayOrderResponse {
   paymentId: string;
