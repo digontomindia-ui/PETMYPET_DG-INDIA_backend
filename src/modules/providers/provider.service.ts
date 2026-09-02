@@ -11,6 +11,8 @@ import { AUDIT_ACTIONS } from '../admin/admin.constants.js';
 import { BookingModel } from '../bookings/booking.schema.js';
 import { BOOKING_STATUSES, PAYMENT_STATUSES } from '../bookings/booking.constants.js';
 import { ReviewModel } from '../reviews/review.schema.js';
+import { reviewRepository } from '../reviews/review.repository.js';
+import { toReviewDto } from '../reviews/review.mapper.js';
 import { ServiceModel } from '../services/service.schema.js';
 import { CategoryModel } from '../categories/category.schema.js';
 import { providerRepository } from './provider.repository.js';
@@ -140,7 +142,19 @@ export const providerService = {
     const provider = await providerRepository.findById(id);
     if (!provider) throw AppError.notFound('Provider not found');
     const [summary] = await enrichSummaries([provider]);
-    return summary;
+
+    const { items: reviewDocs } = await reviewRepository.findForProvider(id, 0, 5);
+    const authors = await UserModel.find({ _id: { $in: reviewDocs.map((r) => r.userId) } })
+      .select('name avatarUrl')
+      .lean();
+    const authorById = new Map(authors.map((author) => [author._id.toString(), author]));
+    const recentReviews = reviewDocs.map((review) => {
+      const dto = toReviewDto(review);
+      const author = authorById.get(dto.userId);
+      return { ...dto, authorName: author?.name ?? '', authorAvatarUrl: author?.avatarUrl ?? null };
+    });
+
+    return { ...summary, recentReviews };
   },
 
   async setActive(userId: string, isActive: boolean) {
