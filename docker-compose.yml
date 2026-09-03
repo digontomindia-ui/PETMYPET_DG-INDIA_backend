@@ -11,6 +11,7 @@ services:
       API_VERSION: v1
       APP_NAME: Patmypets
       CORS_ORIGINS: http://localhost:3000,http://localhost:8081
+      PUBLIC_BASE_URL: http://187.127.210.144:4000
       LOG_LEVEL: info
 
       MONGO_URI: mongodb://root:HYJbGtu4t6vypDLqfLFKLLhQPsw89IItpL9x7jf3OJ5bfkFdp9IT9dbgPP2dbMhZ@187.127.210.144:5895/?directConnection=true
@@ -76,6 +77,7 @@ services:
       API_VERSION: v1
       APP_NAME: Patmypets
       CORS_ORIGINS: http://localhost:3000,http://localhost:8081
+      PUBLIC_BASE_URL: http://187.127.210.144:4000
       LOG_LEVEL: info
 
       MONGO_URI: mongodb://root:HYJbGtu4t6vypDLqfLFKLLhQPsw89IItpL9x7jf3OJ5bfkFdp9IT9dbgPP2dbMhZ@187.127.210.144:5895/?directConnection=true
