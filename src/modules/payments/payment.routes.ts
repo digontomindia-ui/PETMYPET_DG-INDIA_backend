@@ -147,7 +147,7 @@ paymentRoutes.post(
  *     summary: Confirm a RAZORPAY payment right after checkout succeeds on the client (USER only) — synchronous alternative to waiting on the webhook
  *     security: [{ bearerAuth: [] }]
  *     parameters:
- *       - { name: id, in: path, required: true, schema: { type: string }, example: 64f1a2b3c4d5e6f7a8b9c0e1, description: The paymentId returned by POST /payments/bookings/{bookingId}/order }
+ *       - { name: id, in: path, required: true, schema: { type: string }, example: 64f1a2b3c4d5e6f7a8b9c0e1, description: "The paymentId returned by POST /payments/bookings/{bookingId}/order" }
  *     requestBody:
  *       required: true
  *       content:
