@@ -13,10 +13,13 @@ export const upsertSettingSchema = z.object({
 });
 
 export const createBannerSchema = z.object({
+  type: z.enum(['image', 'stat']).default('image'),
   title: z.string().min(1).max(200),
   subtitle: z.string().max(300).default(''),
-  imageUrl: z.string().url(),
+  imageUrl: z.string().url().optional(),
   linkUrl: z.string().url().optional(),
+  number: z.string().max(20).optional(),
+  icon: z.string().url().optional(),
   order: z.number().int().default(0),
   startAt: z.coerce.date().optional(),
   endAt: z.coerce.date().optional(),

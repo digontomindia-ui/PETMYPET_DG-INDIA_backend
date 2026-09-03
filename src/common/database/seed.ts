@@ -252,6 +252,28 @@ async function seed(): Promise<void> {
     ],
   });
 
+  const meera = await UserModel.create({
+    role: ROLES.USER,
+    name: 'Meera Roy',
+    avatarUrl: seedImage('user-meera-roy', 300, 300),
+    email: 'meera.roy@seed.patmypets.in',
+    phone: '+919111000005',
+    passwordHash: userPasswordHash,
+    isVerified: true,
+    addresses: [
+      {
+        label: 'Home',
+        addressLine1: 'Beach Road, Old Digha',
+        city: 'Digha',
+        state: 'West Bengal',
+        postalCode: '721428',
+        country: 'India',
+        location: { type: 'Point', coordinates: jitter(DIGHA, 1500) },
+        isDefault: true,
+      },
+    ],
+  });
+
   // ---- Providers --------------------------------------------------------
   async function createProviderWithUser(opts: {
     name: string;
@@ -942,6 +964,33 @@ async function seed(): Promise<void> {
     },
   });
 
+  await PetModel.create({
+    ownerId: meera._id,
+    name: 'Coco',
+    avatarUrl: seedImage('pet-coco', 400, 400),
+    species: PET_SPECIES.DOG,
+    breed: 'Indian Pariah',
+    gender: PET_GENDERS.FEMALE,
+    dateOfBirth: daysAgo(365),
+    weightKg: 15,
+    companionProfile: {
+      isEnabled: true,
+      bio: 'Coco loves long beach walks and chasing waves.',
+      personalityTraits: ['friendly', 'curious'],
+      interests: ['beach walks', 'swimming'],
+      lookingFor: ['playdates'],
+      activityLevel: COMPANION_ACTIVITY_LEVELS.MEDIUM,
+      temperament: 'Gentle and social',
+      neutered: true,
+      getsAlongWith: {
+        dogs: GETS_ALONG_WITH_STATUS.YES,
+        cats: GETS_ALONG_WITH_STATUS.YES,
+        kids: GETS_ALONG_WITH_STATUS.YES,
+        families: GETS_ALONG_WITH_STATUS.YES,
+      },
+    },
+  });
+
   // ---- Products -------------------------------------------------------------
   const foodProduct = await ProductModel.create({
     name: 'Royal Canin Adult Dog Food 3kg',
@@ -1383,6 +1432,29 @@ async function seed(): Promise<void> {
     imageUrl: seedImage('tile-pet-boarding', 400, 400),
     linkUrl: `/categories/${categoryBoarding._id.toString()}`,
     order: 4,
+  });
+
+  // Home screen's stat strip (e.g. "10+ Services", "500+ Experts", "4.9 Rating").
+  await BannerModel.create({
+    type: 'stat',
+    title: 'Services',
+    number: '10+',
+    icon: 'https://api.iconify.design/mdi/paw.svg',
+    order: 10,
+  });
+  await BannerModel.create({
+    type: 'stat',
+    title: 'Experts',
+    number: '500+',
+    icon: 'https://api.iconify.design/mdi/account-group.svg',
+    order: 11,
+  });
+  await BannerModel.create({
+    type: 'stat',
+    title: 'Rating',
+    number: '4.9',
+    icon: 'https://api.iconify.design/mdi/star.svg',
+    order: 12,
   });
 
   await FeatureFlagModel.create({

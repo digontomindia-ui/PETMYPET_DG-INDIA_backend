@@ -28,10 +28,13 @@ export function toSettingDto(setting: SettingDocument) {
 export function toBannerDto(banner: BannerDocument) {
   return {
     id: banner._id.toString(),
+    type: banner.type,
     title: banner.title,
     subtitle: banner.subtitle,
     imageUrl: banner.imageUrl,
     linkUrl: banner.linkUrl,
+    number: banner.number,
+    icon: banner.icon,
     order: banner.order,
     isActive: banner.isActive,
     startAt: banner.startAt,

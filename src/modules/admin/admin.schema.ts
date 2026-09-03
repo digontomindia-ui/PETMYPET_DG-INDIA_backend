@@ -33,10 +33,13 @@ export const SettingModel = model<ISetting>(SETTING_MODEL_NAME, settingSchema);
 
 const bannerSchema = new Schema<IBanner>(
   {
+    type: { type: String, enum: ['image', 'stat'], default: 'image' },
     title: { type: String, required: true, maxlength: 200 },
     subtitle: { type: String, default: '', maxlength: 300 },
-    imageUrl: { type: String, required: true },
+    imageUrl: { type: String, default: '' },
     linkUrl: { type: String, default: null },
+    number: { type: String, default: null },
+    icon: { type: String, default: null },
     order: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
     startAt: { type: Date, default: null },

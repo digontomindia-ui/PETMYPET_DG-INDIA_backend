@@ -21,12 +21,17 @@ export interface ISetting {
 
 export type SettingDocument = HydratedDocument<ISetting>;
 
+export type BannerType = 'image' | 'stat';
+
 export interface IBanner {
   _id: Types.ObjectId;
+  type: BannerType;
   title: string;
   subtitle: string;
   imageUrl: string;
   linkUrl: string | null;
+  number: string | null;
+  icon: string | null;
   order: number;
   isActive: boolean;
   startAt: Date | null;
