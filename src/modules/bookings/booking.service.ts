@@ -11,6 +11,7 @@ import { couponService } from '../coupons/coupon.service.js';
 import { notificationService } from '../notifications/notification.service.js';
 import { NOTIFICATION_TYPES } from '../notifications/notification.constants.js';
 import { referralService } from '../referrals/referral.service.js';
+import { tryGetSocketServer } from '../../sockets/index.js';
 import { bookingRepository } from './booking.repository.js';
 import { toOwnerBookingView, toProviderBookingView } from './booking.mapper.js';
 import {
@@ -18,6 +19,7 @@ import {
   BOOKING_TRANSITIONS,
   CANCELLED_BY,
   PAYMENT_STATUSES,
+  WALK_SOCKET_EVENTS,
 } from './booking.constants.js';
 import type {
   AddBookingPhotoInput,
@@ -312,8 +314,34 @@ export const bookingService = {
 
     booking.status = BOOKING_STATUSES.STARTED;
     booking.otpStartVerifiedAt = new Date();
+    booking.walkStats = null;
     await booking.save();
+
+    tryGetSocketServer()
+      ?.to(`booking:${bookingId}`)
+      .emit(WALK_SOCKET_EVENTS.STARTED, { bookingId });
+
     return await toProviderBookingView(booking);
+  },
+
+  /** Provider's app pushes a live tick (distance/steps/calories) while the walk is in progress;
+   * persisted so the owner's app has a snapshot on load, and broadcast to whoever is watching. */
+  async updateWalkStats(
+    bookingId: string,
+    providerUserId: string,
+    stats: { distanceMeters: number; durationSeconds: number; steps: number; calories: number },
+  ) {
+    const booking = await requireBookingForProvider(bookingId, providerUserId);
+    if (booking.status !== BOOKING_STATUSES.STARTED) {
+      throw AppError.badRequest('Walk tracking is only available while the booking is in progress');
+    }
+
+    booking.walkStats = { ...stats, updatedAt: new Date() };
+    await booking.save();
+
+    tryGetSocketServer()
+      ?.to(`booking:${bookingId}`)
+      .emit(WALK_SOCKET_EVENTS.UPDATE, { bookingId, ...booking.walkStats });
   },
 
   async verifyEndOtp(bookingId: string, providerUserId: string, code: string) {
@@ -332,6 +360,10 @@ export const bookingService = {
     booking.commissionAmount = commissionAmount;
     booking.providerPayoutAmount = providerPayoutAmount;
     await booking.save();
+
+    tryGetSocketServer()
+      ?.to(`booking:${bookingId}`)
+      .emit(WALK_SOCKET_EVENTS.ENDED, { bookingId, walkStats: booking.walkStats });
 
     await notificationService.notify({
       userId: booking.userId.toString(),

@@ -32,6 +32,7 @@ async function toBaseBooking(booking: BookingDocument): Promise<PublicBookingBas
     consultationMode: booking.consultationMode,
     providerNotes: booking.providerNotes,
     photos: booking.photos,
+    walkStats: booking.walkStats,
     createdAt: booking.createdAt,
   };
 }

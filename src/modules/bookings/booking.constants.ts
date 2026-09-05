@@ -46,3 +46,11 @@ export const CONSULTATION_MODES = {
 } as const;
 
 export type ConsultationMode = (typeof CONSULTATION_MODES)[keyof typeof CONSULTATION_MODES];
+
+/** Live walk-tracking updates (distance/steps/calories) while a walking booking is STARTED. */
+export const WALK_SOCKET_EVENTS = {
+  JOIN: 'walk:join',
+  STARTED: 'walk:started',
+  UPDATE: 'walk:update',
+  ENDED: 'walk:ended',
+} as const;

@@ -2,6 +2,7 @@ import type { Server as HttpServer } from 'node:http';
 import { Server as SocketIOServer } from 'socket.io';
 import { corsOrigins } from '../common/config/env.js';
 import { registerChatGateway } from '../modules/chat/chat.gateway.js';
+import { registerBookingWalkGateway } from '../modules/bookings/booking-walk.gateway.js';
 
 let io: SocketIOServer | undefined;
 
@@ -11,6 +12,7 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
   });
 
   registerChatGateway(io);
+  registerBookingWalkGateway(io);
 
   return io;
 }

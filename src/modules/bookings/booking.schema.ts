@@ -71,6 +71,16 @@ const bookingSchema = new Schema<IBooking>(
       ],
       default: [],
     },
+    walkStats: {
+      type: {
+        distanceMeters: { type: Number, required: true, min: 0 },
+        durationSeconds: { type: Number, required: true, min: 0 },
+        steps: { type: Number, required: true, min: 0 },
+        calories: { type: Number, required: true, min: 0 },
+        updatedAt: { type: Date, required: true },
+      },
+      default: null,
+    },
   },
   { timestamps: true },
 );
