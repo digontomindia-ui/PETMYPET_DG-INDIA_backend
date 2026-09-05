@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import { AuditLogModel, BannerModel, FeatureFlagModel, SettingModel } from './admin.schema.js';
 import type { AuditAction } from './admin.constants.js';
+import type { BannerType } from './admin.types.js';
 
 export const featureFlagRepository = {
   async list() {
@@ -40,10 +41,13 @@ export const settingRepository = {
 
 export const bannerRepository = {
   async create(data: {
+    type?: BannerType;
     title: string;
     subtitle?: string;
-    imageUrl: string;
+    imageUrl?: string;
     linkUrl?: string;
+    number?: string;
+    icon?: string;
     order?: number;
     startAt?: Date;
     endAt?: Date;
@@ -75,10 +79,13 @@ export const bannerRepository = {
   async update(
     id: string,
     data: Partial<{
+      type: BannerType;
       title: string;
       subtitle: string;
       imageUrl: string;
       linkUrl: string;
+      number: string;
+      icon: string;
       order: number;
       isActive: boolean;
       startAt: Date;
