@@ -937,7 +937,7 @@ async function seed(): Promise<void> {
     },
   });
 
-  await PetModel.create({
+  const rocky = await PetModel.create({
     ownerId: sourav._id,
     name: 'Rocky',
     avatarUrl: seedImage('pet-rocky', 400, 400),
@@ -962,9 +962,15 @@ async function seed(): Promise<void> {
         families: GETS_ALONG_WITH_STATUS.YES,
       },
     },
+    activities: [
+      { type: PET_ACTIVITY_TYPES.WALK, title: 'Digha Beach Morning Walk', location: 'New Digha Beach', occurredAt: daysAgo(1) },
+      { type: PET_ACTIVITY_TYPES.PLAYDATE, title: 'Playdate with Coco', location: 'Old Digha Beach', occurredAt: daysAgo(9) },
+      { type: PET_ACTIVITY_TYPES.PARK_VISIT, title: 'Digha Marine Park Visit', location: 'Digha Marine Park', occurredAt: daysAgo(18) },
+      { type: PET_ACTIVITY_TYPES.MEETUP, title: 'Beach Dog Meetup', location: 'New Digha Beach', occurredAt: daysAgo(27) },
+    ],
   });
 
-  await PetModel.create({
+  const coco = await PetModel.create({
     ownerId: meera._id,
     name: 'Coco',
     avatarUrl: seedImage('pet-coco', 400, 400),
@@ -989,6 +995,12 @@ async function seed(): Promise<void> {
         families: GETS_ALONG_WITH_STATUS.YES,
       },
     },
+    activities: [
+      { type: PET_ACTIVITY_TYPES.WALK, title: 'Digha Beach Evening Walk', location: 'Old Digha Beach', occurredAt: daysAgo(0) },
+      { type: PET_ACTIVITY_TYPES.PLAYDATE, title: 'Playdate with Rocky', location: 'Old Digha Beach', occurredAt: daysAgo(9) },
+      { type: PET_ACTIVITY_TYPES.PARK_VISIT, title: 'Evening Park Visit', location: 'Digha Marine Park', occurredAt: daysAgo(15) },
+      { type: PET_ACTIVITY_TYPES.WALK, title: 'Sunset Beach Walk', location: 'New Digha Beach', occurredAt: daysAgo(23) },
+    ],
   });
 
   // ---- Products -------------------------------------------------------------
@@ -1330,6 +1342,38 @@ async function seed(): Promise<void> {
     userId: priya._id,
     rating: 4,
     comment: 'Great companion for playdates and walks.',
+  });
+
+  // ---- Pet Companion: mutual match between Rocky and Coco in Digha ------
+  await PetSwipeModel.create({ swiperPetId: rocky._id, targetPetId: coco._id, action: SWIPE_ACTIONS.LIKE });
+  await PetSwipeModel.create({ swiperPetId: coco._id, targetPetId: rocky._id, action: SWIPE_ACTIONS.SUPERLIKE });
+
+  const dighaChatRoom = await ChatRoomModel.create({
+    participantIds: [sourav._id, meera._id],
+    lastMessagePreview: 'Rocky and Coco should meet up again soon!',
+    lastMessageAt: daysAgo(1),
+  });
+  await MessageModel.create({
+    roomId: dighaChatRoom._id,
+    senderId: meera._id,
+    text: 'Rocky and Coco should meet up again soon!',
+  });
+
+  const [rockyId, cocoId] =
+    rocky._id.toString() < coco._id.toString() ? [rocky._id, coco._id] : [coco._id, rocky._id];
+  await PetMatchModel.create({ petAId: rockyId, petBId: cocoId, chatRoomId: dighaChatRoom._id });
+
+  await ReviewModel.create({
+    petId: rocky._id,
+    userId: meera._id,
+    rating: 5,
+    comment: 'Rocky is such a fun beach buddy for Coco!',
+  });
+  await ReviewModel.create({
+    petId: coco._id,
+    userId: sourav._id,
+    rating: 5,
+    comment: 'Coco is gentle and great with Rocky.',
   });
 
   // ---- Pet Taxi / Pet Relocation / Pet Insurance -------------------------
