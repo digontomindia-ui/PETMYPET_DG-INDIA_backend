@@ -100,6 +100,19 @@ export function toLikeReceivedDto(pet: IPet, action: string, swipedAt: Date) {
   };
 }
 
+export function toWishlistPetDto(pet: IPet) {
+  return {
+    id: pet._id.toString(),
+    ownerId: pet.ownerId.toString(),
+    name: pet.name,
+    species: pet.species,
+    breed: pet.breed,
+    avatarUrl: pet.avatarUrl,
+    dateOfBirth: pet.dateOfBirth,
+    companionProfile: pet.companionProfile,
+  };
+}
+
 export function toMatchDto(
   match: IPetMatch,
   otherPet: Pick<IPet, '_id' | 'name' | 'avatarUrl' | 'breed'> | null,

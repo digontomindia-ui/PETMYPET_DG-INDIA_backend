@@ -1,5 +1,6 @@
+import { Types } from 'mongoose';
 import { BaseRepository } from '../../common/repositories/base.repository.js';
-import { PetMatchModel, PetSwipeModel } from './pet-companion.schema.js';
+import { PetMatchModel, PetSwipeModel, PetWishlistModel } from './pet-companion.schema.js';
 import type { SwipeAction } from './pet-companion.constants.js';
 import type { IPetMatch, IPetSwipe, PetSwipeDocument } from './pet-companion.types.js';
 
@@ -36,3 +37,23 @@ export class PetMatchRepository extends BaseRepository<IPetMatch> {
 
 export const petSwipeRepository = new PetSwipeRepository();
 export const petMatchRepository = new PetMatchRepository();
+
+export const petWishlistRepository = {
+  async getOrCreate(userId: string) {
+    const existing = await PetWishlistModel.findOne({ userId }).exec();
+    if (existing) return existing;
+    return PetWishlistModel.create({ userId, petIds: [] });
+  },
+
+  async add(userId: string, petId: string): Promise<void> {
+    await PetWishlistModel.updateOne(
+      { userId },
+      { $addToSet: { petIds: new Types.ObjectId(petId) } },
+      { upsert: true },
+    ).exec();
+  },
+
+  async remove(userId: string, petId: string): Promise<void> {
+    await PetWishlistModel.updateOne({ userId }, { $pull: { petIds: petId } }).exec();
+  },
+};

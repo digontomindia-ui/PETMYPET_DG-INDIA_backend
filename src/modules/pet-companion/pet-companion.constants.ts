@@ -1,5 +1,6 @@
 export const PET_SWIPE_MODEL_NAME = 'PetSwipe';
 export const PET_MATCH_MODEL_NAME = 'PetMatch';
+export const PET_WISHLIST_MODEL_NAME = 'PetWishlist';
 
 export const SWIPE_ACTIONS = { LIKE: 'LIKE', PASS: 'PASS', SUPERLIKE: 'SUPERLIKE' } as const;
 

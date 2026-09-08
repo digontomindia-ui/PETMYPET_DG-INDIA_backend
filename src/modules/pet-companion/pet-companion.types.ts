@@ -20,3 +20,11 @@ export interface IPetMatch {
 }
 
 export type PetMatchDocument = HydratedDocument<IPetMatch>;
+
+export interface IPetWishlist {
+  _id: Types.ObjectId;
+  userId: Types.ObjectId;
+  petIds: Types.ObjectId[];
+}
+
+export type PetWishlistDocument = HydratedDocument<IPetWishlist>;

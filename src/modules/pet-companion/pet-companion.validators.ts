@@ -25,3 +25,5 @@ export const petIdQuerySchema = z.object({
 });
 
 export const petIdParamSchema = z.object({ id: objectIdSchema });
+
+export const wishlistPetIdParamSchema = z.object({ petId: objectIdSchema });

@@ -274,6 +274,28 @@ async function seed(): Promise<void> {
     ],
   });
 
+  const deepak = await UserModel.create({
+    role: ROLES.USER,
+    name: 'Deepak Barik',
+    avatarUrl: seedImage('user-deepak-barik', 300, 300),
+    email: 'deepak.barik@seed.patmypets.in',
+    phone: '+919111000006',
+    passwordHash: userPasswordHash,
+    isVerified: true,
+    addresses: [
+      {
+        label: 'Home',
+        addressLine1: 'Chaowl Bazar Road, Digha',
+        city: 'Digha',
+        state: 'West Bengal',
+        postalCode: '721428',
+        country: 'India',
+        location: { type: 'Point', coordinates: jitter(DIGHA, 2000) },
+        isDefault: true,
+      },
+    ],
+  });
+
   // ---- Providers --------------------------------------------------------
   async function createProviderWithUser(opts: {
     name: string;
@@ -1000,6 +1022,39 @@ async function seed(): Promise<void> {
       { type: PET_ACTIVITY_TYPES.PLAYDATE, title: 'Playdate with Rocky', location: 'Old Digha Beach', occurredAt: daysAgo(9) },
       { type: PET_ACTIVITY_TYPES.PARK_VISIT, title: 'Evening Park Visit', location: 'Digha Marine Park', occurredAt: daysAgo(15) },
       { type: PET_ACTIVITY_TYPES.WALK, title: 'Sunset Beach Walk', location: 'New Digha Beach', occurredAt: daysAgo(23) },
+    ],
+  });
+
+  // Kept unswiped by Rocky/Coco on purpose so pet-companion discover always has a fresh
+  // Digha candidate available, even after QA runs through the Rocky<->Coco/Tommy swipes.
+  await PetModel.create({
+    ownerId: deepak._id,
+    name: 'Simba',
+    avatarUrl: seedImage('pet-simba', 400, 400),
+    species: PET_SPECIES.DOG,
+    breed: 'Labrador Retriever',
+    gender: PET_GENDERS.MALE,
+    dateOfBirth: daysAgo(365 * 3),
+    weightKg: 28,
+    companionProfile: {
+      isEnabled: true,
+      bio: 'Simba is a gentle giant who loves the beach and new friends.',
+      personalityTraits: ['calm', 'friendly'],
+      interests: ['beach walks', 'swimming'],
+      lookingFor: ['playdates'],
+      activityLevel: COMPANION_ACTIVITY_LEVELS.MEDIUM,
+      temperament: 'Calm and social',
+      neutered: true,
+      getsAlongWith: {
+        dogs: GETS_ALONG_WITH_STATUS.YES,
+        cats: GETS_ALONG_WITH_STATUS.YES,
+        kids: GETS_ALONG_WITH_STATUS.YES,
+        families: GETS_ALONG_WITH_STATUS.YES,
+      },
+    },
+    activities: [
+      { type: PET_ACTIVITY_TYPES.WALK, title: 'Morning Beach Stroll', location: 'New Digha Beach', occurredAt: daysAgo(2) },
+      { type: PET_ACTIVITY_TYPES.PARK_VISIT, title: 'Digha Marine Park Visit', location: 'Digha Marine Park', occurredAt: daysAgo(11) },
     ],
   });
 

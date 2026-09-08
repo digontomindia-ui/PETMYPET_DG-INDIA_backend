@@ -7,6 +7,7 @@ import {
   petIdParamSchema,
   petIdQuerySchema,
   swipeSchema,
+  wishlistPetIdParamSchema,
 } from './pet-companion.validators.js';
 
 export const petCompanionRoutes = Router();
@@ -386,4 +387,84 @@ petCompanionRoutes.get(
   '/matches',
   validate({ query: petIdQuerySchema }),
   petCompanionController.matches,
+);
+
+/**
+ * @openapi
+ * /pet-companion/wishlist:
+ *   get:
+ *     tags: [PetCompanion]
+ *     summary: Get the current user's saved (wishlisted) companion pets
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200:
+ *         description: Wishlist retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema: { type: object }
+ *             example:
+ *               success: true
+ *               message: Success
+ *               data:
+ *                 id: "64f1a2b3c4d5e6f7a8b9c0a1"
+ *                 pets:
+ *                   - id: "64f1a2b3c4d5e6f7a8b9c0b1"
+ *                     name: Bruno
+ *                     species: DOG
+ *                     breed: Golden Retriever
+ *                     avatarUrl: "https://cdn.petmypet.in/pets/bruno-avatar.jpg"
+ *       401:
+ *         description: Missing or invalid authentication token
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ */
+petCompanionRoutes.get('/wishlist', petCompanionController.getWishlist);
+
+/**
+ * @openapi
+ * /pet-companion/wishlist/{petId}:
+ *   post:
+ *     tags: [PetCompanion]
+ *     summary: Save a pet to the wishlist
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: petId, in: path, required: true, schema: { type: string }, example: "64f1a2b3c4d5e6f7a8b9c0b1" }
+ *     responses:
+ *       201:
+ *         description: Pet added to wishlist
+ *       400:
+ *         description: Invalid pet id
+ *       401:
+ *         description: Missing or invalid authentication token
+ *       404:
+ *         description: Pet not found
+ */
+petCompanionRoutes.post(
+  '/wishlist/:petId',
+  validate({ params: wishlistPetIdParamSchema }),
+  petCompanionController.addToWishlist,
+);
+
+/**
+ * @openapi
+ * /pet-companion/wishlist/{petId}:
+ *   delete:
+ *     tags: [PetCompanion]
+ *     summary: Remove a pet from the wishlist
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: petId, in: path, required: true, schema: { type: string }, example: "64f1a2b3c4d5e6f7a8b9c0b1" }
+ *     responses:
+ *       200:
+ *         description: Pet removed from wishlist
+ *       400:
+ *         description: Invalid pet id
+ *       401:
+ *         description: Missing or invalid authentication token
+ */
+petCompanionRoutes.delete(
+  '/wishlist/:petId',
+  validate({ params: wishlistPetIdParamSchema }),
+  petCompanionController.removeFromWishlist,
 );

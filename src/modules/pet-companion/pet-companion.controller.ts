@@ -55,4 +55,22 @@ export const petCompanionController = {
     );
     sendSuccess(res, HTTP_STATUS.OK, matches, 'Success', buildPaginationMeta(page, limit, total));
   }),
+
+  getWishlist: asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = requireAuth(req);
+    const wishlist = await petCompanionService.getWishlist(userId);
+    sendSuccess(res, HTTP_STATUS.OK, wishlist);
+  }),
+
+  addToWishlist: asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = requireAuth(req);
+    await petCompanionService.addToWishlist(userId, req.params.petId as string);
+    sendSuccess(res, HTTP_STATUS.CREATED, null, 'Added to wishlist');
+  }),
+
+  removeFromWishlist: asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = requireAuth(req);
+    await petCompanionService.removeFromWishlist(userId, req.params.petId as string);
+    sendSuccess(res, HTTP_STATUS.OK, null, 'Removed from wishlist');
+  }),
 };

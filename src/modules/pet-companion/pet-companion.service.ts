@@ -7,12 +7,17 @@ import { PetModel } from '../pets/pet.schema.js';
 import { UserModel } from '../users/user.schema.js';
 import { chatService } from '../chat/chat.service.js';
 import { reviewRepository } from '../reviews/review.repository.js';
-import { petMatchRepository, petSwipeRepository } from './pet-companion.repository.js';
+import {
+  petMatchRepository,
+  petSwipeRepository,
+  petWishlistRepository,
+} from './pet-companion.repository.js';
 import {
   toCandidatePetDto,
   toCompanionProfileDto,
   toLikeReceivedDto,
   toMatchDto,
+  toWishlistPetDto,
 } from './pet-companion.mapper.js';
 import type { CompanionReview } from './pet-companion.mapper.js';
 import { DEFAULT_DISCOVER_RADIUS_METERS, LIKE_ACTIONS, SWIPE_ACTIONS } from './pet-companion.constants.js';
@@ -280,5 +285,29 @@ export const petCompanionService = {
     });
 
     return { matches, total, page, limit };
+  },
+
+  async getWishlist(userId: string) {
+    const wishlist = await petWishlistRepository.getOrCreate(userId);
+    const pets = await PetModel.find({ _id: { $in: wishlist.petIds } }).lean<IPet[]>();
+    const petsById = new Map(pets.map((pet) => [pet._id.toString(), pet]));
+
+    return {
+      id: wishlist._id.toString(),
+      pets: wishlist.petIds
+        .map((id) => petsById.get(id.toString()))
+        .filter((pet): pet is IPet => pet !== undefined)
+        .map(toWishlistPetDto),
+    };
+  },
+
+  async addToWishlist(userId: string, petId: string): Promise<void> {
+    const pet = await petRepository.findById(petId);
+    if (!pet) throw AppError.notFound('Pet not found');
+    await petWishlistRepository.add(userId, petId);
+  },
+
+  async removeFromWishlist(userId: string, petId: string): Promise<void> {
+    await petWishlistRepository.remove(userId, petId);
   },
 };

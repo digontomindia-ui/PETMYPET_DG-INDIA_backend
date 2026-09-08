@@ -1,8 +1,14 @@
 import { model, Schema } from 'mongoose';
 import { PET_MODEL_NAME } from '../pets/pet.constants.js';
 import { CHAT_ROOM_MODEL_NAME } from '../chat/chat.constants.js';
-import { PET_MATCH_MODEL_NAME, PET_SWIPE_MODEL_NAME, SWIPE_ACTIONS } from './pet-companion.constants.js';
-import type { IPetMatch, IPetSwipe } from './pet-companion.types.js';
+import {
+  PET_MATCH_MODEL_NAME,
+  PET_SWIPE_MODEL_NAME,
+  PET_WISHLIST_MODEL_NAME,
+  SWIPE_ACTIONS,
+} from './pet-companion.constants.js';
+import { USER_MODEL_NAME } from '../users/user.constants.js';
+import type { IPetMatch, IPetSwipe, IPetWishlist } from './pet-companion.types.js';
 
 const petSwipeSchema = new Schema<IPetSwipe>(
   {
@@ -32,3 +38,10 @@ const petMatchSchema = new Schema<IPetMatch>({
 petMatchSchema.index({ petAId: 1, petBId: 1 }, { unique: true });
 
 export const PetMatchModel = model<IPetMatch>(PET_MATCH_MODEL_NAME, petMatchSchema);
+
+const petWishlistSchema = new Schema<IPetWishlist>({
+  userId: { type: Schema.Types.ObjectId, ref: USER_MODEL_NAME, required: true, unique: true },
+  petIds: { type: [{ type: Schema.Types.ObjectId, ref: PET_MODEL_NAME }], default: [] },
+});
+
+export const PetWishlistModel = model<IPetWishlist>(PET_WISHLIST_MODEL_NAME, petWishlistSchema);
