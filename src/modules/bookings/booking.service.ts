@@ -12,12 +12,15 @@ import { notificationService } from '../notifications/notification.service.js';
 import { NOTIFICATION_TYPES } from '../notifications/notification.constants.js';
 import { referralService } from '../referrals/referral.service.js';
 import { tryGetSocketServer } from '../../sockets/index.js';
+import { haversineMeters } from '../../common/utils/geo.js';
+import { UserModel } from '../users/user.schema.js';
 import { bookingRepository } from './booking.repository.js';
 import { toOwnerBookingView, toProviderBookingView } from './booking.mapper.js';
 import {
   BOOKING_STATUSES,
   BOOKING_TRANSITIONS,
   CANCELLED_BY,
+  OTP_END_LOCATION_RADIUS_METERS,
   PAYMENT_STATUSES,
   WALK_SOCKET_EVENTS,
 } from './booking.constants.js';
@@ -344,10 +347,27 @@ export const bookingService = {
       .emit(WALK_SOCKET_EVENTS.UPDATE, { bookingId, ...booking.walkStats });
   },
 
-  async verifyEndOtp(bookingId: string, providerUserId: string, code: string) {
+  async verifyEndOtp(
+    bookingId: string,
+    providerUserId: string,
+    code: string,
+    location: { lat: number; lng: number },
+  ) {
     const booking = await requireBookingForProvider(bookingId, providerUserId);
     assertTransition(booking.status, BOOKING_STATUSES.COMPLETED);
     if (booking.otpEnd !== code) throw AppError.badRequest('Invalid end OTP');
+
+    const owner = await UserModel.findById(booking.userId).select('addresses').lean();
+    const serviceAddress = owner?.addresses.find((address) => address.isDefault) ?? null;
+    if (!serviceAddress) throw AppError.badRequest('No service address found for this booking');
+
+    const distanceMeters = haversineMeters(
+      [location.lng, location.lat],
+      serviceAddress.location.coordinates,
+    );
+    if (distanceMeters > OTP_END_LOCATION_RADIUS_METERS) {
+      throw AppError.badRequest('You must be at the service location to verify the end OTP');
+    }
 
     const { commissionAmount, providerPayoutAmount } = computeAmounts(
       booking.price,

@@ -43,6 +43,11 @@ export const verifyOtpSchema = z.object({
   code: z.string().min(4).max(6),
 });
 
+export const verifyEndOtpSchema = verifyOtpSchema.extend({
+  lat: z.coerce.number().min(-90).max(90),
+  lng: z.coerce.number().min(-180).max(180),
+});
+
 /** Comma-separated list of BOOKING_STATUSES members, e.g. "PENDING,ACCEPTED,ON_THE_WAY,STARTED"
  * — lets the client ask for an "Upcoming" bucket in one call instead of one request per status.
  * Validated against the real enum in the service layer (parseStatusFilter), not here, since Zod

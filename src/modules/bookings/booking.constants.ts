@@ -48,6 +48,9 @@ export const CONSULTATION_MODES = {
 export type ConsultationMode = (typeof CONSULTATION_MODES)[keyof typeof CONSULTATION_MODES];
 
 /** Live walk-tracking updates (distance/steps/calories) while a walking booking is STARTED. */
+/** Provider must be within this radius of the owner's default address to verify the end OTP. */
+export const OTP_END_LOCATION_RADIUS_METERS = 150;
+
 export const WALK_SOCKET_EVENTS = {
   JOIN: 'walk:join',
   STARTED: 'walk:started',

@@ -12,6 +12,7 @@ import type {
   CreateBookingInput,
   ListBookingsQuery,
   UpdateProviderNotesInput,
+  VerifyEndOtpInput,
   VerifyOtpInput,
 } from './booking.dto.js';
 
@@ -66,8 +67,11 @@ export const bookingController = {
 
   verifyEndOtp: asyncHandler(async (req: Request, res: Response) => {
     const { userId } = requireAuth(req);
-    const { code } = req.body as VerifyOtpInput;
-    const booking = await bookingService.verifyEndOtp(req.params.id as string, userId, code);
+    const { code, lat, lng } = req.body as VerifyEndOtpInput;
+    const booking = await bookingService.verifyEndOtp(req.params.id as string, userId, code, {
+      lat,
+      lng,
+    });
     sendSuccess(res, HTTP_STATUS.OK, booking, 'Service completed');
   }),
 

@@ -11,6 +11,7 @@ import {
   idParamSchema,
   listBookingsQuerySchema,
   updateProviderNotesSchema,
+  verifyEndOtpSchema,
   verifyOtpSchema,
 } from './booking.validators.js';
 
@@ -555,11 +556,15 @@ bookingRoutes.post(
  *         application/json:
  *           schema:
  *             type: object
- *             required: [code]
+ *             required: [code, lat, lng]
  *             properties:
  *               code: { type: string, minLength: 4, maxLength: 6 }
+ *               lat: { type: number, description: "Provider's current latitude" }
+ *               lng: { type: number, description: "Provider's current longitude" }
  *           example:
  *             code: '117042'
+ *             lat: 12.9716
+ *             lng: 77.5946
  *     responses:
  *       200:
  *         description: Booking ended
@@ -596,7 +601,7 @@ bookingRoutes.post(
  *             example:
  *               success: false
  *               error: BAD_REQUEST
- *               message: Invalid end OTP
+ *               message: You must be at the service location to verify the end OTP
  *       401:
  *         description: Not authenticated
  *         content:
@@ -610,7 +615,7 @@ bookingRoutes.post(
 bookingRoutes.post(
   '/:id/otp/end',
   ...requireProvider,
-  validate({ params: idParamSchema, body: verifyOtpSchema }),
+  validate({ params: idParamSchema, body: verifyEndOtpSchema }),
   bookingController.verifyEndOtp,
 );
 

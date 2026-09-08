@@ -7,6 +7,7 @@ import { PetModel } from '../pets/pet.schema.js';
 import { UserModel } from '../users/user.schema.js';
 import { chatService } from '../chat/chat.service.js';
 import { reviewRepository } from '../reviews/review.repository.js';
+import { EARTH_RADIUS_METERS, haversineMeters } from '../../common/utils/geo.js';
 import {
   petMatchRepository,
   petSwipeRepository,
@@ -26,8 +27,6 @@ import type { IPet, PetDocument } from '../pets/pet.types.js';
 
 const RECENT_REVIEWS_LIMIT = 5;
 
-const EARTH_RADIUS_METERS = 6_378_100;
-
 async function requireOwnedPet(petId: string, userId: string, role: string): Promise<PetDocument> {
   const pet = await petRepository.findById(petId);
   if (!pet) throw AppError.notFound('Pet not found');
@@ -40,19 +39,6 @@ async function requireOwnedPet(petId: string, userId: string, role: string): Pro
 /** Stores match pairs in canonical (lexicographically smaller id first) order. */
 function canonicalPair(idA: string, idB: string): [string, string] {
   return idA < idB ? [idA, idB] : [idB, idA];
-}
-
-function haversineMeters(
-  [lng1, lat1]: [number, number],
-  [lng2, lat2]: [number, number],
-): number {
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return 2 * EARTH_RADIUS_METERS * Math.asin(Math.sqrt(a));
 }
 
 export const petCompanionService = {
