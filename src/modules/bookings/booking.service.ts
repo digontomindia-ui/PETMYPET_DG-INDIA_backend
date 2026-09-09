@@ -94,6 +94,28 @@ function parseBookingListQuery(query: ListBookingsQuery): {
   return { statuses, dateRange };
 }
 
+/** Same status/date filter as buildStatusDateFilter in booking.repository.ts, but for the
+ * pet-taxi/pet-insurance/pet-relocation collections the "my bookings" aggregator merges in —
+ * they key off `createdAt` (they have no scheduledStart) and are plain BaseRepository.findMany
+ * filters rather than a bookingRepository-specific query. */
+function buildOtherModuleFilter(
+  userId: string,
+  statuses: string[] | undefined,
+  dateRange: { from?: Date; to?: Date },
+): Record<string, unknown> {
+  const filter: Record<string, unknown> = { userId };
+  if (statuses && statuses.length > 0) {
+    filter.status = statuses.length === 1 ? statuses[0] : { $in: statuses };
+  }
+  if (dateRange.from || dateRange.to) {
+    const createdAt: Record<string, Date> = {};
+    if (dateRange.from) createdAt.$gte = dateRange.from;
+    if (dateRange.to) createdAt.$lte = dateRange.to;
+    filter.createdAt = createdAt;
+  }
+  return filter;
+}
+
 function assertBookingEditableByProvider(status: BookingStatus): void {
   if (!PROVIDER_EDITABLE_STATUSES.includes(status)) {
     throw AppError.badRequest(`Cannot update booking while it is ${status}`);
@@ -258,18 +280,22 @@ export const bookingService = {
   /** "My bookings" for a user spans four separate collections (service bookings, pet-taxi,
    * pet-insurance, pet-relocation) that each used to have their own /me endpoint. This merges
    * all four into one list so the app doesn't have to call four endpoints to render one screen.
-   * status/from/to filters only apply to service bookings — the other three have their own
-   * status vocabularies and are always returned in full for the user. */
+   * status/from/to filter every collection by its own `status`/`createdAt` field — a status
+   * token that doesn't exist in a given collection's vocabulary (e.g. "PENDING" against
+   * pet-insurance, which only ever has SUBMITTED/UNDER_REVIEW/APPROVED/REJECTED) simply excludes
+   * that collection's items rather than matching them, so an "Upcoming" filter never leaks a
+   * CANCELLED or SUBMITTED item into the list. */
   async listMine(userId: string, query: ListBookingsQuery) {
     const { page, limit, skip } = parsePagination(query);
     const { statuses, dateRange } = parseBookingListQuery(query);
+    const otherModuleFilter = buildOtherModuleFilter(userId, statuses, dateRange);
 
     const [serviceBookings, petTaxiBookings, insuranceApplications, relocationRequests] =
       await Promise.all([
         bookingRepository.findAllForUser(userId, statuses, dateRange),
-        petTaxiRepository.findMany({ userId }, { sort: { createdAt: -1 } }),
-        petInsuranceRepository.findMany({ userId }, { sort: { createdAt: -1 } }),
-        relocationRequestRepository.findMany({ userId }, { sort: { createdAt: -1 } }),
+        petTaxiRepository.findMany(otherModuleFilter, { sort: { createdAt: -1 } }),
+        petInsuranceRepository.findMany(otherModuleFilter, { sort: { createdAt: -1 } }),
+        relocationRequestRepository.findMany(otherModuleFilter, { sort: { createdAt: -1 } }),
       ]);
 
     const merged = [

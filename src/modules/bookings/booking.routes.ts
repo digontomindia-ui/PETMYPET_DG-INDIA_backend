@@ -144,8 +144,9 @@ bookingRoutes.post(
  *       For a USER token, this merges four sources into one list, newest first: service bookings,
  *       pet-taxi bookings, pet-insurance applications, and pet-relocation requests. Each item
  *       carries a `bookingType` field (SERVICE, PET_TAXI, PET_INSURANCE, or PET_RELOCATION) so the
- *       app can render the right card. The `status`/`from`/`to` filters only apply to service
- *       bookings; the other three types are always included in full.
+ *       app can render the right card. `status`/`from`/`to` filter every type by its own
+ *       `status`/`createdAt` field — a status token that type doesn't use (e.g. PENDING against
+ *       an insurance application) simply excludes that type's items rather than matching them.
  *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - { name: status, in: query, required: false, schema: { type: string }, description: 'Single status, or comma-separated list e.g. PENDING,ACCEPTED,ON_THE_WAY,STARTED for an "Upcoming" bucket — applies to service bookings only', example: 'PENDING,ACCEPTED,ON_THE_WAY,STARTED' }
