@@ -4,10 +4,7 @@ import { sendSuccess, buildPaginationMeta } from '../../common/utils/api-respons
 import { AppError } from '../../common/errors/app-error.js';
 import { HTTP_STATUS } from '../../common/constants/http-status.js';
 import { petInsuranceService } from './pet-insurance.service.js';
-import type {
-  CreateInsuranceApplicationInput,
-  UpdateApplicationStatusInput,
-} from './pet-insurance.dto.js';
+import type { CreateInsuranceApplicationInput, UpdateApplicationStatusInput } from './pet-insurance.dto.js';
 
 function requireAuth(req: Request) {
   if (!req.user) throw AppError.unauthorized();
@@ -22,21 +19,6 @@ export const petInsuranceController = {
       req.body as CreateInsuranceApplicationInput,
     );
     sendSuccess(res, HTTP_STATUS.CREATED, application, 'Insurance application submitted');
-  }),
-
-  listMine: asyncHandler(async (req: Request, res: Response) => {
-    const { userId } = requireAuth(req);
-    const { applications, total, page, limit } = await petInsuranceService.listMine(
-      userId,
-      req.query,
-    );
-    sendSuccess(
-      res,
-      HTTP_STATUS.OK,
-      applications,
-      'Success',
-      buildPaginationMeta(page, limit, total),
-    );
   }),
 
   getById: asyncHandler(async (req: Request, res: Response) => {

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PET_TAXI_STATUSES, PET_TAXI_TRIP_TYPES } from './pet-taxi.constants.js';
+import { PET_TAXI_TRIP_TYPES } from './pet-taxi.constants.js';
 
 const objectIdSchema = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
 
@@ -24,19 +24,6 @@ export const createPetTaxiBookingSchema = z.object({
 
 export const cancelPetTaxiBookingSchema = z.object({
   reason: z.string().min(1).max(500),
-});
-
-export const listMyPetTaxiBookingsQuerySchema = z.object({
-  status: z
-    .enum([
-      PET_TAXI_STATUSES.PENDING,
-      PET_TAXI_STATUSES.CONFIRMED,
-      PET_TAXI_STATUSES.COMPLETED,
-      PET_TAXI_STATUSES.CANCELLED,
-    ])
-    .optional(),
-  page: z.string().optional(),
-  limit: z.string().optional(),
 });
 
 export const idParamSchema = z.object({ id: objectIdSchema });

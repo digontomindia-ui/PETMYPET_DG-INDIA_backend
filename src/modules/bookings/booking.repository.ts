@@ -57,6 +57,17 @@ export class BookingRepository extends BaseRepository<IBooking> {
     return { items, total };
   }
 
+  /** Unpaginated findForUser — used by the "my bookings" aggregator, which merges this with
+   * pet-taxi/insurance/relocation and paginates the combined list itself. */
+  async findAllForUser(
+    userId: string,
+    statuses: string[] | undefined,
+    dateRange: { from?: Date; to?: Date },
+  ) {
+    const filter = buildStatusDateFilter({ userId }, statuses, dateRange);
+    return this.model.find(filter).sort({ scheduledStart: -1 }).exec();
+  }
+
   async findForProvider(
     providerId: string,
     statuses: string[] | undefined,

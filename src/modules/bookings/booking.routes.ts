@@ -140,9 +140,15 @@ bookingRoutes.post(
  *   get:
  *     tags: [Bookings]
  *     summary: List "my bookings" — works for both a USER token (their own bookings) and a SERVICE_PROVIDER token (bookings against their provider profile), same filters either way
+ *     description: >
+ *       For a USER token, this merges four sources into one list, newest first: service bookings,
+ *       pet-taxi bookings, pet-insurance applications, and pet-relocation requests. Each item
+ *       carries a `bookingType` field (SERVICE, PET_TAXI, PET_INSURANCE, or PET_RELOCATION) so the
+ *       app can render the right card. The `status`/`from`/`to` filters only apply to service
+ *       bookings; the other three types are always included in full.
  *     security: [{ bearerAuth: [] }]
  *     parameters:
- *       - { name: status, in: query, required: false, schema: { type: string }, description: 'Single status, or comma-separated list e.g. PENDING,ACCEPTED,ON_THE_WAY,STARTED for an "Upcoming" bucket', example: 'PENDING,ACCEPTED,ON_THE_WAY,STARTED' }
+ *       - { name: status, in: query, required: false, schema: { type: string }, description: 'Single status, or comma-separated list e.g. PENDING,ACCEPTED,ON_THE_WAY,STARTED for an "Upcoming" bucket — applies to service bookings only', example: 'PENDING,ACCEPTED,ON_THE_WAY,STARTED' }
  *       - { name: from, in: query, required: false, schema: { type: string }, description: 'YYYY-MM-DD, filters by scheduledStart', example: '2026-08-01' }
  *       - { name: to, in: query, required: false, schema: { type: string }, description: 'YYYY-MM-DD, filters by scheduledStart', example: '2026-08-31' }
  *       - { name: page, in: query, required: false, schema: { type: string }, example: '1' }

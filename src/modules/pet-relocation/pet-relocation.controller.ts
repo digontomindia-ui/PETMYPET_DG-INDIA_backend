@@ -24,15 +24,6 @@ export const petRelocationController = {
     sendSuccess(res, HTTP_STATUS.CREATED, request, 'Relocation request submitted');
   }),
 
-  listMine: asyncHandler(async (req: Request, res: Response) => {
-    const { userId } = requireAuth(req);
-    const { requests, total, page, limit } = await petRelocationService.listMine(
-      userId,
-      req.query,
-    );
-    sendSuccess(res, HTTP_STATUS.OK, requests, 'Success', buildPaginationMeta(page, limit, total));
-  }),
-
   getById: asyncHandler(async (req: Request, res: Response) => {
     const { userId, role } = requireAuth(req);
     const request = await petRelocationService.getById(req.params.id as string, userId, role);

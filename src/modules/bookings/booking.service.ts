@@ -16,6 +16,12 @@ import { haversineMeters } from '../../common/utils/geo.js';
 import { UserModel } from '../users/user.schema.js';
 import { bookingRepository } from './booking.repository.js';
 import { toOwnerBookingView, toProviderBookingView } from './booking.mapper.js';
+import { petTaxiRepository } from '../pet-taxi/pet-taxi.repository.js';
+import { toPetTaxiBookingDto } from '../pet-taxi/pet-taxi.mapper.js';
+import { petInsuranceRepository } from '../pet-insurance/pet-insurance.repository.js';
+import { toInsuranceApplicationDto } from '../pet-insurance/pet-insurance.mapper.js';
+import { relocationRequestRepository } from '../pet-relocation/pet-relocation.repository.js';
+import { toRelocationRequestDto } from '../pet-relocation/pet-relocation.mapper.js';
 import {
   BOOKING_STATUSES,
   BOOKING_TRANSITIONS,
@@ -249,17 +255,48 @@ export const bookingService = {
     throw AppError.forbidden('You do not have access to this booking');
   },
 
+  /** "My bookings" for a user spans four separate collections (service bookings, pet-taxi,
+   * pet-insurance, pet-relocation) that each used to have their own /me endpoint. This merges
+   * all four into one list so the app doesn't have to call four endpoints to render one screen.
+   * status/from/to filters only apply to service bookings — the other three have their own
+   * status vocabularies and are always returned in full for the user. */
   async listMine(userId: string, query: ListBookingsQuery) {
     const { page, limit, skip } = parsePagination(query);
     const { statuses, dateRange } = parseBookingListQuery(query);
-    const { items, total } = await bookingRepository.findForUser(
-      userId,
-      statuses,
-      dateRange,
-      skip,
-      limit,
-    );
-    return { bookings: await Promise.all(items.map(toOwnerBookingView)), total, page, limit };
+
+    const [serviceBookings, petTaxiBookings, insuranceApplications, relocationRequests] =
+      await Promise.all([
+        bookingRepository.findAllForUser(userId, statuses, dateRange),
+        petTaxiRepository.findMany({ userId }, { sort: { createdAt: -1 } }),
+        petInsuranceRepository.findMany({ userId }, { sort: { createdAt: -1 } }),
+        relocationRequestRepository.findMany({ userId }, { sort: { createdAt: -1 } }),
+      ]);
+
+    const merged = [
+      ...(await Promise.all(serviceBookings.map(toOwnerBookingView))).map((booking) => ({
+        ...booking,
+        bookingType: 'SERVICE' as const,
+      })),
+      ...petTaxiBookings.map((booking) => ({
+        ...toPetTaxiBookingDto(booking),
+        bookingType: 'PET_TAXI' as const,
+      })),
+      ...insuranceApplications.map((application) => ({
+        ...toInsuranceApplicationDto(application),
+        bookingType: 'PET_INSURANCE' as const,
+      })),
+      ...relocationRequests.map((request) => ({
+        ...toRelocationRequestDto(request),
+        bookingType: 'PET_RELOCATION' as const,
+      })),
+    ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    // ponytail: fetches every matching row per module and paginates the merged list in memory —
+    // fine at personal "my bookings" volume; move to a real cross-collection query/view if this
+    // ever needs to page through thousands of rows per user.
+    const total = merged.length;
+    const bookings = merged.slice(skip, skip + limit);
+    return { bookings, total, page, limit };
   },
 
   async listForProvider(providerUserId: string, query: ListBookingsQuery) {

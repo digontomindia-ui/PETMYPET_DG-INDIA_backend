@@ -7,7 +7,6 @@ import { petRelocationController } from './pet-relocation.controller.js';
 import {
   createRelocationRequestSchema,
   idParamSchema,
-  listMyRelocationRequestsQuerySchema,
   listRelocationRequestsQuerySchema,
   updateRelocationStatusSchema,
 } from './pet-relocation.validators.js';
@@ -93,65 +92,9 @@ petRelocationRoutes.post(
   petRelocationController.create,
 );
 
-/**
- * @openapi
- * /pet-relocation/requests/me:
- *   get:
- *     tags: [PetRelocation]
- *     summary: List the authenticated user's own relocation requests
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - name: page
- *         in: query
- *         schema: { type: string }
- *         example: "1"
- *       - name: limit
- *         in: query
- *         schema: { type: string }
- *         example: "20"
- *     responses:
- *       200:
- *         description: List of the caller's relocation requests
- *         content:
- *           application/json:
- *             schema: { type: object }
- *             example:
- *               success: true
- *               message: Success
- *               data:
- *                 - id: 64f1a2b3c4d5e6f7a8b9c0d1
- *                   userId: 64f1a2b3c4d5e6f7a8b9c0d2
- *                   ownerName: Rahul Sharma
- *                   ownerPhone: "+919876543210"
- *                   ownerEmail: rahul.sharma@example.com
- *                   petId: 64f1a2b3c4d5e6f7a8b9c0d3
- *                   originAddress: 12th Main, Indiranagar, Bangalore, Karnataka
- *                   destinationAddress: Park Street, Kolkata, West Bengal
- *                   relocationDate: "2026-09-10T00:00:00.000Z"
- *                   transportType: ROAD
- *                   preferredTimeSlot: MORNING
- *                   status: SUBMITTED
- *                   createdAt: "2026-08-22T08:00:00.000Z"
- *               meta: { page: 1, limit: 20, total: 1, totalPages: 1 }
- *       400:
- *         description: Invalid query parameters
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *             example: { success: false, error: BAD_REQUEST, message: "limit must be a valid number" }
- *       401:
- *         description: Authentication required
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *             example: { success: false, error: UNAUTHORIZED, message: "Authentication required" }
- */
-petRelocationRoutes.get(
-  '/requests/me',
-  authenticate,
-  validate({ query: listMyRelocationRequestsQuerySchema }),
-  petRelocationController.listMine,
-);
+// GET /pet-relocation/requests/me removed — listing the caller's own requests now happens
+// through GET /bookings/me, which merges them (bookingType: PET_RELOCATION) with service
+// bookings, pet-taxi bookings, and pet-insurance applications.
 
 /**
  * @openapi

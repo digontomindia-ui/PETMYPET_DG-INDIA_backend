@@ -8,7 +8,6 @@ import { APPLICATION_STATUSES } from './pet-insurance.constants.js';
 import type {
   CreateInsuranceApplicationInput,
   ListInsuranceApplicationsQuery,
-  ListMyApplicationsQuery,
   UpdateApplicationStatusInput,
 } from './pet-insurance.dto.js';
 
@@ -31,16 +30,6 @@ export const petInsuranceService = {
       vaccinationDocumentUrls: input.vaccinated ? input.vaccinationDocumentUrls : [],
     });
     return toInsuranceApplicationDto(application);
-  },
-
-  async listMine(userId: string, query: ListMyApplicationsQuery) {
-    const { page, limit, skip } = parsePagination(query);
-    const filter = { userId: new Types.ObjectId(userId) };
-    const [items, total] = await Promise.all([
-      petInsuranceRepository.findMany(filter, { skip, limit, sort: { createdAt: -1 } }),
-      petInsuranceRepository.count(filter),
-    ]);
-    return { applications: items.map(toInsuranceApplicationDto), total, page, limit };
   },
 
   async getById(id: string, userId: string, role: Role) {

@@ -1,16 +1,11 @@
 import { Types } from 'mongoose';
 import { AppError } from '../../common/errors/app-error.js';
 import { ROLES, type Role } from '../../common/constants/roles.js';
-import { parsePagination } from '../../common/utils/pagination.js';
 import { petRepository } from '../pets/pet.repository.js';
 import { petTaxiRepository } from './pet-taxi.repository.js';
 import { toPetTaxiBookingDto } from './pet-taxi.mapper.js';
 import { PET_TAXI_RATES, PET_TAXI_STATUSES } from './pet-taxi.constants.js';
-import type {
-  CancelPetTaxiBookingInput,
-  CreatePetTaxiBookingInput,
-  ListMyPetTaxiBookingsQuery,
-} from './pet-taxi.dto.js';
+import type { CancelPetTaxiBookingInput, CreatePetTaxiBookingInput } from './pet-taxi.dto.js';
 
 const CANCELLABLE_STATUSES: string[] = [PET_TAXI_STATUSES.PENDING, PET_TAXI_STATUSES.CONFIRMED];
 
@@ -37,18 +32,6 @@ export const petTaxiService = {
       price: PET_TAXI_RATES[input.tripType],
     });
     return toPetTaxiBookingDto(booking);
-  },
-
-  async listMine(userId: string, query: ListMyPetTaxiBookingsQuery) {
-    const { page, limit, skip } = parsePagination(query);
-    const filter: Record<string, unknown> = { userId };
-    if (query.status) filter.status = query.status;
-
-    const [items, total] = await Promise.all([
-      petTaxiRepository.findMany(filter, { skip, limit, sort: { createdAt: -1 } }),
-      petTaxiRepository.count(filter),
-    ]);
-    return { bookings: items.map(toPetTaxiBookingDto), total, page, limit };
   },
 
   async getById(id: string, userId: string, role: Role) {

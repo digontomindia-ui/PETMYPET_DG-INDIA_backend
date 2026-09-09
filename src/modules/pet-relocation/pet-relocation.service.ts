@@ -7,7 +7,6 @@ import { relocationRequestRepository } from './pet-relocation.repository.js';
 import { toRelocationRequestAdminDto, toRelocationRequestDto } from './pet-relocation.mapper.js';
 import type {
   CreateRelocationRequestInput,
-  ListMyRelocationRequestsQuery,
   ListRelocationRequestsQuery,
   UpdateRelocationStatusInput,
 } from './pet-relocation.dto.js';
@@ -32,16 +31,6 @@ export const petRelocationService = {
       preferredTimeSlot: input.preferredTimeSlot,
     });
     return toRelocationRequestDto(request);
-  },
-
-  async listMine(userId: string, query: ListMyRelocationRequestsQuery) {
-    const { page, limit, skip } = parsePagination(query);
-    const filter = { userId: new Types.ObjectId(userId) };
-    const [items, total] = await Promise.all([
-      relocationRequestRepository.findMany(filter, { skip, limit, sort: { createdAt: -1 } }),
-      relocationRequestRepository.count(filter),
-    ]);
-    return { requests: items.map(toRelocationRequestDto), total, page, limit };
   },
 
   async getById(id: string, userId: string, role: Role) {

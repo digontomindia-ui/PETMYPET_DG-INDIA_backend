@@ -32,11 +32,6 @@ export const updateApplicationStatusSchema = z
     path: ['rejectionReason'],
   });
 
-export const listMyApplicationsQuerySchema = z.object({
-  page: z.string().optional(),
-  limit: z.string().optional(),
-});
-
 export const listInsuranceApplicationsQuerySchema = z.object({
   status: z
     .enum([

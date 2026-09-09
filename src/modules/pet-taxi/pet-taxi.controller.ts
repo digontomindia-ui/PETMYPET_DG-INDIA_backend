@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { asyncHandler } from '../../common/utils/async-handler.js';
-import { sendSuccess, buildPaginationMeta } from '../../common/utils/api-response.js';
+import { sendSuccess } from '../../common/utils/api-response.js';
 import { AppError } from '../../common/errors/app-error.js';
 import { HTTP_STATUS } from '../../common/constants/http-status.js';
 import { petTaxiService } from './pet-taxi.service.js';
@@ -16,12 +16,6 @@ export const petTaxiController = {
     const { userId } = requireAuth(req);
     const booking = await petTaxiService.create(userId, req.body as CreatePetTaxiBookingInput);
     sendSuccess(res, HTTP_STATUS.CREATED, booking, 'Pet taxi booking created');
-  }),
-
-  listMine: asyncHandler(async (req: Request, res: Response) => {
-    const { userId } = requireAuth(req);
-    const { bookings, total, page, limit } = await petTaxiService.listMine(userId, req.query);
-    sendSuccess(res, HTTP_STATUS.OK, bookings, 'Success', buildPaginationMeta(page, limit, total));
   }),
 
   getById: asyncHandler(async (req: Request, res: Response) => {

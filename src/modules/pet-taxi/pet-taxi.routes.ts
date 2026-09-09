@@ -6,7 +6,6 @@ import {
   cancelPetTaxiBookingSchema,
   createPetTaxiBookingSchema,
   idParamSchema,
-  listMyPetTaxiBookingsQuerySchema,
 } from './pet-taxi.validators.js';
 
 export const petTaxiRoutes = Router();
@@ -84,69 +83,9 @@ petTaxiRoutes.post(
   petTaxiController.create,
 );
 
-/**
- * @openapi
- * /pet-taxi/bookings/me:
- *   get:
- *     tags: [PetTaxi]
- *     summary: List the caller's own pet taxi bookings
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - name: status
- *         in: query
- *         schema: { type: string, enum: [PENDING, CONFIRMED, COMPLETED, CANCELLED] }
- *         example: PENDING
- *       - name: page
- *         in: query
- *         schema: { type: string }
- *         example: "1"
- *       - name: limit
- *         in: query
- *         schema: { type: string }
- *         example: "20"
- *     responses:
- *       200:
- *         description: List of the caller's pet taxi bookings
- *         content:
- *           application/json:
- *             schema: { type: object }
- *             example:
- *               success: true
- *               message: Success
- *               data:
- *                 - id: 64f1a2b3c4d5e6f7a8b9c0d1
- *                   userId: 64f1a2b3c4d5e6f7a8b9c0d2
- *                   tripType: ROUND_TRIP
- *                   petIds: ["64f1a2b3c4d5e6f7a8b9c0d3"]
- *                   pickupAddress: "12, Lavelle Road, Bengaluru"
- *                   dropAddress: "Pet Care Clinic, Indiranagar, Bengaluru"
- *                   pickupDate: "2026-08-25T00:00:00.000Z"
- *                   pickupTime: "14:30"
- *                   price: 899
- *                   currency: INR
- *                   status: PENDING
- *                   cancellationReason: null
- *                   createdAt: "2026-08-22T08:00:00.000Z"
- *               meta: { page: 1, limit: 20, total: 1, totalPages: 1 }
- *       400:
- *         description: Invalid query parameters
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *             example: { success: false, error: BAD_REQUEST, message: "limit must be a valid number" }
- *       401:
- *         description: Authentication required
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *             example: { success: false, error: UNAUTHORIZED, message: "Authentication required" }
- */
-petTaxiRoutes.get(
-  '/bookings/me',
-  authenticate,
-  validate({ query: listMyPetTaxiBookingsQuerySchema }),
-  petTaxiController.listMine,
-);
+// GET /pet-taxi/bookings/me removed — listing the caller's own pet-taxi bookings now happens
+// through GET /bookings/me, which merges them (bookingType: PET_TAXI) with service bookings,
+// pet-insurance applications, and pet-relocation requests.
 
 /**
  * @openapi

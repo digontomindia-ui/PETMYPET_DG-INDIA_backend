@@ -8,7 +8,6 @@ import {
   createInsuranceApplicationSchema,
   idParamSchema,
   listInsuranceApplicationsQuerySchema,
-  listMyApplicationsQuerySchema,
   updateApplicationStatusSchema,
 } from './pet-insurance.validators.js';
 
@@ -111,69 +110,9 @@ petInsuranceRoutes.post(
   petInsuranceController.create,
 );
 
-/**
- * @openapi
- * /pet-insurance/applications/me:
- *   get:
- *     tags: [PetInsurance]
- *     summary: List the authenticated user's own insurance applications
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - name: page
- *         in: query
- *         schema: { type: string }
- *         example: "1"
- *       - name: limit
- *         in: query
- *         schema: { type: string }
- *         example: "20"
- *     responses:
- *       200:
- *         description: List of the caller's insurance applications
- *         content:
- *           application/json:
- *             schema: { type: object }
- *             example:
- *               success: true
- *               message: Success
- *               data:
- *                 - id: 64f1a2b3c4d5e6f7a8b9c0d1
- *                   userId: 64f1a2b3c4d5e6f7a8b9c0d2
- *                   ownerName: Ananya Rao
- *                   ownerEmail: ananya.rao@example.com
- *                   ownerPhone: "+919876543210"
- *                   petName: Bruno
- *                   petType: DOG
- *                   petAge: "3 years"
- *                   petBreed: Labrador Retriever
- *                   previousIllness: true
- *                   illnessDocumentUrls: ["https://res.cloudinary.com/patmypets/image/upload/v1699999999/kyc-documents/bruno-illness.pdf"]
- *                   previousSurgery: false
- *                   vaccinated: true
- *                   vaccinationDocumentUrls: ["https://res.cloudinary.com/patmypets/image/upload/v1699999999/kyc-documents/bruno-vaccination.pdf"]
- *                   status: SUBMITTED
- *                   rejectionReason: null
- *                   createdAt: "2026-08-20T08:00:00.000Z"
- *               meta: { page: 1, limit: 20, total: 1, totalPages: 1 }
- *       400:
- *         description: Invalid query parameters
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *             example: { success: false, error: BAD_REQUEST, message: "limit must be a valid number" }
- *       401:
- *         description: Authentication required
- *         content:
- *           application/json:
- *             schema: { $ref: '#/components/schemas/ErrorResponse' }
- *             example: { success: false, error: UNAUTHORIZED, message: "Authentication required" }
- */
-petInsuranceRoutes.get(
-  '/applications/me',
-  authenticate,
-  validate({ query: listMyApplicationsQuerySchema }),
-  petInsuranceController.listMine,
-);
+// GET /pet-insurance/applications/me removed — listing the caller's own applications now
+// happens through GET /bookings/me, which merges them (bookingType: PET_INSURANCE) with
+// service bookings, pet-taxi bookings, and pet-relocation requests.
 
 /**
  * @openapi

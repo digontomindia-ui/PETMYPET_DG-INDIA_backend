@@ -45,9 +45,4 @@ export const listRelocationRequestsQuerySchema = z.object({
   limit: z.string().optional(),
 });
 
-export const listMyRelocationRequestsQuerySchema = z.object({
-  page: z.string().optional(),
-  limit: z.string().optional(),
-});
-
 export const idParamSchema = z.object({ id: objectIdSchema });
