@@ -139,7 +139,7 @@ couponRoutes.get(
  * /coupons:
  *   get:
  *     tags: [Coupons]
- *     summary: List all coupons (SUPER_ADMIN only)
+ *     summary: List all coupons
  *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - { name: page, in: query, required: false, schema: { type: integer, default: 1 }, example: 1 }
@@ -183,13 +183,13 @@ couponRoutes.get(
  *               error: "UNAUTHORIZED"
  *               message: "Authentication required"
  */
-couponRoutes.get('/', ...adminOnly, couponController.list);
+couponRoutes.get('/', authenticate, couponController.list);
 /**
  * @openapi
  * /coupons/{id}:
  *   get:
  *     tags: [Coupons]
- *     summary: Get a coupon by id (SUPER_ADMIN only)
+ *     summary: Get a coupon by id
  *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - { name: id, in: path, required: true, schema: { type: string }, example: "64f1a2b3c4d5e6f7a8b9c0d2" }
@@ -238,7 +238,7 @@ couponRoutes.get('/', ...adminOnly, couponController.list);
  */
 couponRoutes.get(
   '/:id',
-  ...adminOnly,
+  authenticate,
   validate({ params: idParamSchema }),
   couponController.getById,
 );
