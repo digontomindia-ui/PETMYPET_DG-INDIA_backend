@@ -15,6 +15,7 @@ export function toRelocationRequestDto(request: IRelocationRequest) {
     transportType: request.transportType,
     preferredTimeSlot: request.preferredTimeSlot,
     status: request.status,
+    cancellationReason: request.cancellationReason,
     createdAt: request.createdAt,
   };
 }

@@ -5,6 +5,7 @@ import { validate } from '../../common/middlewares/validate.middleware.js';
 import { ROLES } from '../../common/constants/roles.js';
 import { petInsuranceController } from './pet-insurance.controller.js';
 import {
+  cancelInsuranceApplicationSchema,
   createInsuranceApplicationSchema,
   idParamSchema,
   listInsuranceApplicationsQuerySchema,
@@ -258,6 +259,60 @@ petInsuranceRoutes.get(
   authenticate,
   validate({ params: idParamSchema }),
   petInsuranceController.getById,
+);
+
+/**
+ * @openapi
+ * /pet-insurance/applications/{id}/cancel:
+ *   patch:
+ *     tags: [PetInsurance]
+ *     summary: Cancel an insurance application (owner only)
+ *     description: Only SUBMITTED or UNDER_REVIEW applications can be self-cancelled; once underwriting has APPROVED or REJECTED it, the applicant must go through support.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: string }
+ *         example: 64f1a2b3c4d5e6f7a8b9c0d1
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [reason]
+ *             properties:
+ *               reason: { type: string, minLength: 1, maxLength: 500 }
+ *           example:
+ *             reason: Found coverage elsewhere
+ *     responses:
+ *       200:
+ *         description: Insurance application cancelled
+ *       400:
+ *         description: Invalid request, or the application is already APPROVED/REJECTED/CANCELLED
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: BAD_REQUEST, message: "Cannot cancel an application that is already APPROVED" }
+ *       403:
+ *         description: Caller does not own this application
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: FORBIDDEN, message: "This application does not belong to you" }
+ *       404:
+ *         description: Insurance application not found
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: NOT_FOUND, message: "Insurance application not found" }
+ */
+petInsuranceRoutes.patch(
+  '/applications/:id/cancel',
+  authenticate,
+  validate({ params: idParamSchema, body: cancelInsuranceApplicationSchema }),
+  petInsuranceController.cancel,
 );
 
 /**

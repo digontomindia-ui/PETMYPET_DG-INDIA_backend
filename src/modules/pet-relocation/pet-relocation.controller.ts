@@ -5,6 +5,7 @@ import { AppError } from '../../common/errors/app-error.js';
 import { HTTP_STATUS } from '../../common/constants/http-status.js';
 import { petRelocationService } from './pet-relocation.service.js';
 import type {
+  CancelRelocationRequestInput,
   CreateRelocationRequestInput,
   UpdateRelocationStatusInput,
 } from './pet-relocation.dto.js';
@@ -33,6 +34,16 @@ export const petRelocationController = {
   list: asyncHandler(async (req: Request, res: Response) => {
     const { requests, total, page, limit } = await petRelocationService.list(req.query);
     sendSuccess(res, HTTP_STATUS.OK, requests, 'Success', buildPaginationMeta(page, limit, total));
+  }),
+
+  cancel: asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = requireAuth(req);
+    const request = await petRelocationService.cancel(
+      req.params.id as string,
+      userId,
+      req.body as CancelRelocationRequestInput,
+    );
+    sendSuccess(res, HTTP_STATUS.OK, request, 'Relocation request cancelled');
   }),
 
   updateStatus: asyncHandler(async (req: Request, res: Response) => {

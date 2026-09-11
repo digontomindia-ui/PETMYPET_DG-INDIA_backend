@@ -20,6 +20,7 @@ export interface IRelocationRequest extends SoftDeletable {
   preferredTimeSlot: TimeSlot;
   status: RelocationStatus;
   adminNotes: string;
+  cancellationReason: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

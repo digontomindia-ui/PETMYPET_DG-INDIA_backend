@@ -29,6 +29,7 @@ const insuranceApplicationSchema = new Schema<IInsuranceApplication>(
       default: APPLICATION_STATUSES.SUBMITTED,
     },
     rejectionReason: { type: String, default: null },
+    cancellationReason: { type: String, default: null },
   },
   { timestamps: true },
 );

@@ -18,6 +18,7 @@ export function toInsuranceApplicationDto(application: IInsuranceApplication) {
     vaccinationDocumentUrls: application.vaccinationDocumentUrls,
     status: application.status,
     rejectionReason: application.rejectionReason,
+    cancellationReason: application.cancellationReason,
     createdAt: application.createdAt,
   };
 }

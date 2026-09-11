@@ -5,6 +5,7 @@ import { validate } from '../../common/middlewares/validate.middleware.js';
 import { ROLES } from '../../common/constants/roles.js';
 import { petRelocationController } from './pet-relocation.controller.js';
 import {
+  cancelRelocationRequestSchema,
   createRelocationRequestSchema,
   idParamSchema,
   listRelocationRequestsQuerySchema,
@@ -163,6 +164,60 @@ petRelocationRoutes.get(
   authenticate,
   validate({ params: idParamSchema }),
   petRelocationController.getById,
+);
+
+/**
+ * @openapi
+ * /pet-relocation/requests/{id}/cancel:
+ *   patch:
+ *     tags: [PetRelocation]
+ *     summary: Cancel a relocation request (owner only)
+ *     description: Only requests still SUBMITTED or CONTACTED can be self-cancelled; once ops has CONFIRMED a transport slot, the owner must go through support.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema: { type: string }
+ *         example: 64f1a2b3c4d5e6f7a8b9c0d1
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [reason]
+ *             properties:
+ *               reason: { type: string, minLength: 1, maxLength: 500 }
+ *           example:
+ *             reason: Found relocation help locally
+ *     responses:
+ *       200:
+ *         description: Relocation request cancelled
+ *       400:
+ *         description: Invalid request, or the request is already CONFIRMED/CANCELLED
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: BAD_REQUEST, message: "Cannot cancel a request that is already CONFIRMED" }
+ *       403:
+ *         description: Caller does not own this request
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: FORBIDDEN, message: "This request does not belong to you" }
+ *       404:
+ *         description: Relocation request not found
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/ErrorResponse' }
+ *             example: { success: false, error: NOT_FOUND, message: "Relocation request not found" }
+ */
+petRelocationRoutes.patch(
+  '/requests/:id/cancel',
+  authenticate,
+  validate({ params: idParamSchema, body: cancelRelocationRequestSchema }),
+  petRelocationController.cancel,
 );
 
 /**

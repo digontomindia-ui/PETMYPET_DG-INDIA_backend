@@ -19,6 +19,7 @@ export interface IInsuranceApplication extends SoftDeletable {
   vaccinationDocumentUrls: string[];
   status: ApplicationStatus;
   rejectionReason: string | null;
+  cancellationReason: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

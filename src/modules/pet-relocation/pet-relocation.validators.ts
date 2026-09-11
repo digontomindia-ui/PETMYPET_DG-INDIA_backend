@@ -32,6 +32,10 @@ export const updateRelocationStatusSchema = z.object({
   adminNotes: z.string().min(0).max(2000).optional(),
 });
 
+export const cancelRelocationRequestSchema = z.object({
+  reason: z.string().min(1).max(500),
+});
+
 export const listRelocationRequestsQuerySchema = z.object({
   status: z
     .enum([

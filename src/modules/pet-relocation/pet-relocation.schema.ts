@@ -28,6 +28,7 @@ const relocationRequestSchema = new Schema<IRelocationRequest>(
       default: RELOCATION_STATUSES.SUBMITTED,
     },
     adminNotes: { type: String, default: '' },
+    cancellationReason: { type: String, default: null },
   },
   { timestamps: true },
 );

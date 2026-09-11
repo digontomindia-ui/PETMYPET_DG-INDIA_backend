@@ -32,6 +32,10 @@ export const updateApplicationStatusSchema = z
     path: ['rejectionReason'],
   });
 
+export const cancelInsuranceApplicationSchema = z.object({
+  reason: z.string().min(1).max(500),
+});
+
 export const listInsuranceApplicationsQuerySchema = z.object({
   status: z
     .enum([
@@ -39,6 +43,7 @@ export const listInsuranceApplicationsQuerySchema = z.object({
       APPLICATION_STATUSES.UNDER_REVIEW,
       APPLICATION_STATUSES.APPROVED,
       APPLICATION_STATUSES.REJECTED,
+      APPLICATION_STATUSES.CANCELLED,
     ])
     .optional(),
   page: z.string().optional(),

@@ -6,10 +6,18 @@ import { petInsuranceRepository } from './pet-insurance.repository.js';
 import { toInsuranceApplicationDto } from './pet-insurance.mapper.js';
 import { APPLICATION_STATUSES } from './pet-insurance.constants.js';
 import type {
+  CancelInsuranceApplicationInput,
   CreateInsuranceApplicationInput,
   ListInsuranceApplicationsQuery,
   UpdateApplicationStatusInput,
 } from './pet-insurance.dto.js';
+
+/** Once underwriting has decided (APPROVED/REJECTED), the applicant backs out through support
+ * rather than a self-serve cancel — same reasoning as petRelocationService's cancellable set. */
+const USER_CANCELLABLE_STATUSES: string[] = [
+  APPLICATION_STATUSES.SUBMITTED,
+  APPLICATION_STATUSES.UNDER_REVIEW,
+];
 
 export const petInsuranceService = {
   async create(userId: string, input: CreateInsuranceApplicationInput) {
@@ -50,6 +58,21 @@ export const petInsuranceService = {
       petInsuranceRepository.count(filter),
     ]);
     return { applications: items.map(toInsuranceApplicationDto), total, page, limit };
+  },
+
+  async cancel(id: string, userId: string, input: CancelInsuranceApplicationInput) {
+    const application = await petInsuranceRepository.findById(id);
+    if (!application) throw AppError.notFound('Insurance application not found');
+    if (application.userId.toString() !== userId) {
+      throw AppError.forbidden('This application does not belong to you');
+    }
+    if (!USER_CANCELLABLE_STATUSES.includes(application.status)) {
+      throw AppError.badRequest(`Cannot cancel an application that is already ${application.status}`);
+    }
+    application.status = APPLICATION_STATUSES.CANCELLED;
+    application.cancellationReason = input.reason;
+    await application.save();
+    return toInsuranceApplicationDto(application);
   },
 
   async updateStatus(id: string, input: UpdateApplicationStatusInput) {

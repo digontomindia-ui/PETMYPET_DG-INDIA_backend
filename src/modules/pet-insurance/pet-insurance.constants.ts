@@ -9,6 +9,7 @@ export const APPLICATION_STATUSES = {
   UNDER_REVIEW: 'UNDER_REVIEW',
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
+  CANCELLED: 'CANCELLED',
 } as const;
 
 export type ApplicationStatus = (typeof APPLICATION_STATUSES)[keyof typeof APPLICATION_STATUSES];

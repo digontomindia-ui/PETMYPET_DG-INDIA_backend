@@ -5,11 +5,17 @@ import { parsePagination } from '../../common/utils/pagination.js';
 import { petRepository } from '../pets/pet.repository.js';
 import { relocationRequestRepository } from './pet-relocation.repository.js';
 import { toRelocationRequestAdminDto, toRelocationRequestDto } from './pet-relocation.mapper.js';
+import { RELOCATION_STATUSES } from './pet-relocation.constants.js';
 import type {
+  CancelRelocationRequestInput,
   CreateRelocationRequestInput,
   ListRelocationRequestsQuery,
   UpdateRelocationStatusInput,
 } from './pet-relocation.dto.js';
+
+/** Once ops has CONFIRMED a transport slot, the owner backs out through support rather than a
+ * self-serve cancel — mirrors why bookingService.cancel stops accepting cancellation at STARTED. */
+const USER_CANCELLABLE_STATUSES: string[] = [RELOCATION_STATUSES.SUBMITTED, RELOCATION_STATUSES.CONTACTED];
 
 export const petRelocationService = {
   async create(userId: string, input: CreateRelocationRequestInput) {
@@ -53,6 +59,21 @@ export const petRelocationService = {
       relocationRequestRepository.count(filter),
     ]);
     return { requests: items.map(toRelocationRequestAdminDto), total, page, limit };
+  },
+
+  async cancel(id: string, userId: string, input: CancelRelocationRequestInput) {
+    const request = await relocationRequestRepository.findById(id);
+    if (!request) throw AppError.notFound('Relocation request not found');
+    if (request.userId.toString() !== userId) {
+      throw AppError.forbidden('This request does not belong to you');
+    }
+    if (!USER_CANCELLABLE_STATUSES.includes(request.status)) {
+      throw AppError.badRequest(`Cannot cancel a request that is already ${request.status}`);
+    }
+    request.status = RELOCATION_STATUSES.CANCELLED;
+    request.cancellationReason = input.reason;
+    await request.save();
+    return toRelocationRequestDto(request);
   },
 
   async updateStatus(id: string, input: UpdateRelocationStatusInput) {

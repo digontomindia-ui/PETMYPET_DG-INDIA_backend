@@ -20,8 +20,10 @@ import { petTaxiRepository } from '../pet-taxi/pet-taxi.repository.js';
 import { petTaxiService } from '../pet-taxi/pet-taxi.service.js';
 import { toPetTaxiBookingDto } from '../pet-taxi/pet-taxi.mapper.js';
 import { petInsuranceRepository } from '../pet-insurance/pet-insurance.repository.js';
+import { petInsuranceService } from '../pet-insurance/pet-insurance.service.js';
 import { toInsuranceApplicationDto } from '../pet-insurance/pet-insurance.mapper.js';
 import { relocationRequestRepository } from '../pet-relocation/pet-relocation.repository.js';
+import { petRelocationService } from '../pet-relocation/pet-relocation.service.js';
 import { toRelocationRequestDto } from '../pet-relocation/pet-relocation.mapper.js';
 import {
   BOOKING_STATUSES,
@@ -121,6 +123,38 @@ function assertBookingEditableByProvider(status: BookingStatus): void {
   if (!PROVIDER_EDITABLE_STATUSES.includes(status)) {
     throw AppError.badRequest(`Cannot update booking while it is ${status}`);
   }
+}
+
+/** Tries each cancellable non-SERVICE module in turn, matching what listMine merges. Only a
+ * NOT_FOUND from a module means "wrong module, try the next one" — any other error (FORBIDDEN,
+ * BAD_REQUEST) means the id *was* found there and must propagate, not be swallowed. */
+async function cancelNonServiceBooking(
+  bookingId: string,
+  actorUserId: string,
+  input: CancelBookingInput,
+) {
+  try {
+    const booking = await petTaxiService.cancel(bookingId, actorUserId, input);
+    return { ...booking, bookingType: 'PET_TAXI' as const };
+  } catch (err) {
+    if (!(err instanceof AppError) || err.code !== 'NOT_FOUND') throw err;
+  }
+
+  try {
+    const request = await petRelocationService.cancel(bookingId, actorUserId, input);
+    return { ...request, bookingType: 'PET_RELOCATION' as const };
+  } catch (err) {
+    if (!(err instanceof AppError) || err.code !== 'NOT_FOUND') throw err;
+  }
+
+  try {
+    const application = await petInsuranceService.cancel(bookingId, actorUserId, input);
+    return { ...application, bookingType: 'PET_INSURANCE' as const };
+  } catch (err) {
+    if (!(err instanceof AppError) || err.code !== 'NOT_FOUND') throw err;
+  }
+
+  throw AppError.notFound('Booking not found');
 }
 
 async function requireProviderProfile(providerUserId: string) {
@@ -489,8 +523,7 @@ export const bookingService = {
   async cancel(bookingId: string, actorUserId: string, actorRole: Role, input: CancelBookingInput) {
     const booking = await bookingRepository.findById(bookingId);
     if (!booking) {
-      const petTaxiBooking = await petTaxiService.cancel(bookingId, actorUserId, input);
-      return { ...petTaxiBooking, bookingType: 'PET_TAXI' as const };
+      return await cancelNonServiceBooking(bookingId, actorUserId, input);
     }
 
     let cancelledBy: (typeof CANCELLED_BY)[keyof typeof CANCELLED_BY];

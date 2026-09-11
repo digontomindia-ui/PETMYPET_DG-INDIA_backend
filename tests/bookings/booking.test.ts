@@ -172,4 +172,71 @@ describe('booking lifecycle', () => {
     expect(cancelRes.body.data.bookingType).toBe('PET_TAXI');
     expect(cancelRes.body.data.pets[0].name).toBe('Bruno');
   });
+
+  it('cancels a pet-relocation request through the same unified /bookings/:id/cancel route', async () => {
+    const owner = await signupAndVerify(app, { role: 'USER' });
+    const auth = `Bearer ${owner.tokens.accessToken}`;
+
+    const petRes = await request(app)
+      .post('/api/v1/pets')
+      .set('Authorization', auth)
+      .send({ name: 'Bruno', species: 'DOG' });
+    const petId = petRes.body.data.id as string;
+
+    const relocationRes = await request(app)
+      .post('/api/v1/pet-relocation/requests')
+      .set('Authorization', auth)
+      .send({
+        ownerName: 'Test Owner',
+        ownerPhone: '+919876543210',
+        ownerEmail: 'owner@example.com',
+        petId,
+        originAddress: '1 MG Road, Bangalore',
+        destinationAddress: '2 Park Street, Kolkata',
+        relocationDate: futureDate(48),
+        transportType: 'ROAD',
+        preferredTimeSlot: 'MORNING',
+      });
+    expect(relocationRes.status).toBe(201);
+    const relocationId = relocationRes.body.data.id as string;
+
+    const cancelRes = await request(app)
+      .patch(`/api/v1/bookings/${relocationId}/cancel`)
+      .set('Authorization', auth)
+      .send({ reason: 'change of plans' });
+    expect(cancelRes.status).toBe(200);
+    expect(cancelRes.body.data.status).toBe('CANCELLED');
+    expect(cancelRes.body.data.bookingType).toBe('PET_RELOCATION');
+  });
+
+  it('cancels a pet-insurance application through the same unified /bookings/:id/cancel route', async () => {
+    const owner = await signupAndVerify(app, { role: 'USER' });
+    const auth = `Bearer ${owner.tokens.accessToken}`;
+
+    const insuranceRes = await request(app)
+      .post('/api/v1/pet-insurance/applications')
+      .set('Authorization', auth)
+      .send({
+        ownerName: 'Test Owner',
+        ownerEmail: 'owner@example.com',
+        ownerPhone: '+919876543210',
+        petName: 'Bruno',
+        petType: 'DOG',
+        petAge: '3 years',
+        petBreed: 'Labrador',
+        previousIllness: false,
+        previousSurgery: false,
+        vaccinated: false,
+      });
+    expect(insuranceRes.status).toBe(201);
+    const applicationId = insuranceRes.body.data.id as string;
+
+    const cancelRes = await request(app)
+      .patch(`/api/v1/bookings/${applicationId}/cancel`)
+      .set('Authorization', auth)
+      .send({ reason: 'change of plans' });
+    expect(cancelRes.status).toBe(200);
+    expect(cancelRes.body.data.status).toBe('CANCELLED');
+    expect(cancelRes.body.data.bookingType).toBe('PET_INSURANCE');
+  });
 });

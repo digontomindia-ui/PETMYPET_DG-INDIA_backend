@@ -4,7 +4,11 @@ import { sendSuccess, buildPaginationMeta } from '../../common/utils/api-respons
 import { AppError } from '../../common/errors/app-error.js';
 import { HTTP_STATUS } from '../../common/constants/http-status.js';
 import { petInsuranceService } from './pet-insurance.service.js';
-import type { CreateInsuranceApplicationInput, UpdateApplicationStatusInput } from './pet-insurance.dto.js';
+import type {
+  CancelInsuranceApplicationInput,
+  CreateInsuranceApplicationInput,
+  UpdateApplicationStatusInput,
+} from './pet-insurance.dto.js';
 
 function requireAuth(req: Request) {
   if (!req.user) throw AppError.unauthorized();
@@ -36,6 +40,16 @@ export const petInsuranceController = {
       'Success',
       buildPaginationMeta(page, limit, total),
     );
+  }),
+
+  cancel: asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = requireAuth(req);
+    const application = await petInsuranceService.cancel(
+      req.params.id as string,
+      userId,
+      req.body as CancelInsuranceApplicationInput,
+    );
+    sendSuccess(res, HTTP_STATUS.OK, application, 'Insurance application cancelled');
   }),
 
   updateStatus: asyncHandler(async (req: Request, res: Response) => {
