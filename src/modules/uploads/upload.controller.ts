@@ -16,8 +16,8 @@ export const uploadController = {
   }),
 
   remove: asyncHandler(async (req: Request, res: Response) => {
-    const { publicId, resourceType } = req.body as DeleteUploadInput;
-    await uploadService.deleteFile(publicId, resourceType);
+    const { publicId } = req.body as DeleteUploadInput;
+    await uploadService.deleteFile(publicId);
     sendSuccess(res, HTTP_STATUS.OK, null, 'File deleted');
   }),
 };

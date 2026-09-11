@@ -1,5 +1,5 @@
 import { AppError } from '../../common/errors/app-error.js';
-import { deleteAsset, uploadBuffer } from '../../common/integrations/cloudinary.js';
+import { deleteAsset, uploadBuffer } from '../../common/integrations/bunny-cdn.js';
 import {
   ALLOWED_MIME_TYPES_BY_CATEGORY,
   MAX_UPLOAD_SIZE_BYTES,
@@ -20,7 +20,12 @@ export const uploadService = {
       );
     }
 
-    const result = await uploadBuffer(file.buffer, UPLOAD_FOLDERS[category]);
+    const result = await uploadBuffer(
+      file.buffer,
+      UPLOAD_FOLDERS[category],
+      file.originalname,
+      file.mimetype,
+    );
     return {
       url: result.url,
       publicId: result.publicId,
@@ -30,7 +35,7 @@ export const uploadService = {
     };
   },
 
-  async deleteFile(publicId: string, resourceType: string): Promise<void> {
-    await deleteAsset(publicId, resourceType);
+  async deleteFile(publicId: string): Promise<void> {
+    await deleteAsset(publicId);
   },
 };

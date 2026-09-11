@@ -35,9 +35,15 @@ const envSchema = z.object({
   AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900000),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
 
-  CLOUDINARY_CLOUD_NAME: z.string().default(''),
-  CLOUDINARY_API_KEY: z.string().default(''),
-  CLOUDINARY_API_SECRET: z.string().default(''),
+  /** Bunny.net Storage Zone name, e.g. "patmypets". */
+  BUNNY_STORAGE_ZONE: z.string().default(''),
+  /** Storage Zone's FTP & API access key (Storage API password) — NOT the bunny.net dashboard
+   * account login. Found in the dashboard under the storage zone's "FTP & API Access" tab. */
+  BUNNY_STORAGE_API_KEY: z.string().default(''),
+  /** Storage region code (e.g. "ny", "la", "sg", "syd", "uk"); empty = default (Falkenstein, DE). */
+  BUNNY_STORAGE_REGION: z.string().default(''),
+  /** Pull Zone hostname assets are served from (a *.b-cdn.net or custom domain), no scheme. */
+  BUNNY_PULL_ZONE_HOSTNAME: z.string().default(''),
 
   RAZORPAY_KEY_ID: z.string().default(''),
   RAZORPAY_KEY_SECRET: z.string().default(''),

@@ -327,7 +327,7 @@ POST /pet-companion/swipe {swiperPetId, targetPetId, action}
     {
       name: 'Uploads',
       description:
-        'Generic Cloudinary-backed file upload, used as a first step by many other flows (KYC documents, pet photos, lost-and-found photos, chat attachments, booking session photos) — upload here first, then pass the returned URL into the relevant endpoint.',
+        'Generic Bunny CDN-backed file upload, used as a first step by many other flows (KYC documents, pet photos, lost-and-found photos, chat attachments, booking session photos) — upload here first, then pass the returned URL into the relevant endpoint.',
     },
     {
       name: 'Community',

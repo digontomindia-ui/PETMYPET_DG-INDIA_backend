@@ -503,7 +503,7 @@ async function seed(): Promise<void> {
     languages: ['English', 'Bengali'],
     metadata: { boarding: { capacity: 15, availableKennels: 6, amenities: ['24/7 Care', 'Play Area', 'CCTV Monitored'] } },
     addressLabel: 'Kolkata Paw Stay Boarding Center, Salt Lake, Kolkata, West Bengal 700091',
-    // Real storefront photo (until Cloudinary creds are configured) served from /static.
+    // Real storefront photo (until Bunny CDN creds are configured) served from /static.
     profileImageUrl: `${env.PUBLIC_BASE_URL}/static/seed/kolkata-boarding-center.jpg`,
   });
   const walkerKolkata = await createProviderWithUser({

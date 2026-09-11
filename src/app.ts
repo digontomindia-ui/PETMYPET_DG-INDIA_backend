@@ -82,7 +82,7 @@ export function createApp(): Express {
   app.use(generalRateLimiter);
 
   // Serves seed-data assets (e.g. the boarding provider photo) as real network URLs — used
-  // in place of Cloudinary when no cloud image host is configured yet.
+  // in place of Bunny CDN when no cloud image host is configured yet.
   app.use('/static', express.static(path.join(process.cwd(), 'public')));
 
   app.get('/health', (_req, res) => {

@@ -18,7 +18,7 @@ export const uploadRoutes = Router();
  * /uploads:
  *   post:
  *     tags: [Uploads]
- *     summary: Upload a file to Cloudinary (multipart/form-data, field name "file")
+ *     summary: Upload a file to Bunny CDN (multipart/form-data, field name "file")
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
  *       required: true
@@ -49,8 +49,8 @@ export const uploadRoutes = Router();
  *               success: true
  *               message: File uploaded
  *               data:
- *                 url: "https://res.cloudinary.com/patmypets/image/upload/v1699999999/avatars/ananya.jpg"
- *                 publicId: "patmypets/avatars/ananya_qk3f8x"
+ *                 url: "https://patmypets.b-cdn.net/patmypets/avatars/3f1e2a4b-1c2d-4e5f-9a6b-7c8d9e0f1a2b.jpg"
+ *                 publicId: "patmypets/avatars/3f1e2a4b-1c2d-4e5f-9a6b-7c8d9e0f1a2b.jpg"
  *                 resourceType: image
  *                 bytes: 184320
  *                 format: jpg
@@ -86,7 +86,7 @@ uploadRoutes.post(
  * /uploads:
  *   delete:
  *     tags: [Uploads]
- *     summary: Delete a previously uploaded Cloudinary asset by publicId
+ *     summary: Delete a previously uploaded Bunny CDN asset by publicId
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
  *       required: true

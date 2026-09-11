@@ -3,11 +3,11 @@ import request from 'supertest';
 
 vi.mock('../../src/common/integrations/mailer.js', () => ({ sendEmail: vi.fn() }));
 vi.mock('../../src/common/integrations/sms.js', () => ({ sendSms: vi.fn() }));
-vi.mock('../../src/common/integrations/cloudinary.js', () => ({
+vi.mock('../../src/common/integrations/bunny-cdn.js', () => ({
   uploadBuffer: vi.fn((_buffer: Buffer, folder: string) =>
     Promise.resolve({
-      url: `https://res.cloudinary.com/demo/image/upload/${folder}/mock.jpg`,
-      publicId: `${folder}/mock`,
+      url: `https://patmypets.b-cdn.net/${folder}/mock.jpg`,
+      publicId: `${folder}/mock.jpg`,
       resourceType: 'image',
       bytes: 1234,
       format: 'jpg',
@@ -18,7 +18,7 @@ vi.mock('../../src/common/integrations/cloudinary.js', () => ({
 
 const { createApp } = await import('../../src/app.js');
 const { signupAndVerify } = await import('../helpers/auth.js');
-const cloudinary = await import('../../src/common/integrations/cloudinary.js');
+const bunnyCdn = await import('../../src/common/integrations/bunny-cdn.js');
 
 describe('uploads', () => {
   const app = createApp();
@@ -35,7 +35,7 @@ describe('uploads', () => {
       .expect(401);
   });
 
-  it('uploads a valid image and returns the Cloudinary result', async () => {
+  it('uploads a valid image and returns the Bunny CDN result', async () => {
     const user = await signupAndVerify(app, { role: 'USER' });
 
     const res = await request(app)
@@ -49,7 +49,12 @@ describe('uploads', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.data.url).toContain('patmypets/avatars');
-    expect(cloudinary.uploadBuffer).toHaveBeenCalledWith(expect.any(Buffer), 'patmypets/avatars');
+    expect(bunnyCdn.uploadBuffer).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      'patmypets/avatars',
+      'photo.jpg',
+      'image/jpeg',
+    );
   });
 
   it('rejects a file type not allowed for the category', async () => {
@@ -65,7 +70,7 @@ describe('uploads', () => {
       });
 
     expect(res.status).toBe(400);
-    expect(cloudinary.uploadBuffer).not.toHaveBeenCalled();
+    expect(bunnyCdn.uploadBuffer).not.toHaveBeenCalled();
   });
 
   it('allows a PDF for a document-friendly category like KYC_DOCUMENT', async () => {
@@ -106,6 +111,6 @@ describe('uploads', () => {
       .send({ publicId: 'patmypets/avatars/mock', resourceType: 'image' });
 
     expect(res.status).toBe(200);
-    expect(cloudinary.deleteAsset).toHaveBeenCalledWith('patmypets/avatars/mock', 'image');
+    expect(bunnyCdn.deleteAsset).toHaveBeenCalledWith('patmypets/avatars/mock');
   });
 });
