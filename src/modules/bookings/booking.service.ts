@@ -17,6 +17,7 @@ import { UserModel } from '../users/user.schema.js';
 import { bookingRepository } from './booking.repository.js';
 import { toOwnerBookingView, toProviderBookingView } from './booking.mapper.js';
 import { petTaxiRepository } from '../pet-taxi/pet-taxi.repository.js';
+import { petTaxiService } from '../pet-taxi/pet-taxi.service.js';
 import { toPetTaxiBookingDto } from '../pet-taxi/pet-taxi.mapper.js';
 import { petInsuranceRepository } from '../pet-insurance/pet-insurance.repository.js';
 import { toInsuranceApplicationDto } from '../pet-insurance/pet-insurance.mapper.js';
@@ -303,8 +304,8 @@ export const bookingService = {
         ...booking,
         bookingType: 'SERVICE' as const,
       })),
-      ...petTaxiBookings.map((booking) => ({
-        ...toPetTaxiBookingDto(booking),
+      ...(await Promise.all(petTaxiBookings.map(toPetTaxiBookingDto))).map((booking) => ({
+        ...booking,
         bookingType: 'PET_TAXI' as const,
       })),
       ...insuranceApplications.map((application) => ({
@@ -481,9 +482,16 @@ export const bookingService = {
     return await toProviderBookingView(booking);
   },
 
+  /** Single cancel entry point for the merged "my bookings" list (see listMine): the id can belong
+   * to any of the cancellable booking types, so this tries the SERVICE collection first and falls
+   * back to pet-taxi rather than making the client know which module owns the id. Pet-insurance has
+   * no CANCELLED state and pet-relocation cancellation is admin-only, so neither applies here. */
   async cancel(bookingId: string, actorUserId: string, actorRole: Role, input: CancelBookingInput) {
     const booking = await bookingRepository.findById(bookingId);
-    if (!booking) throw AppError.notFound('Booking not found');
+    if (!booking) {
+      const petTaxiBooking = await petTaxiService.cancel(bookingId, actorUserId, input);
+      return { ...petTaxiBooking, bookingType: 'PET_TAXI' as const };
+    }
 
     let cancelledBy: (typeof CANCELLED_BY)[keyof typeof CANCELLED_BY];
     let provider = await providerRepository.findById(booking.providerId.toString());
@@ -525,7 +533,7 @@ export const bookingService = {
       ),
     );
 
-    return await toOwnerBookingView(booking);
+    return { ...(await toOwnerBookingView(booking)), bookingType: 'SERVICE' as const };
   },
 
   /** Called by the Payments module once a gateway refund succeeds; not exposed as its own route. */

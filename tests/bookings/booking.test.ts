@@ -135,4 +135,41 @@ describe('booking lifecycle', () => {
     expect(ownerCancel.body.data.status).toBe('CANCELLED');
     expect(ownerCancel.body.data.cancelledBy).toBe('USER');
   });
+
+  it('cancels a pet-taxi booking through the same unified /bookings/:id/cancel route', async () => {
+    const owner = await signupAndVerify(app, { role: 'USER' });
+    const auth = `Bearer ${owner.tokens.accessToken}`;
+
+    const petRes = await request(app)
+      .post('/api/v1/pets')
+      .set('Authorization', auth)
+      .send({ name: 'Bruno', species: 'DOG' });
+    expect(petRes.status).toBe(201);
+    const petId = petRes.body.data.id as string;
+
+    const taxiRes = await request(app)
+      .post('/api/v1/pet-taxi/bookings')
+      .set('Authorization', auth)
+      .send({
+        tripType: 'ONE_WAY',
+        petIds: [petId],
+        pickupAddress: '1 MG Road',
+        dropAddress: '2 Brigade Road',
+        pickupDate: futureDate(24).slice(0, 10),
+        pickupTime: '10:00',
+      });
+    expect(taxiRes.status).toBe(201);
+    expect(taxiRes.body.data.pets[0].name).toBe('Bruno');
+    const taxiBookingId = taxiRes.body.data.id as string;
+
+    // Same route SERVICE bookings use — no bookingType branching needed on the client.
+    const cancelRes = await request(app)
+      .patch(`/api/v1/bookings/${taxiBookingId}/cancel`)
+      .set('Authorization', auth)
+      .send({ reason: 'change of plans' });
+    expect(cancelRes.status).toBe(200);
+    expect(cancelRes.body.data.status).toBe('CANCELLED');
+    expect(cancelRes.body.data.bookingType).toBe('PET_TAXI');
+    expect(cancelRes.body.data.pets[0].name).toBe('Bruno');
+  });
 });
