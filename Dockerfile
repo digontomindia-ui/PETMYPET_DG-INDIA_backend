@@ -11,7 +11,8 @@ COPY src ./src
 RUN npm run build
 
 FROM base AS production-deps
-RUN npm ci --omit=dev --ignore-scripts
+RUN npm ci --omit=dev --ignore-scripts --loglevel=verbose \
+    || (echo "---- npm-debug log ----"; cat /root/.npm/_logs/*-debug-0.log 2>/dev/null; exit 1)
 
 FROM node:20-alpine AS runner
 WORKDIR /app
