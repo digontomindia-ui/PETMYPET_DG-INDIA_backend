@@ -74,6 +74,7 @@ const envSchema = z.object({
 
   DEFAULT_PLATFORM_COMMISSION_PERCENT: z.coerce.number().min(0).max(100).default(15),
   BOOKING_AUTO_CANCEL_MINUTES: z.coerce.number().int().positive().default(15),
+  MIN_BOOKING_DURATION_MINUTES: z.coerce.number().int().positive().default(90),
   CURRENCY: z.string().default('INR'),
 });
 
