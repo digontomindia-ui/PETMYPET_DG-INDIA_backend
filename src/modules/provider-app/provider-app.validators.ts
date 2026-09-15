@@ -8,9 +8,10 @@ const roleSlugSchema = z.enum(
 export const signinSignupSchema = z.object({
   role: roleSlugSchema,
   phone: z.string().min(6).max(20),
-  fcm_token: z.string().optional(),
-  device_type: z.enum(['android', 'ios']).optional(),
-  device_id: z.string().optional(),
+  // Client may send null when it hasn't set up Firebase yet — accept that, not just omission.
+  fcm_token: z.string().nullable().optional(),
+  device_type: z.enum(['android', 'ios']).nullable().optional(),
+  device_id: z.string().nullable().optional(),
 });
 
 export const providerVerifyOtpSchema = z.object({
