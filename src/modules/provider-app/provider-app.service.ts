@@ -308,13 +308,15 @@ export const providerAppService = {
 
     let provider = await providerRepository.findByUserId(user._id.toString());
     if (!provider) {
+      // Mongoose's `required: true` on a String field rejects '' (not just null/undefined) —
+      // placeholders here, overwritten for real by upload-documents right after.
       provider = await providerRepository.create({
         userId: user._id,
         providerType,
-        businessName: '',
+        businessName: 'Pending onboarding',
         description: '',
         location: { type: 'Point', coordinates: [0, 0] },
-        address: '',
+        address: 'Pending onboarding',
       });
     }
 
