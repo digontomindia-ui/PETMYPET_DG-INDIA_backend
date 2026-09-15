@@ -37,8 +37,13 @@ import { petTaxiRoutes } from '../modules/pet-taxi/pet-taxi.routes.js';
 import { petRelocationRoutes } from '../modules/pet-relocation/pet-relocation.routes.js';
 import { petInsuranceRoutes } from '../modules/pet-insurance/pet-insurance.routes.js';
 import { petCompanionRoutes } from '../modules/pet-companion/pet-companion.routes.js';
+import { providerAppRoutes } from '../modules/provider-app/provider-app.routes.js';
 
 export const apiRouter = Router();
+
+// Mounted first (bare paths, e.g. /home, /analytics) so its exact routes are matched before the
+// prefixed routers below — falls through to them for anything it doesn't register itself.
+apiRouter.use(providerAppRoutes);
 
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/users', userRoutes);

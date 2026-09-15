@@ -47,6 +47,7 @@ const metadataSchema = z
 export const createProviderProfileSchema = z.object({
   providerType: z.enum([
     PROVIDER_TYPES.VET,
+    PROVIDER_TYPES.CLINIC,
     PROVIDER_TYPES.GROOMER,
     PROVIDER_TYPES.BOARDING,
     PROVIDER_TYPES.PET_WALKER,
@@ -122,7 +123,7 @@ export const idParamSchema = z.object({ id: objectIdSchema });
 export const documentIdParamSchema = z.object({ id: objectIdSchema, documentId: objectIdSchema });
 
 export const providerAnalyticsQuerySchema = z.object({
-  range: z.enum(['week', 'month']).optional(),
+  range: z.enum(['week', 'month', 'year']).optional(),
 });
 
 export const attendanceQuerySchema = z.object({

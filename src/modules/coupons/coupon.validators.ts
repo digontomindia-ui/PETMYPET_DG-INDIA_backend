@@ -20,6 +20,7 @@ export const createCouponSchema = z
       .array(
         z.enum([
           PROVIDER_TYPES.VET,
+          PROVIDER_TYPES.CLINIC,
           PROVIDER_TYPES.GROOMER,
           PROVIDER_TYPES.BOARDING,
           PROVIDER_TYPES.PET_WALKER,

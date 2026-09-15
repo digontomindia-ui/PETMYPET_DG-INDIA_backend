@@ -38,7 +38,7 @@ import type { ProviderType } from '../../common/constants/roles.js';
 
 const DEFAULT_RADIUS_METERS = 15_000;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const RANGE_DAYS = { week: 7, month: 30 } as const;
+const RANGE_DAYS = { week: 7, month: 30, year: 365 } as const;
 
 async function requireOwnProvider(userId: string): Promise<ProviderDocument> {
   const provider = await providerRepository.findByUserId(userId);

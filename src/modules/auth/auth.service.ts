@@ -80,7 +80,7 @@ async function sendOtpToIdentifier(
   logger.debug({ identifier, purpose }, 'OTP dispatched');
 }
 
-async function issueOtp(identifier: string, purpose: OtpPurpose): Promise<void> {
+export async function issueOtp(identifier: string, purpose: OtpPurpose): Promise<void> {
   const code = generateOtpCode();
   const codeHash = await hashOtpCode(code);
   const expiresAt = new Date(Date.now() + env.OTP_TTL_SECONDS * 1000);
@@ -89,7 +89,7 @@ async function issueOtp(identifier: string, purpose: OtpPurpose): Promise<void> 
   await sendOtpToIdentifier(identifier, code, purpose);
 }
 
-async function verifyOtp(identifier: string, purpose: OtpPurpose, code: string): Promise<void> {
+export async function verifyOtp(identifier: string, purpose: OtpPurpose, code: string): Promise<void> {
   const otp = await otpRepository.findLatest(identifier, purpose);
   if (!otp || otp.expiresAt.getTime() < Date.now()) {
     throw AppError.badRequest('OTP has expired, please request a new one');
@@ -108,7 +108,7 @@ async function verifyOtp(identifier: string, purpose: OtpPurpose, code: string):
   await otpRepository.invalidateAll(identifier, purpose);
 }
 
-async function issueTokens(user: UserDocument, deviceInfo: DeviceInfo): Promise<AuthTokens> {
+export async function issueTokens(user: UserDocument, deviceInfo: DeviceInfo): Promise<AuthTokens> {
   const session = await sessionRepository.create(
     user._id.toString(),
     'pending',

@@ -8,6 +8,7 @@ export type Role = (typeof ROLES)[keyof typeof ROLES];
 
 export const PROVIDER_TYPES = {
   VET: 'VET',
+  CLINIC: 'CLINIC',
   GROOMER: 'GROOMER',
   BOARDING: 'BOARDING',
   PET_WALKER: 'PET_WALKER',

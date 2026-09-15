@@ -71,6 +71,17 @@ const bookingSchema = new Schema<IBooking>(
       ],
       default: [],
     },
+    progressUpdates: {
+      type: [
+        {
+          caption: { type: String, default: '', maxlength: 500 },
+          progressNote: { type: String, default: '', maxlength: 1000 },
+          media: { type: [String], default: [] },
+          createdAt: { type: Date, required: true, default: Date.now },
+        },
+      ],
+      default: [],
+    },
     walkStats: {
       type: {
         distanceMeters: { type: Number, required: true, min: 0 },

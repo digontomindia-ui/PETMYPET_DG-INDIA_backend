@@ -32,6 +32,13 @@ async function toBaseBooking(booking: BookingDocument): Promise<PublicBookingBas
     consultationMode: booking.consultationMode,
     providerNotes: booking.providerNotes,
     photos: booking.photos,
+    progressUpdates: booking.progressUpdates.map((update) => ({
+      id: update._id.toString(),
+      caption: update.caption,
+      progressNote: update.progressNote,
+      media: update.media,
+      createdAt: update.createdAt,
+    })),
     walkStats: booking.walkStats,
     createdAt: booking.createdAt,
   };

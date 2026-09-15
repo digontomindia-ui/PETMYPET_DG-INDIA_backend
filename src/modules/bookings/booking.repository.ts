@@ -68,6 +68,16 @@ export class BookingRepository extends BaseRepository<IBooking> {
     return this.model.find(filter).sort({ scheduledStart: -1 }).exec();
   }
 
+  /** Single most-relevant active booking for a provider's "current session" (start/end OTP,
+   * live progress upload) — the provider app works one session at a time, so this resolves it
+   * from the token alone rather than requiring a bookingId in every request body. */
+  async findActiveForProvider(providerId: string, statuses: string[]) {
+    return this.model
+      .findOne({ providerId, status: { $in: statuses } })
+      .sort({ scheduledStart: 1 })
+      .exec();
+  }
+
   async findForProvider(
     providerId: string,
     statuses: string[] | undefined,

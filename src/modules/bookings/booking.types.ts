@@ -24,6 +24,16 @@ export interface IBookingPhoto {
   uploadedAt: Date;
 }
 
+/** A provider-posted progress update during an in-progress session (e.g. a trainer's or
+ * sitter's live update with photos/video) — distinct from the before/after IBookingPhoto pair. */
+export interface IBookingProgressUpdate {
+  _id: Types.ObjectId;
+  caption: string;
+  progressNote: string;
+  media: string[];
+  createdAt: Date;
+}
+
 /** Latest snapshot pushed by the provider's app over the walk:update socket event, persisted so
  * the owner's app has a starting point on load instead of waiting for the next live tick. */
 export interface IWalkStats {
@@ -67,6 +77,7 @@ export interface IBooking {
   consultationMode: ConsultationMode | null;
   providerNotes: string;
   photos: IBookingPhoto[];
+  progressUpdates: Types.DocumentArray<IBookingProgressUpdate>;
   walkStats: IWalkStats | null;
   createdAt: Date;
   updatedAt: Date;
@@ -102,6 +113,7 @@ export interface PublicBookingBase {
   /** Provider-only session notes; present here because this same shape is the provider's view. */
   providerNotes: string;
   photos: IBookingPhoto[];
+  progressUpdates: { id: string; caption: string; progressNote: string; media: string[]; createdAt: Date }[];
   walkStats: IWalkStats | null;
   createdAt: Date;
 }

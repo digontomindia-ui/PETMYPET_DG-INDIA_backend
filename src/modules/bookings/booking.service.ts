@@ -177,7 +177,7 @@ async function requireBookingForProvider(
   return booking;
 }
 
-function computeAmounts(price: number, discountAmount: number, commissionPercent: number) {
+export function computeAmounts(price: number, discountAmount: number, commissionPercent: number) {
   const netPrice = Math.max(0, price - discountAmount);
   const commissionAmount = Math.round(netPrice * (commissionPercent / 100) * 100) / 100;
   const providerPayoutAmount = Math.round((netPrice - commissionAmount) * 100) / 100;
