@@ -23,6 +23,21 @@ describe('booking lifecycle', () => {
     const { providerAccount, providerId, serviceId } = await createApprovedProviderWithService(app);
     const user = await signupAndVerify(app, { role: 'USER' });
 
+    // The end-OTP step geofences against the owner's default address — needs one on file.
+    await request(app)
+      .post('/api/v1/users/me/addresses')
+      .set('Authorization', `Bearer ${user.tokens.accessToken}`)
+      .send({
+        label: 'Home',
+        addressLine1: '221B Baker Street',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        postalCode: '560001',
+        coordinates: [77.5946, 12.9716],
+        isDefault: true,
+      })
+      .expect(201);
+
     const createRes = await request(app)
       .post('/api/v1/bookings')
       .set('Authorization', `Bearer ${user.tokens.accessToken}`)
@@ -74,7 +89,7 @@ describe('booking lifecycle', () => {
     const endRes = await request(app)
       .post(`/api/v1/bookings/${bookingId}/otp/end`)
       .set('Authorization', providerAuth)
-      .send({ code: endOtp });
+      .send({ code: endOtp, lat: 12.9716, lng: 77.5946 });
     expect(endRes.status).toBe(200);
     expect(endRes.body.data.status).toBe('COMPLETED');
 
@@ -87,7 +102,7 @@ describe('booking lifecycle', () => {
 
   it('rejects double-booking a provider for an overlapping time slot', async () => {
     const { providerId, serviceId } = await createApprovedProviderWithService(app, {
-      durationMinutes: 60,
+      durationMinutes: 90,
     });
     const user = await signupAndVerify(app, { role: 'USER' });
     const scheduledStart = futureDate(5);

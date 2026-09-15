@@ -25,7 +25,7 @@ describe('availability', () => {
 
   it('returns an empty slot list for a day the provider has not configured', async () => {
     const { providerId, serviceId } = await createApprovedProviderWithService(app, {
-      durationMinutes: 60,
+      durationMinutes: 90,
     });
     const date = futureDateString(7);
 
@@ -41,7 +41,7 @@ describe('availability', () => {
     const { providerAccount, providerId, serviceId } = await createApprovedProviderWithService(
       app,
       {
-        durationMinutes: 60,
+        durationMinutes: 90,
       },
     );
 
@@ -52,7 +52,7 @@ describe('availability', () => {
       .put('/api/v1/providers/me')
       .set('Authorization', `Bearer ${providerAccount.tokens.accessToken}`)
       .send({
-        workingHours: [{ day: weekday, openTime: '09:00', closeTime: '12:00', isClosed: false }],
+        workingHours: [{ day: weekday, openTime: '09:00', closeTime: '15:00', isClosed: false }],
       })
       .expect(200);
 
@@ -61,8 +61,9 @@ describe('availability', () => {
     );
     expect(beforeRes.status).toBe(200);
     const beforeSlots = beforeRes.body.data.slots as { isAvailable: boolean }[];
-    // 09:00 to 12:00, 60-minute slots stepped every 30 minutes: 09:00..11:00 inclusive => 5 slots
-    expect(beforeSlots).toHaveLength(5);
+    // 09:00 to 15:00, 90-minute slots stepped every 30 minutes: last start is 13:30
+    // (13:30 + 90min = 15:00) => 09:00..13:30 inclusive => 10 slots.
+    expect(beforeSlots).toHaveLength(10);
     expect(beforeSlots.every((slot) => slot.isAvailable)).toBe(true);
 
     const user = await signupAndVerify(app, { role: 'USER' });
@@ -82,11 +83,14 @@ describe('availability', () => {
         slot.isAvailable,
       ]),
     );
+    // The booking runs 10:00-11:30 (90 min). Every slot starting from 09:00 through 11:00
+    // (each also 90 min) overlaps that window; 11:30 onward starts exactly when the booking
+    // ends, so it doesn't.
     expect(slotsByStart.get(bookingStart)).toBe(false);
-    // The 09:30 slot (09:30-10:30) overlaps the 10:00-11:00 booking too.
     expect(slotsByStart.get(`${date}T09:30:00.000Z`)).toBe(false);
-    // The 08:00 range doesn't exist; 09:00 slot (09:00-10:00) does not overlap a 10:00 start.
-    expect(slotsByStart.get(`${date}T09:00:00.000Z`)).toBe(true);
+    expect(slotsByStart.get(`${date}T09:00:00.000Z`)).toBe(false);
+    expect(slotsByStart.get(`${date}T11:00:00.000Z`)).toBe(false);
+    expect(slotsByStart.get(`${date}T11:30:00.000Z`)).toBe(true);
   });
 
   it('rejects a serviceId that does not belong to the given provider', async () => {

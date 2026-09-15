@@ -48,7 +48,7 @@ export async function createApprovedProviderWithService(
       categoryId: categoryRes.body.data.id,
       name: 'Full Grooming Package',
       price: overrides.price ?? 1000,
-      durationMinutes: overrides.durationMinutes ?? 60,
+      durationMinutes: overrides.durationMinutes ?? 90,
     })
     .expect(201);
 

@@ -51,7 +51,7 @@ describe('services', () => {
     const res = await request(app)
       .post('/api/v1/services')
       .set('Authorization', `Bearer ${user.tokens.accessToken}`)
-      .send({ categoryId, name: 'Full Grooming', price: 500, durationMinutes: 45 });
+      .send({ categoryId, name: 'Full Grooming', price: 500, durationMinutes: 90 });
     expect(res.status).toBe(403);
   });
 
@@ -63,7 +63,7 @@ describe('services', () => {
     const createRes = await request(app)
       .post('/api/v1/services')
       .set('Authorization', `Bearer ${providerAccount.tokens.accessToken}`)
-      .send({ categoryId, name: 'Full Grooming', price: 500, durationMinutes: 45 });
+      .send({ categoryId, name: 'Full Grooming', price: 500, durationMinutes: 90 });
     expect(createRes.status).toBe(201);
     expect(createRes.body.data.providerId).toBe(providerId);
     const serviceId = createRes.body.data.id as string;
@@ -106,7 +106,7 @@ describe('services', () => {
     const createRes = await request(app)
       .post('/api/v1/services')
       .set('Authorization', `Bearer ${ownerAccount.tokens.accessToken}`)
-      .send({ categoryId, name: 'Full Grooming', price: 500, durationMinutes: 45 })
+      .send({ categoryId, name: 'Full Grooming', price: 500, durationMinutes: 90 })
       .expect(201);
     const serviceId = createRes.body.data.id as string;
 
@@ -130,7 +130,7 @@ describe('services', () => {
     const res = await request(app)
       .post('/api/v1/services')
       .set('Authorization', `Bearer ${providerAccount.tokens.accessToken}`)
-      .send({ categoryId, name: 'Full Grooming', price: 500, durationMinutes: 45 });
+      .send({ categoryId, name: 'Full Grooming', price: 500, durationMinutes: 90 });
     expect(res.status).toBe(404);
   });
 });
