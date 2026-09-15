@@ -639,7 +639,7 @@ async function seed(): Promise<void> {
     description: 'In-clinic consultation',
     price: 799,
     originalPrice: 1599,
-    durationMinutes: 30,
+    durationMinutes: 90,
   });
   await createService({
     providerId: vet.provider._id,
@@ -659,10 +659,10 @@ async function seed(): Promise<void> {
   await createService({
     providerId: walker.provider._id,
     categoryId: categoryDogWalking._id,
-    name: '30 Min Walk',
-    description: 'Standard 30-minute walk',
+    name: '90 Min Walk',
+    description: 'Standard 90-minute walk',
     price: 199,
-    durationMinutes: 30,
+    durationMinutes: 90,
     addOnCatalog: walkAddOns,
   });
   await createService({
@@ -761,7 +761,7 @@ async function seed(): Promise<void> {
     description: 'In-clinic consultation',
     price: 799,
     originalPrice: 1599,
-    durationMinutes: 30,
+    durationMinutes: 90,
   });
   await createService({
     providerId: vetKolkata.provider._id,
@@ -776,10 +776,10 @@ async function seed(): Promise<void> {
   await createService({
     providerId: walkerKolkata.provider._id,
     categoryId: categoryDogWalking._id,
-    name: '30 Min Walk',
-    description: 'Standard 30-minute walk',
+    name: '90 Min Walk',
+    description: 'Standard 90-minute walk',
     price: 199,
-    durationMinutes: 30,
+    durationMinutes: 90,
     addOnCatalog: walkAddOns,
   });
   await createService({
@@ -852,7 +852,7 @@ async function seed(): Promise<void> {
     name: 'General Consultation',
     description: 'In-clinic or video vet consultation',
     price: 499,
-    durationMinutes: 30,
+    durationMinutes: 90,
   });
 
   await createService({
