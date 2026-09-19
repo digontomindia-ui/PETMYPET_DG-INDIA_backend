@@ -333,6 +333,44 @@ POST /pet-companion/swipe {swiperPetId, targetPetId, action}
       name: 'Community',
       description: 'Social feed: posts, comments, likes, bookmarks, and moderation/reporting.',
     },
+    {
+      name: 'ProviderApp',
+      description: `
+Bare-path (no \`/provider-app\` prefix) API surface mirroring a separately-specified vendor
+mobile app contract, reusing the existing auth/provider/booking/chat services underneath.
+Response *shapes* are role-specific (\`role\` is one of \`pet-groomer\`, \`pet-clinics\`, \`vets\`,
+\`boarding-center\`, \`dogs-trainer\`, \`dog-walker\`, \`pet-sitter\`) — the schemas below document
+the groomer/default shape actually returned; other roles add/rename a few fields on the same
+\`data\` envelope. See **Auth**, **Providers**, **Bookings**, and **Chat** for the underlying flows
+this module aliases.
+
+\`\`\`
+POST /signin-signup {role, phone}        (auto-creates account, sends OTP)
+        ▼
+POST /verify-otp {role, phone, otp}      ──▶  {token, isDocumentSubmited, isDocumentApproved}
+        │  first verify auto-creates a shell provider profile (kycStatus: PENDING)
+        ▼
+POST /upload-documents (role-specific fields, Bearer token)
+        │
+        ▼
+GET /home                                 (role-shaped dashboard)
+        │
+        ├── GET /my-appointments | /appointments | /trainer/dashboard | /patients
+        ├── GET /analytics | /profile
+        │
+        ▼
+POST /start-Session/verify-otp {otp}      (booking ACCEPTED/ON_THE_WAY → STARTED)
+        ├── POST /session/resend-otp
+        ├── POST /session/upload-training-process   (trainer progress log)
+        ▼
+POST /end-Session/verify-otp {otp}        (STARTED → COMPLETED, payout computed)
+        ▼
+GET /end-Session                          (session summary)
+
+GET /message, GET /message/{room_id}/history   — REST aliases for the Chat inbox/history
+\`\`\`
+`,
+    },
   ],
   components: {
     securitySchemes: {
