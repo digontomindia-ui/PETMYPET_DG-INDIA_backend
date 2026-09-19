@@ -595,6 +595,12 @@ async function seed(): Promise<void> {
     return ServiceModel.create({ ...data, images: [seedImage(`service-${slug}`, 600, 600)] });
   }
 
+  const groomingBasicIncludedItems = [
+    { name: 'Bath', imageUrl: seedImage('included-bath', 100, 100) },
+    { name: 'Blow Dry', imageUrl: seedImage('included-blow-dry', 100, 100) },
+    { name: 'Nail Trim', imageUrl: seedImage('included-nail-trim', 100, 100) },
+  ];
+
   const groomingBasic = await createService({
     providerId: groomer.provider._id,
     categoryId: categoryGrooming._id,
@@ -603,6 +609,7 @@ async function seed(): Promise<void> {
     price: 499,
     originalPrice: 799,
     durationMinutes: 45,
+    includedItems: groomingBasicIncludedItems,
   });
   await createService({
     providerId: groomer.provider._id,
@@ -725,6 +732,7 @@ async function seed(): Promise<void> {
     price: 499,
     originalPrice: 799,
     durationMinutes: 45,
+    includedItems: groomingBasicIncludedItems,
   });
   await createService({
     providerId: groomerKolkata.provider._id,

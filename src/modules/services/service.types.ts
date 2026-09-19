@@ -6,6 +6,13 @@ export interface IServiceAddOn {
   price: number;
 }
 
+/** One row of the "What's Included" list on the service detail screen (e.g. "Bath" + a bath
+ * icon) — distinct from `images`, which are photos of the package/provider, not per-item icons. */
+export interface IServiceIncludedItem {
+  name: string;
+  imageUrl: string;
+}
+
 export interface IService extends SoftDeletable {
   _id: Types.ObjectId;
   providerId: Types.ObjectId;
@@ -16,6 +23,7 @@ export interface IService extends SoftDeletable {
   originalPrice: number | null;
   durationMinutes: number;
   images: string[];
+  includedItems: IServiceIncludedItem[];
   addOnCatalog: IServiceAddOn[];
   isActive: boolean;
   createdAt: Date;

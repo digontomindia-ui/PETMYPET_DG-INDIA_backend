@@ -76,6 +76,10 @@ export const serviceRoutes = Router();
  *                   originalPrice: 1049
  *                   durationMinutes: 60
  *                   images: ["https://cdn.petmypet.in/services/grooming-package.jpg"]
+ *                   includedItems:
+ *                     - { name: "Bath", imageUrl: "https://cdn.petmypet.in/icons/bath.png" }
+ *                     - { name: "Blow Dry", imageUrl: "https://cdn.petmypet.in/icons/blow-dry.png" }
+ *                     - { name: "Nail Trim", imageUrl: "https://cdn.petmypet.in/icons/nail-trim.png" }
  *                   isActive: true
  *                   createdAt: "2026-05-10T08:00:00.000Z"
  *               meta: { page: 1, limit: 20, total: 1, totalPages: 1 }
@@ -118,6 +122,10 @@ serviceRoutes.get('/', validate({ query: searchServicesQuerySchema }), serviceCo
  *                 originalPrice: 1049
  *                 durationMinutes: 60
  *                 images: ["https://cdn.petmypet.in/services/grooming-package.jpg"]
+ *                 includedItems:
+ *                   - { name: "Bath", imageUrl: "https://cdn.petmypet.in/icons/bath.png" }
+ *                   - { name: "Blow Dry", imageUrl: "https://cdn.petmypet.in/icons/blow-dry.png" }
+ *                   - { name: "Nail Trim", imageUrl: "https://cdn.petmypet.in/icons/nail-trim.png" }
  *                 isActive: true
  *                 createdAt: "2026-05-10T08:00:00.000Z"
  *       400:
@@ -151,6 +159,16 @@ serviceRoutes.get('/:id', validate({ params: idParamSchema }), serviceController
  *               originalPrice: { type: number, minimum: 0, nullable: true, description: "Struck-through list price; must be >= price when set" }
  *               durationMinutes: { type: integer, minimum: 5 }
  *               images: { type: array, items: { type: string, format: uri }, default: [] }
+ *               includedItems:
+ *                 type: array
+ *                 default: []
+ *                 description: "\"What's Included\" list on the service detail screen — each item's icon is a provider-uploaded image (via Uploads), not a client-side guess."
+ *                 items:
+ *                   type: object
+ *                   required: [name, imageUrl]
+ *                   properties:
+ *                     name: { type: string, minLength: 1, maxLength: 100, example: "Bath" }
+ *                     imageUrl: { type: string, format: uri, description: "URL from Uploads" }
  *               addOnCatalog:
  *                 type: array
  *                 default: []
@@ -168,6 +186,10 @@ serviceRoutes.get('/:id', validate({ params: idParamSchema }), serviceController
  *             originalPrice: 1049
  *             durationMinutes: 60
  *             images: ["https://cdn.petmypet.in/services/grooming-package.jpg"]
+ *             includedItems:
+ *               - { name: "Bath", imageUrl: "https://cdn.petmypet.in/icons/bath.png" }
+ *               - { name: "Blow Dry", imageUrl: "https://cdn.petmypet.in/icons/blow-dry.png" }
+ *               - { name: "Nail Trim", imageUrl: "https://cdn.petmypet.in/icons/nail-trim.png" }
  *             addOnCatalog:
  *               - { name: "Extra 15 Min", price: 79 }
  *               - { name: "Poo Pickup", price: 49 }
@@ -190,6 +212,10 @@ serviceRoutes.get('/:id', validate({ params: idParamSchema }), serviceController
  *                 originalPrice: 1049
  *                 durationMinutes: 60
  *                 images: ["https://cdn.petmypet.in/services/grooming-package.jpg"]
+ *                 includedItems:
+ *                   - { name: "Bath", imageUrl: "https://cdn.petmypet.in/icons/bath.png" }
+ *                   - { name: "Blow Dry", imageUrl: "https://cdn.petmypet.in/icons/blow-dry.png" }
+ *                   - { name: "Nail Trim", imageUrl: "https://cdn.petmypet.in/icons/nail-trim.png" }
  *                 addOnCatalog:
  *                   - { name: "Extra 15 Min", price: 79 }
  *                   - { name: "Poo Pickup", price: 49 }
@@ -247,6 +273,15 @@ serviceRoutes.post(
  *               originalPrice: { type: number, minimum: 0, nullable: true, description: "Struck-through list price; must be >= price when set" }
  *               durationMinutes: { type: integer, minimum: 5 }
  *               images: { type: array, items: { type: string, format: uri } }
+ *               includedItems:
+ *                 type: array
+ *                 description: "\"What's Included\" list on the service detail screen — replaces the full array when sent."
+ *                 items:
+ *                   type: object
+ *                   required: [name, imageUrl]
+ *                   properties:
+ *                     name: { type: string, minLength: 1, maxLength: 100, example: "Bath" }
+ *                     imageUrl: { type: string, format: uri, description: "URL from Uploads" }
  *               addOnCatalog:
  *                 type: array
  *                 items:
@@ -260,6 +295,10 @@ serviceRoutes.post(
  *             price: 949
  *             originalPrice: 1099
  *             durationMinutes: 75
+ *             includedItems:
+ *               - { name: "Bath", imageUrl: "https://cdn.petmypet.in/icons/bath.png" }
+ *               - { name: "Blow Dry", imageUrl: "https://cdn.petmypet.in/icons/blow-dry.png" }
+ *               - { name: "Nail Trim", imageUrl: "https://cdn.petmypet.in/icons/nail-trim.png" }
  *             addOnCatalog:
  *               - { name: "Extra 15 Min", price: 79 }
  *               - { name: "Poo Pickup", price: 49 }
@@ -282,6 +321,10 @@ serviceRoutes.post(
  *                 originalPrice: 1099
  *                 durationMinutes: 75
  *                 images: ["https://cdn.petmypet.in/services/grooming-package.jpg"]
+ *                 includedItems:
+ *                   - { name: "Bath", imageUrl: "https://cdn.petmypet.in/icons/bath.png" }
+ *                   - { name: "Blow Dry", imageUrl: "https://cdn.petmypet.in/icons/blow-dry.png" }
+ *                   - { name: "Nail Trim", imageUrl: "https://cdn.petmypet.in/icons/nail-trim.png" }
  *                 addOnCatalog:
  *                   - { name: "Extra 15 Min", price: 79 }
  *                   - { name: "Poo Pickup", price: 49 }

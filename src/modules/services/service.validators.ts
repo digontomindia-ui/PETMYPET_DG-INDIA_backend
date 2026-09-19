@@ -8,6 +8,11 @@ const addOnSchema = z.object({
   price: z.number().min(0),
 });
 
+const includedItemSchema = z.object({
+  name: z.string().min(1).max(100),
+  imageUrl: z.string().url(),
+});
+
 export const createServiceSchema = z
   .object({
     categoryId: objectIdSchema,
@@ -19,6 +24,7 @@ export const createServiceSchema = z
       message: `durationMinutes must be at least ${env.MIN_BOOKING_DURATION_MINUTES} minutes`,
     }),
     images: z.array(z.string().url()).default([]),
+    includedItems: z.array(includedItemSchema).default([]),
     addOnCatalog: z.array(addOnSchema).default([]),
   })
   .refine((data) => data.originalPrice === undefined || data.originalPrice >= data.price, {
@@ -37,6 +43,7 @@ export const updateServiceSchema = z
       message: `durationMinutes must be at least ${env.MIN_BOOKING_DURATION_MINUTES} minutes`,
     }).optional(),
     images: z.array(z.string().url()).optional(),
+    includedItems: z.array(includedItemSchema).optional(),
     addOnCatalog: z.array(addOnSchema).optional(),
     isActive: z.boolean().optional(),
   })

@@ -11,6 +11,7 @@ export function toServiceDto(service: ServiceDocument) {
     originalPrice: service.originalPrice,
     durationMinutes: service.durationMinutes,
     images: service.images,
+    includedItems: service.includedItems,
     addOnCatalog: service.addOnCatalog,
     isActive: service.isActive,
     createdAt: service.createdAt,
