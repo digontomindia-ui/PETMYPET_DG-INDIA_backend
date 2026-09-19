@@ -1,7 +1,7 @@
 import { model, Schema } from 'mongoose';
 import { PROVIDER_TYPES } from '../../common/constants/roles.js';
 import { softDeletePlugin } from '../../common/database/plugins/soft-delete.plugin.js';
-import { workingHoursSchema } from '../../common/schemas/working-hours.schema.js';
+import { WEEKDAYS, workingHoursSchema, type IWorkingHours } from '../../common/schemas/working-hours.schema.js';
 import { USER_MODEL_NAME } from '../users/user.constants.js';
 import { ZONE_MODEL_NAME } from '../zones/zone.constants.js';
 import { KYC_DOCUMENT_TYPES, KYC_STATUSES, PROVIDER_MODEL_NAME } from './provider.constants.js';
@@ -14,6 +14,17 @@ import type {
   IProviderMetadata,
   ITrainingPlan,
 } from './provider.types.js';
+
+/** Applied whenever a provider is created without explicit hours (e.g. the shell profile made at
+ * signup, before onboarding) — matches the Mon-Sat 09:00-19:00 / Sun-closed pattern used
+ * everywhere else in this codebase, so a fresh provider is bookable instead of returning empty
+ * /availability slots until someone remembers to set hours by hand. */
+const DEFAULT_WORKING_HOURS: IWorkingHours[] = WEEKDAYS.map((day) => ({
+  day,
+  openTime: '09:00',
+  closeTime: '19:00',
+  isClosed: day === 'SUN',
+}));
 
 const certificationSchema = new Schema<ICertification>(
   {
@@ -115,7 +126,7 @@ const providerSchema = new Schema<IProvider>(
       coordinates: { type: [Number], required: true },
     },
     address: { type: String, required: true },
-    workingHours: { type: [workingHoursSchema], default: [] },
+    workingHours: { type: [workingHoursSchema], default: () => DEFAULT_WORKING_HOURS },
     unavailableDates: { type: [Date], default: [] },
     metadata: { type: metadataSchema, default: () => ({}) },
     bankAccount: { type: bankAccountSchema, default: null },
