@@ -146,7 +146,9 @@ providerAppRoutes.post(
  *       Bearer token required (`SERVICE_PROVIDER`). One superset body for every role — which fields
  *       are actually required depends on the caller's own provider role (e.g. `clinic_name` for
  *       `pet-clinics`, `name` for everyone else). Re-submitting after a KYC rejection resets
- *       `kycStatus` back to `PENDING`.
+ *       `kycStatus` back to `PENDING`. If `location.longtude`/`location.latatude` are both given,
+ *       the provider's zone is auto-assigned to the nearest one (drives `GET /profile`'s
+ *       `service_areas` and eligibility for nearby search).
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
  *       required: true

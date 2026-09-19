@@ -335,6 +335,20 @@ export const providerAppService = {
 
     applyRoleFields(provider, user, input);
 
+    // The shell profile created at verify-otp time has no address/location/zone (placeholder
+    // coordinates [0,0]) — this is the only place onboarding ever supplies real ones, so apply
+    // them here and auto-assign the nearest zone, otherwise the provider never shows up in
+    // nearby search and GET /profile's service_areas stays empty forever.
+    if (input.location?.address) provider.address = input.location.address;
+    if (input.location?.longtude !== undefined && input.location?.latatude !== undefined) {
+      const coordinates: [number, number] = [input.location.longtude, input.location.latatude];
+      provider.location = { type: 'Point', coordinates };
+      const nearestZone = await ZoneModel.findOne({
+        center: { $nearSphere: { $geometry: { type: 'Point', coordinates } } },
+      });
+      if (nearestZone) provider.zoneIds = [nearestZone._id];
+    }
+
     if (provider.kycStatus === KYC_STATUSES.REJECTED) {
       provider.kycStatus = KYC_STATUSES.PENDING;
       provider.kycRejectionReason = null;

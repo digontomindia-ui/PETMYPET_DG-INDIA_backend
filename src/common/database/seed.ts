@@ -1208,6 +1208,10 @@ async function seed(): Promise<void> {
     });
     if (!service) return;
 
+    // Without a petId, provider-app's GET /patients (which reads bookings' petId) always comes
+    // back empty for every provider whose only bookings came from this helper.
+    const pet = await PetModel.findOne({ ownerId: user._id });
+
     const start = daysAgo(daysBack);
     const end = new Date(start.getTime() + service.durationMinutes * 60_000);
     const commissionPercent = providerWithUser.provider.commissionPercent ?? 15;
@@ -1218,6 +1222,7 @@ async function seed(): Promise<void> {
 
     const booking = await BookingModel.create({
       userId: user._id,
+      petId: pet?._id ?? null,
       providerId: providerWithUser.provider._id,
       serviceId: service._id,
       zoneId: providerWithUser.provider.zoneIds[0] ?? null,
@@ -1254,6 +1259,52 @@ async function seed(): Promise<void> {
   await seedReview(ananya, trainer, 5, 'My puppy learned basic commands in just a few sessions.', 10);
   await seedReview(priya, sitter, 4, 'Took great care of my cat while I was away.', 6);
   await seedReview(rahul, groomerKolkata, 5, 'Professional grooming, my dog looks amazing.', 4);
+
+  // An ACCEPTED (upcoming) booking per role — seedReview above only ever leaves a COMPLETED one,
+  // so provider-app's "upcoming" views (GET /home, /trainer/dashboard, /my-appointments,
+  // /appointments, /patients) had nothing to show for the walker/trainer/sitter demo accounts.
+  async function seedUpcomingBooking(
+    user: { _id: Types.ObjectId },
+    pet: { _id: Types.ObjectId },
+    providerWithUser: Awaited<ReturnType<typeof createProviderWithUser>>,
+    daysAhead: number,
+  ) {
+    const service = await ServiceModel.findOne({
+      providerId: providerWithUser.provider._id,
+      isActive: true,
+    });
+    if (!service) return;
+
+    const start = daysFromNow(daysAhead);
+    const end = new Date(start.getTime() + service.durationMinutes * 60_000);
+    const commissionPercent = providerWithUser.provider.commissionPercent ?? 15;
+    const { commissionAmount, providerPayoutAmount } = computeAmounts(
+      service.price,
+      commissionPercent,
+    );
+
+    await BookingModel.create({
+      userId: user._id,
+      petId: pet._id,
+      providerId: providerWithUser.provider._id,
+      serviceId: service._id,
+      zoneId: providerWithUser.provider.zoneIds[0] ?? null,
+      scheduledStart: start,
+      scheduledEnd: end,
+      status: BOOKING_STATUSES.ACCEPTED,
+      otpStart: '112211',
+      otpEnd: '445566',
+      price: service.price,
+      commissionPercent,
+      commissionAmount,
+      providerPayoutAmount,
+      paymentStatus: BOOKING_PAYMENT_STATUSES.PENDING,
+    });
+  }
+
+  await seedUpcomingBooking(rahul, max, walker, 1);
+  await seedUpcomingBooking(ananya, luna, trainer, 2);
+  await seedUpcomingBooking(priya, bruno, sitter, 1);
 
   const upcomingStart = daysFromNow(2);
   await BookingModel.create({
