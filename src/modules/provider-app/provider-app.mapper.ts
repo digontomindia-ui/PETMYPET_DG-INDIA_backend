@@ -336,6 +336,7 @@ export function mapGroomerHome(
                 }
               : null,
             service_badge: activeSession.serviceName.toUpperCase(),
+            scheduled_time: timeLabel(activeSession.scheduledStart),
             steps: buildGroomingSteps(activeSession.status),
           }
         : null,
