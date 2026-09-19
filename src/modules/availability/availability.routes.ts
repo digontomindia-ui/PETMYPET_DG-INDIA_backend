@@ -45,9 +45,11 @@ export const availabilityRoutes = Router();
  *                 slots:
  *                   - start: "2026-08-01T09:00:00.000Z"
  *                     end: "2026-08-01T09:45:00.000Z"
+ *                     timeSlot: "09:00 AM - 09:45 AM"
  *                     isAvailable: true
  *                   - start: "2026-08-01T09:30:00.000Z"
  *                     end: "2026-08-01T10:15:00.000Z"
+ *                     timeSlot: "09:30 AM - 10:15 AM"
  *                     isAvailable: false
  *       400:
  *         description: Invalid query parameters, or provider/service not eligible for booking

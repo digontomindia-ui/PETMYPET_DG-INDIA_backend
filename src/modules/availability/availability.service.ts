@@ -11,6 +11,10 @@ function parseTimeOnDate(date: string, time: string): Date {
   return new Date(`${date}T${time}:00.000Z`);
 }
 
+function timeLabel(date: Date): string {
+  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' });
+}
+
 export const availabilityService = {
   async getSlots(
     query: GetAvailabilityQuery,
@@ -57,9 +61,12 @@ export const availabilityService = {
         (booking) =>
           start < booking.scheduledEnd.getTime() && end > booking.scheduledStart.getTime(),
       );
+      const slotStart = new Date(start);
+      const slotEnd = new Date(end);
       slots.push({
-        start: new Date(start),
-        end: new Date(end),
+        start: slotStart,
+        end: slotEnd,
+        timeSlot: `${timeLabel(slotStart)} - ${timeLabel(slotEnd)}`,
         isAvailable: !isPast && !isBusy,
       });
     }
