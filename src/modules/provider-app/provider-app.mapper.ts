@@ -451,6 +451,7 @@ export function mapVetAppointments(appointments: EnrichedBooking[]) {
     schedule: appointments.map((b) => ({
       id: b.id,
       name: b.pet?.name ?? '',
+      breed: b.pet?.breed ?? '',
       test: b.serviceName.toUpperCase(),
       years: '',
       status: b.status,
