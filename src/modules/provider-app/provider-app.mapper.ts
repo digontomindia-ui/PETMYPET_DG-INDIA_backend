@@ -400,6 +400,7 @@ export function mapWalkerAppointments(
           ? { id: b.pet.id, name: b.pet.name, breed: b.pet.breed, image_url: b.pet.avatarUrl }
           : null,
         owner: b.owner ? { id: b.owner.id, name: b.owner.name } : null,
+        service_type: b.serviceName,
         appointment_date: b.scheduledStart,
         display_time: displayTime(b.scheduledStart),
         location: b.location,
