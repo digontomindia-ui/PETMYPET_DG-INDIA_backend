@@ -13,6 +13,8 @@ import { providerService } from '../providers/provider.service.js';
 import { KYC_DOCUMENT_TYPES, KYC_STATUSES } from '../providers/provider.constants.js';
 import { bookingRepository } from '../bookings/booking.repository.js';
 import { BookingModel } from '../bookings/booking.schema.js';
+import { ReviewModel } from '../reviews/review.schema.js';
+import { NotificationModel } from '../notifications/notification.schema.js';
 import { BOOKING_STATUSES, WALK_SOCKET_EVENTS } from '../bookings/booking.constants.js';
 import { computeAmounts } from '../bookings/booking.service.js';
 import { bookingService } from '../bookings/booking.service.js';
@@ -127,7 +129,7 @@ async function enrichBookings(bookings: BookingDocument[]): Promise<EnrichedBook
   const serviceIds = [...new Set(bookings.map((b) => b.serviceId.toString()))];
 
   const [pets, owners, services] = await Promise.all([
-    PetModel.find({ _id: { $in: petIds } }).select('name breed avatarUrl').lean(),
+    PetModel.find({ _id: { $in: petIds } }).select('name breed avatarUrl dateOfBirth').lean(),
     UserModel.find({ _id: { $in: userIds } }).select('name phone addresses').lean(),
     ServiceModel.find({ _id: { $in: serviceIds } }).select('name').lean(),
   ]);
@@ -148,8 +150,15 @@ async function enrichBookings(bookings: BookingDocument[]): Promise<EnrichedBook
       scheduledEnd: booking.scheduledEnd,
       createdAt: booking.createdAt,
       location: defaultAddress ? `${defaultAddress.addressLine1}, ${defaultAddress.city}` : '',
+      coordinates: defaultAddress?.location?.coordinates ?? null,
       pet: pet
-        ? { id: pet._id.toString(), name: pet.name, breed: pet.breed, avatarUrl: pet.avatarUrl }
+        ? {
+            id: pet._id.toString(),
+            name: pet.name,
+            breed: pet.breed,
+            avatarUrl: pet.avatarUrl,
+            dateOfBirth: pet.dateOfBirth ?? null,
+          }
         : null,
       owner: owner ? { id: owner._id.toString(), name: owner.name, phone: owner.phone } : null,
       serviceName: service?.name ?? '',
@@ -375,7 +384,8 @@ export const providerAppService = {
     if (provider.providerType === PROVIDER_TYPES.PET_WALKER) {
       const active = await fetchBookingsForProvider(providerId, ACTIVE_STATUSES, 50);
       const todays = active.filter((b) => isSameDay(b.scheduledStart, today));
-      return mapWalkerHome(user, provider, todays, todays.length);
+      const weekAnalytics = await providerService.getMyAnalytics(userId, { range: 'week' });
+      return mapWalkerHome(user, provider, todays, todays.length, sumEarnings(weekAnalytics));
     }
 
     if (provider.providerType === PROVIDER_TYPES.VET || provider.providerType === PROVIDER_TYPES.CLINIC) {
@@ -389,6 +399,8 @@ export const providerAppService = {
         { appointments: todays.length, walkIns: 0, surgeries: 0, revenue: revenueTotal },
         todays,
         revenueTotal,
+        monthAnalytics.earningsByDay,
+        monthAnalytics.previousPeriodEarnings,
       );
     }
 
@@ -397,11 +409,13 @@ export const providerAppService = {
       const checkIns = active.filter((b) => isSameDay(b.scheduledStart, today));
       const checkOuts = active.filter((b) => isSameDay(b.scheduledEnd, today));
       const pending = active.filter((b) => b.status === BOOKING_STATUSES.PENDING);
-      const occupiedPets = active.filter((b) => b.status === BOOKING_STATUSES.STARTED).length;
+      const boarding = active.filter((b) => b.status === BOOKING_STATUSES.STARTED);
+      const occupiedPets = boarding.length;
       const newBookingsToday = active.filter((b) => isSameDay(b.createdAt, today)).length;
-      const [weekAnalytics, monthAnalytics] = await Promise.all([
+      const [weekAnalytics, monthAnalytics, inbox] = await Promise.all([
         providerService.getMyAnalytics(userId, { range: 'week' }),
         providerService.getMyAnalytics(userId, { range: 'month' }),
+        this.getInbox(userId, { limit: '3' }),
       ]);
       const todayEarnings =
         weekAnalytics.earningsByDay.find((d) => isSameDay(new Date(d.date), today))?.amount ?? 0;
@@ -414,6 +428,9 @@ export const providerAppService = {
         newBookingsToday,
         todayEarnings,
         sumEarnings(monthAnalytics),
+        boarding,
+        inbox.data,
+        user.phone,
       );
     }
 
@@ -422,11 +439,28 @@ export const providerAppService = {
     const todays = active.filter((b) => isSameDay(b.scheduledStart, today));
     const activeSession = active.find((b) => b.status === BOOKING_STATUSES.STARTED) ?? null;
     const nextToday = todays[0] ?? null;
-    const [weekAnalytics, monthAnalytics, totalBookings] = await Promise.all([
+    const [weekAnalytics, monthAnalytics, totalBookings, reviews, unreadNotifications] = await Promise.all([
       providerService.getMyAnalytics(userId, { range: 'week' }),
       providerService.getMyAnalytics(userId, { range: 'month' }),
       BookingModel.countDocuments({ providerId: provider._id, status: BOOKING_STATUSES.COMPLETED }),
+      ReviewModel.find({ providerId: provider._id }).sort({ createdAt: -1 }).limit(3).lean(),
+      NotificationModel.countDocuments({ userId: user._id, isRead: false }),
     ]);
+    const reviewers = await UserModel.find({ _id: { $in: reviews.map((r) => r.userId) } })
+      .select('name avatarUrl')
+      .lean();
+    const reviewerById = new Map(reviewers.map((u) => [u._id.toString(), u]));
+    const recentReviews = reviews.map((r) => {
+      const reviewer = reviewerById.get(r.userId.toString());
+      return {
+        id: r._id.toString(),
+        rating: r.rating,
+        comment: r.comment,
+        reviewerName: reviewer?.name ?? '',
+        reviewerAvatar: reviewer?.avatarUrl ?? null,
+        createdAt: r.createdAt,
+      };
+    });
     return mapGroomerHome(
       user,
       provider,
@@ -436,6 +470,10 @@ export const providerAppService = {
       sumEarnings(weekAnalytics),
       sumEarnings(monthAnalytics),
       totalBookings,
+      weekAnalytics.earningsByDay,
+      recentReviews,
+      unreadNotifications,
+      weekAnalytics.previousPeriodEarnings,
     );
   },
 
@@ -555,15 +593,22 @@ export const providerAppService = {
     const { user, provider } = await requireContext(userId);
 
     if (provider.providerType === PROVIDER_TYPES.VET || provider.providerType === PROVIDER_TYPES.CLINIC) {
-      return mapVetProfile(user, provider);
+      const patientIds = await BookingModel.distinct('petId', {
+        providerId: provider._id,
+        petId: { $ne: null },
+      });
+      return mapVetProfile(user, provider, patientIds.length);
     }
 
-    const [analytics, zones] = await Promise.all([
+    const [analytics, zones, services] = await Promise.all([
       providerService.getMyAnalytics(userId, { range: 'month' }),
       ZoneModel.find({ _id: { $in: provider.zoneIds } }).select('name').lean(),
+      ServiceModel.find({ providerId: provider._id, isDeleted: false }).select('name').lean(),
     ]);
-    const specializations =
+    const declared =
       provider.metadata.groomer?.specializations ?? provider.metadata.vet?.specializations ?? [];
+    // Roles without a specializations field fall back to the services they actually offer.
+    const specializations = declared.length > 0 ? declared : services.map((s) => s.name);
     return mapGenericProfile(
       user,
       provider,
@@ -590,7 +635,9 @@ export const providerAppService = {
     const filter: Record<string, unknown> = { _id: { $in: petIds } };
     if (query.type !== 'All' && speciesFilter[query.type]) filter.species = speciesFilter[query.type];
 
-    const pets = await PetModel.find(filter).select('name breed avatarUrl species ownerId').lean();
+    const pets = await PetModel.find(filter)
+      .select('name breed avatarUrl species ownerId dateOfBirth')
+      .lean();
     const ownerIds = [...new Set(pets.map((p) => p.ownerId.toString()))];
     const owners = await UserModel.find({ _id: { $in: ownerIds } }).select('name').lean();
     const ownerById = new Map(owners.map((o) => [o._id.toString(), o]));
@@ -604,6 +651,7 @@ export const providerAppService = {
           breed: pet.breed,
           avatarUrl: pet.avatarUrl,
           species: pet.species,
+          dateOfBirth: pet.dateOfBirth ?? null,
           owner: owner ? { id: owner._id.toString(), name: owner.name } : null,
         };
       }),

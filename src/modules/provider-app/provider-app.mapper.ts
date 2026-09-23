@@ -16,7 +16,14 @@ export interface EnrichedBooking {
   scheduledEnd: Date;
   createdAt: Date;
   location: string;
-  pet: { id: string; name: string; breed: string; avatarUrl: string | null } | null;
+  coordinates: [number, number] | null;
+  pet: {
+    id: string;
+    name: string;
+    breed: string;
+    avatarUrl: string | null;
+    dateOfBirth: Date | null;
+  } | null;
   owner: { id: string; name: string; phone: string } | null;
   serviceName: string;
 }
@@ -55,6 +62,21 @@ function sumEarnings(analytics: ProviderAnalytics): number {
   return analytics.earningsByDay.reduce((sum, day) => sum + day.amount, 0);
 }
 
+function ageLabel(dateOfBirth: Date | null | undefined): string {
+  if (!dateOfBirth) return '';
+  const months = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(dateOfBirth).getTime()) / (30.44 * 24 * 60 * 60 * 1000)),
+  );
+  return months >= 12 ? `${Math.floor(months / 12)} yrs` : `${months} mos`;
+}
+
+function growth(current: number, previous: number) {
+  const percentage =
+    previous > 0 ? Math.round(((current - previous) / previous) * 100) : current > 0 ? 100 : 0;
+  return { percentage, level: percentage > 0 ? 'up' : percentage < 0 ? 'down' : 'flat' };
+}
+
 // ---- Home ----
 
 export function mapSitterHome(
@@ -85,6 +107,7 @@ export function mapWalkerHome(
   provider: IProvider,
   todaysSchedule: EnrichedBooking[],
   walksToday: number,
+  weekEarnings = 0,
 ) {
   return {
     success: true,
@@ -109,7 +132,7 @@ export function mapWalkerHome(
         location: b.location,
         status: b.status,
       })),
-      quick_stats: { walks_today: walksToday, rating: provider.rating, earnings: 0 },
+      quick_stats: { walks_today: walksToday, rating: provider.rating, earnings: weekEarnings },
     },
   };
 }
@@ -155,7 +178,10 @@ export function mapVetHome(
   todaysCounts: { appointments: number; walkIns: number; surgeries: number; revenue: number },
   todaysSchedule: EnrichedBooking[],
   revenueTotal: number,
+  earningsByDay: ProviderAnalytics['earningsByDay'] = [],
+  previousRevenue = 0,
 ) {
+  const revenueGrowth = growth(revenueTotal, previousRevenue);
   return {
     name: user.name || provider.businessName,
     location: provider.address,
@@ -168,7 +194,7 @@ export function mapVetHome(
     todays_overview: todaysSchedule.map((b) => ({
       id: b.id,
       name: b.pet?.name ?? '',
-      years: '',
+      years: ageLabel(b.pet?.dateOfBirth),
       breed: b.pet?.breed ?? '',
       status: b.status,
       created_at: b.scheduledStart,
@@ -178,11 +204,17 @@ export function mapVetHome(
     inventory_alerts: [] as unknown[],
     revenue_overview: {
       total_revenue: revenueTotal,
-      percentage_vs_last_month: { percentage: 0, status: 'flat' },
+      percentage_vs_last_month: {
+        percentage: revenueGrowth.percentage,
+        status: revenueGrowth.level,
+      },
       consultations: revenueTotal,
       Pharmacy: 0,
       'Services & Others': 0,
-      chart_data: [] as unknown[],
+      chart_data: earningsByDay.map((d) => ({
+        label: new Date(d.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
+        value: d.amount,
+      })),
     },
   };
 }
@@ -196,6 +228,9 @@ export function mapBoardingHome(
   newBookingsToday: number,
   todayEarnings: number,
   monthEarnings: number,
+  boarding: EnrichedBooking[] = [],
+  recentMessages: unknown[] = [],
+  contactPhone = '',
 ) {
   const capacity = provider.metadata.boarding?.capacity ?? 0;
   const availableKennels =
@@ -210,7 +245,7 @@ export function mapBoardingHome(
         branch: provider.businessName,
         notification_alert: false,
       },
-      greeting: '',
+      greeting: 'Good Day',
       banner_image: null as string | null,
       today_overview: {
         pets_currently_boarding: occupiedPets,
@@ -266,10 +301,19 @@ export function mapBoardingHome(
             }
           : null,
       })),
-      pet_updates_due: [] as unknown[],
+      // ponytail: every pet currently checked in (STARTED) is "due" an update; no per-update
+      // tracking yet, add a lastUpdateAt check against progressUpdates when UI needs it.
+      pet_updates_due: boarding.map((b) => ({
+        id: b.id,
+        pet: b.pet
+          ? { id: b.pet.id, name: b.pet.name, breed: b.pet.breed, image_url: b.pet.avatarUrl }
+          : null,
+        owner_name: b.owner?.name ?? '',
+        check_out: b.scheduledEnd,
+      })),
       revenue_summary: { today_earnings: todayEarnings, this_month: monthEarnings },
-      recent_messages: [] as unknown[],
-      emergency_contact: null as unknown,
+      recent_messages: recentMessages,
+      emergency_contact: { name: provider.businessName, phone: contactPhone },
     },
   };
 }
@@ -283,7 +327,19 @@ export function mapGroomerHome(
   weekEarnings: number,
   monthEarnings: number,
   totalBookings: number,
+  weekEarningsByDay: ProviderAnalytics['earningsByDay'] = [],
+  recentReviews: {
+    id: string;
+    rating: number;
+    comment: string;
+    reviewerName: string;
+    reviewerAvatar: string | null;
+    createdAt: Date;
+  }[] = [],
+  notificationsCount = 0,
+  previousWeekEarnings = 0,
 ) {
+  const weekGrowth = growth(weekEarnings, previousWeekEarnings);
   return {
     success: true,
     message: 'Groomer dashboard retrieved successfully.',
@@ -291,7 +347,7 @@ export function mapGroomerHome(
       header: {
         greeting: 'Good Day',
         location: provider.address,
-        notifications_count: 0,
+        notifications_count: notificationsCount,
         is_available: provider.isActive,
       },
       profile_summary: {
@@ -322,7 +378,14 @@ export function mapGroomerHome(
             owner_name: todaysNextSession.owner?.name ?? '',
             scheduled_time: timeLabel(todaysNextSession.scheduledStart),
             phone: todaysNextSession.owner?.phone ?? '',
-            location: { lontude: '', latatude: '' },
+            location: {
+              lontude: String(
+                todaysNextSession.coordinates?.[0] ?? provider.location.coordinates[0],
+              ),
+              latatude: String(
+                todaysNextSession.coordinates?.[1] ?? provider.location.coordinates[1],
+              ),
+            },
           }
         : null,
       active_grooming: activeSession
@@ -341,10 +404,24 @@ export function mapGroomerHome(
           }
         : null,
       earnings_overview: {
-        this_week: { amount: `₹${weekEarnings}`, percentage_change: '', chart_points: [] },
+        this_week: {
+          amount: `₹${weekEarnings}`,
+          percentage_change: `${weekGrowth.percentage}%`,
+          chart_points: weekEarningsByDay.map((d) => ({
+            label: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
+            value: d.amount,
+          })),
+        },
         this_month: monthEarnings,
       },
-      recent_reviews: null as unknown,
+      recent_reviews: recentReviews.map((r) => ({
+        id: r.id,
+        name: r.reviewerName,
+        avatar_url: r.reviewerAvatar,
+        rating: r.rating,
+        comment: r.comment,
+        created_at: r.createdAt,
+      })),
       recent_prescriptions: [] as unknown[],
     },
   };
@@ -454,7 +531,7 @@ export function mapVetAppointments(appointments: EnrichedBooking[]) {
       name: b.pet?.name ?? '',
       breed: b.pet?.breed ?? '',
       test: b.serviceName.toUpperCase(),
-      years: '',
+      years: ageLabel(b.pet?.dateOfBirth),
       status: b.status,
       image: b.pet?.avatarUrl ?? '',
       created_at: b.scheduledStart,
@@ -496,6 +573,7 @@ export function mapSitterAnalytics(range: string, analytics: ProviderAnalytics) 
 
 export function mapWalkerAnalytics(range: string, analytics: ProviderAnalytics) {
   const total = sumEarnings(analytics);
+  const earningsGrowth = growth(total, analytics.previousPeriodEarnings);
   return {
     success: true,
     message: 'Analytics fetched successfully',
@@ -503,8 +581,8 @@ export function mapWalkerAnalytics(range: string, analytics: ProviderAnalytics) 
       selected_range: range,
       earnings_chart: {
         total_earnings: String(total),
-        percentage: '0',
-        level: 'flat',
+        percentage: String(earningsGrowth.percentage),
+        level: earningsGrowth.level,
         chart_data: analytics.earningsByDay.map((d) => ({
           label: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
           value: d.amount,
@@ -594,7 +672,15 @@ export function mapGenericProfile(
   };
 }
 
-export function mapVetProfile(user: IUser, provider: IProvider) {
+function operatingHoursLabel(provider: IProvider): string {
+  const open = provider.workingHours.filter((h) => !h.isClosed);
+  const first = open[0];
+  const last = open[open.length - 1];
+  if (!first || !last) return '';
+  return `${first.day}-${last.day}, ${first.openTime} - ${first.closeTime}`;
+}
+
+export function mapVetProfile(user: IUser, provider: IProvider, patientCount = 0) {
   return {
     success: true,
     message: 'Veterinarian profile retrieved successfully.',
@@ -605,12 +691,12 @@ export function mapVetProfile(user: IUser, provider: IProvider) {
       profile_image: provider.profileImageUrl,
       experience: provider.experienceYears ? `${provider.experienceYears}+ Years` : '',
       rating: provider.rating,
-      patients: String(provider.ratingCount),
+      patients: String(patientCount),
       clinic_information: {
         title: 'Clinic Information',
         clinic_name: provider.businessName,
         location: provider.address,
-        operating_hours: '',
+        operating_hours: operatingHoursLabel(provider),
       },
     },
   };
@@ -619,14 +705,14 @@ export function mapVetProfile(user: IUser, provider: IProvider) {
 // ---- Patients ----
 
 export function mapPatients(
-  pets: { id: string; name: string; breed: string; avatarUrl: string | null; species: string; owner: { id: string; name: string } | null }[],
+  pets: { id: string; name: string; breed: string; avatarUrl: string | null; species: string; dateOfBirth: Date | null; owner: { id: string; name: string } | null }[],
 ) {
   return pets.map((pet) => ({
     id: pet.id,
     name: pet.name,
     breed: pet.breed,
-    age: '',
-    breed_and_age: pet.breed,
+    age: ageLabel(pet.dateOfBirth),
+    breed_and_age: ageLabel(pet.dateOfBirth) ? `${pet.breed} • ${ageLabel(pet.dateOfBirth)}` : pet.breed,
     image_url: pet.avatarUrl,
     health_status: 'HEALTHY',
     owner: pet.owner ? { id: pet.owner.id, name: pet.owner.name } : null,
