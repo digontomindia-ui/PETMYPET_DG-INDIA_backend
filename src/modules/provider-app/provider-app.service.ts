@@ -437,7 +437,10 @@ export const providerAppService = {
     // GROOMER and any other role default to the groomer-shaped dashboard.
     const active = await fetchBookingsForProvider(providerId, ACTIVE_STATUSES, 100);
     const todays = active.filter((b) => isSameDay(b.scheduledStart, today));
-    const activeSession = active.find((b) => b.status === BOOKING_STATUSES.STARTED) ?? null;
+    const activeSession =
+      todays.find((b) => b.status === BOOKING_STATUSES.STARTED) ??
+      active.find((b) => b.status === BOOKING_STATUSES.STARTED) ??
+      null;
     const nextToday = todays[0] ?? null;
     const [weekAnalytics, monthAnalytics, totalBookings, reviews, unreadNotifications] = await Promise.all([
       providerService.getMyAnalytics(userId, { range: 'week' }),

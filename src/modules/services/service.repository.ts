@@ -1,5 +1,7 @@
 import { BaseRepository } from '../../common/repositories/base.repository.js';
 import { ServiceModel } from './service.schema.js';
+import { ProviderModel } from '../providers/provider.schema.js';
+import { KYC_STATUSES } from '../providers/provider.constants.js';
 import type { IService } from './service.types.js';
 
 export interface ServiceSearchFilter {
@@ -20,7 +22,13 @@ export class ServiceRepository extends BaseRepository<IService> {
   async search(filter: ServiceSearchFilter) {
     const query: Record<string, unknown> = { isActive: true };
     if (filter.categoryId) query.categoryId = filter.categoryId;
+    // Browse listings hide unapproved/inactive providers (their shell profiles duplicate the
+    // same template package); a direct providerId lookup is left as-is.
     if (filter.providerId) query.providerId = filter.providerId;
+    else
+      query.providerId = {
+        $in: await ProviderModel.distinct('_id', { kycStatus: KYC_STATUSES.APPROVED, isActive: true }),
+      };
     if (filter.text) query.$text = { $search: filter.text };
     if (filter.minPrice !== undefined || filter.maxPrice !== undefined) {
       query.price = {
