@@ -110,6 +110,12 @@ describe('auth flow', () => {
       .send({ identifier: signupPayload.email, code: otp });
 
     const refreshToken = verifyRes.body.data.tokens.refreshToken as string;
+    const accessToken = verifyRes.body.data.tokens.accessToken as string;
+
+    const meBefore = await request(app)
+      .get('/api/v1/users/me')
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(meBefore.status).toBe(200);
 
     const logoutRes = await request(app).post('/api/v1/auth/logout').send({ refreshToken });
     expect(logoutRes.status).toBe(200);
@@ -118,6 +124,11 @@ describe('auth flow', () => {
       .post('/api/v1/auth/refresh')
       .send({ refreshToken });
     expect(refreshAfterLogout.status).toBe(401);
+
+    const meAfterLogout = await request(app)
+      .get('/api/v1/users/me')
+      .set('Authorization', `Bearer ${accessToken}`);
+    expect(meAfterLogout.status).toBe(401);
   });
 
   // This is the real LogIn screen's flow (both apps): phone number only, no separate

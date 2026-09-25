@@ -23,6 +23,11 @@ export const sessionRepository = {
     return SessionModel.findOne({ _id: sessionId, isRevoked: false }).exec();
   },
 
+  async isActive(sessionId: string): Promise<boolean> {
+    if (!Types.ObjectId.isValid(sessionId)) return false;
+    return (await SessionModel.exists({ _id: sessionId, isRevoked: false })) !== null;
+  },
+
   async rotate(sessionId: string, refreshTokenHash: string, tokenVersion: number): Promise<void> {
     await SessionModel.updateOne(
       { _id: sessionId },
