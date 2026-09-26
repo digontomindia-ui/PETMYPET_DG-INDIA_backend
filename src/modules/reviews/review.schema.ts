@@ -15,6 +15,11 @@ const reviewSchema = new Schema<IReview>({
   providerId: { type: Schema.Types.ObjectId, ref: PROVIDER_MODEL_NAME, default: null },
   rating: { type: Number, required: true, min: 1, max: 5 },
   comment: { type: String, default: '', maxlength: 2000 },
+  /** The provider's public response to a booking review (one per review, editable). */
+  reply: {
+    type: new Schema({ text: { type: String, required: true, maxlength: 1000 }, repliedAt: Date }, { _id: false }),
+    default: null,
+  },
   createdAt: { type: Date, default: () => new Date() },
 });
 

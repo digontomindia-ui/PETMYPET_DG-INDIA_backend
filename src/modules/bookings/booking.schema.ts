@@ -31,6 +31,8 @@ const bookingSchema = new Schema<IBooking>(
     otpStartVerifiedAt: { type: Date, default: null },
     otpEnd: { type: String, required: true },
     otpEndVerifiedAt: { type: Date, default: null },
+    /** Set once providerPayoutAmount has been credited to the provider's wallet (see booking-payout.ts). */
+    payoutCreditedAt: { type: Date, default: null },
     price: { type: Number, required: true, min: 0 },
     currency: { type: String, required: true, default: 'INR' },
     couponCode: { type: String, default: null },
@@ -66,6 +68,7 @@ const bookingSchema = new Schema<IBooking>(
         {
           url: { type: String, required: true },
           phase: { type: String, enum: Object.values(BOOKING_PHOTO_PHASES), required: true },
+          caption: { type: String, default: '', maxlength: 200 },
           uploadedAt: { type: Date, required: true, default: Date.now },
         },
       ],

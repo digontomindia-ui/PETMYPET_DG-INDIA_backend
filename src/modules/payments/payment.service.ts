@@ -10,6 +10,7 @@ import {
 import { ROLES, type Role } from '../../common/constants/roles.js';
 import { bookingRepository } from '../bookings/booking.repository.js';
 import { bookingService } from '../bookings/booking.service.js';
+import { creditProviderPayoutIfDue } from '../bookings/booking-payout.js';
 import { BOOKING_STATUSES, PAYMENT_STATUSES } from '../bookings/booking.constants.js';
 import { orderRepository } from '../marketplace/order.repository.js';
 import { ORDER_PAYMENT_STATUSES } from '../marketplace/order.constants.js';
@@ -79,6 +80,7 @@ export const paymentService = {
         paymentStatus: PAYMENT_STATUSES.PAID,
         paymentId: payment._id,
       });
+      await creditProviderPayoutIfDue(bookingId);
 
       return { payment: toPaymentDto(payment) };
     }
@@ -251,6 +253,8 @@ export const paymentService = {
         paymentStatus: PAYMENT_STATUSES.PAID,
         paymentId: payment._id,
       });
+      // Customer may pay after the service is already marked complete.
+      await creditProviderPayoutIfDue(payment.bookingId.toString());
 
       await notificationService.notify({
         userId: payment.userId.toString(),

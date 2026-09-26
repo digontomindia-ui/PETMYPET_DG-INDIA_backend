@@ -24,3 +24,19 @@ export function toMessageDto(message: MessageDocument) {
     createdAt: message.createdAt,
   };
 }
+
+/** Provider-app (snake_case) shape of a message — used by both the socket `new_message` event and
+ * GET /message/:room_id/history so the two never drift apart. */
+export function toProviderAppMessage(dto: ReturnType<typeof toMessageDto>, senderName = '') {
+  return {
+    id: dto.id,
+    room_id: dto.roomId,
+    sender_id: dto.senderId,
+    sender_name: senderName,
+    message: dto.text,
+    type: dto.imageUrl ? 'IMAGE' : 'TEXT',
+    media_url: dto.imageUrl,
+    status: dto.isRead ? 'SEEN' : 'DELIVERED',
+    created_at: dto.createdAt,
+  };
+}

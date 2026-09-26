@@ -4,7 +4,13 @@ import { softDeletePlugin } from '../../common/database/plugins/soft-delete.plug
 import { WEEKDAYS, workingHoursSchema, type IWorkingHours } from '../../common/schemas/working-hours.schema.js';
 import { USER_MODEL_NAME } from '../users/user.constants.js';
 import { ZONE_MODEL_NAME } from '../zones/zone.constants.js';
-import { KYC_DOCUMENT_TYPES, KYC_STATUSES, PROVIDER_MODEL_NAME } from './provider.constants.js';
+import {
+  KYC_DOCUMENT_NAMES,
+  KYC_DOCUMENT_STATUSES,
+  KYC_DOCUMENT_TYPES,
+  KYC_STATUSES,
+  PROVIDER_MODEL_NAME,
+} from './provider.constants.js';
 import type {
   IAttendanceEntry,
   IBankAccount,
@@ -13,6 +19,7 @@ import type {
   IProvider,
   IProviderMetadata,
   ITrainingPlan,
+  IWorkExperience,
 } from './provider.types.js';
 
 /** Applied whenever a provider is created without explicit hours (e.g. the shell profile made at
@@ -38,6 +45,12 @@ const certificationSchema = new Schema<ICertification>(
 const kycDocumentSchema = new Schema<IKycDocument>(
   {
     type: { type: String, enum: Object.values(KYC_DOCUMENT_TYPES), required: true },
+    name: { type: String, enum: Object.values(KYC_DOCUMENT_NAMES), default: KYC_DOCUMENT_NAMES.OTHER },
+    status: {
+      type: String,
+      enum: Object.values(KYC_DOCUMENT_STATUSES),
+      default: KYC_DOCUMENT_STATUSES.PENDING,
+    },
     url: { type: String, required: true },
     uploadedAt: { type: Date, default: () => new Date() },
   },
@@ -50,8 +63,19 @@ const bankAccountSchema = new Schema<IBankAccount>(
     accountNumber: { type: String, required: true },
     ifscCode: { type: String, required: true },
     bankName: { type: String, required: true },
+    accountType: { type: String, enum: ['SAVINGS', 'CURRENT'], default: 'SAVINGS' },
   },
   { _id: false },
+);
+
+const workExperienceSchema = new Schema<IWorkExperience>(
+  {
+    title: { type: String, required: true, trim: true, maxlength: 150 },
+    company: { type: String, default: '', trim: true, maxlength: 150 },
+    startDate: { type: Date, required: true },
+    endDate: { type: Date, default: null },
+  },
+  { _id: true },
 );
 
 const attendanceEntrySchema = new Schema<IAttendanceEntry>(
@@ -134,6 +158,11 @@ const providerSchema = new Schema<IProvider>(
     rating: { type: Number, default: 0, min: 0, max: 5 },
     ratingCount: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
+    suspendedByAdmin: { type: Boolean, default: false },
+    dateOfBirth: { type: Date, default: null },
+    gender: { type: String, enum: ['MALE', 'FEMALE', 'OTHER', null], default: null },
+    workExperience: { type: [workExperienceSchema], default: [] },
+    skills: { type: [String], default: [] },
     attendance: { type: [attendanceEntrySchema], default: [] },
     profileImageUrl: { type: String, default: null },
     galleryUrls: { type: [String], default: [] },

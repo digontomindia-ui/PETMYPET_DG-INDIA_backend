@@ -5,6 +5,13 @@ import { validate } from '../../common/middlewares/validate.middleware.js';
 import { ROLES } from '../../common/constants/roles.js';
 import { adminController } from './admin.controller.js';
 import {
+  adminListBookingsQuerySchema,
+  adminListPayoutsQuerySchema,
+  adminListProvidersQuerySchema,
+  adminListReviewsQuerySchema,
+  markPayoutPaidSchema,
+  rejectPayoutSchema,
+  setProviderStatusSchema,
   createBannerSchema,
   idParamSchema,
   keyParamSchema,
@@ -619,6 +626,191 @@ adminRoutes.get(
   ...adminOnly,
   validate({ query: listAuditLogsQuerySchema }),
   adminController.listAuditLogs,
+);
+
+/**
+ * @openapi
+ * /admin/providers:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Provider directory (all providers, any KYC state) with owner contact
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: providerType, in: query, schema: { type: string } }
+ *       - { name: kycStatus, in: query, schema: { type: string, enum: [PENDING, APPROVED, REJECTED] } }
+ *       - { name: isActive, in: query, schema: { type: string, enum: ["true", "false"] } }
+ *       - { name: search, in: query, schema: { type: string }, description: Business name contains }
+ *       - { name: page, in: query, schema: { type: string } }
+ *       - { name: limit, in: query, schema: { type: string } }
+ *     responses:
+ *       200: { description: Paginated providers }
+ */
+adminRoutes.get(
+  '/providers',
+  ...adminOnly,
+  validate({ query: adminListProvidersQuerySchema }),
+  adminController.listProviders,
+);
+
+/**
+ * @openapi
+ * /admin/providers/{id}:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Full provider view — KYC documents, masked bank, owner, booking/earnings stats
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Provider }
+ *       404: { description: Not found }
+ */
+adminRoutes.get('/providers/:id', ...adminOnly, validate({ params: idParamSchema }), adminController.getProvider);
+
+/**
+ * @openapi
+ * /admin/providers/{id}/status:
+ *   patch:
+ *     tags: [Admin]
+ *     summary: Suspend (isActive false) or reactivate a provider — a suspended provider can't switch themselves back on
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema: { type: object, required: [isActive], properties: { isActive: { type: boolean }, reason: { type: string } } }
+ *     responses:
+ *       200: { description: Updated provider }
+ */
+adminRoutes.patch(
+  '/providers/:id/status',
+  ...adminOnly,
+  validate({ params: idParamSchema, body: setProviderStatusSchema }),
+  adminController.setProviderStatus,
+);
+
+/**
+ * @openapi
+ * /admin/bookings:
+ *   get:
+ *     tags: [Admin]
+ *     summary: All service bookings with customer/provider/service/pet names. Detail = GET /bookings/{id}, cancel = PATCH /bookings/{id}/cancel, refund = POST /payments/bookings/{id}/refund
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: status, in: query, schema: { type: string }, description: "Comma-separated, e.g. PENDING,ACCEPTED" }
+ *       - { name: paymentStatus, in: query, schema: { type: string, enum: [PENDING, PAID, FAILED, REFUNDED] } }
+ *       - { name: providerId, in: query, schema: { type: string } }
+ *       - { name: userId, in: query, schema: { type: string } }
+ *       - { name: from, in: query, schema: { type: string, example: "2026-09-01" } }
+ *       - { name: to, in: query, schema: { type: string, example: "2026-09-30" } }
+ *       - { name: page, in: query, schema: { type: string } }
+ *       - { name: limit, in: query, schema: { type: string } }
+ *     responses:
+ *       200: { description: Paginated bookings }
+ */
+adminRoutes.get(
+  '/bookings',
+  ...adminOnly,
+  validate({ query: adminListBookingsQuerySchema }),
+  adminController.listBookings,
+);
+
+/**
+ * @openapi
+ * /admin/reviews:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Provider reviews for moderation (with provider reply)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: providerId, in: query, schema: { type: string } }
+ *       - { name: rating, in: query, schema: { type: string, enum: ["1","2","3","4","5"] } }
+ *       - { name: page, in: query, schema: { type: string } }
+ *       - { name: limit, in: query, schema: { type: string } }
+ *     responses:
+ *       200: { description: Paginated reviews }
+ */
+adminRoutes.get('/reviews', ...adminOnly, validate({ query: adminListReviewsQuerySchema }), adminController.listReviews);
+
+/**
+ * @openapi
+ * /admin/reviews/{id}:
+ *   delete:
+ *     tags: [Admin]
+ *     summary: Delete an abusive/fake review; the provider's rating is recomputed
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Deleted }
+ */
+adminRoutes.delete('/reviews/:id', ...adminOnly, validate({ params: idParamSchema }), adminController.deleteReview);
+
+/**
+ * @openapi
+ * /admin/payouts:
+ *   get:
+ *     tags: [Admin]
+ *     summary: Provider withdrawal requests (oldest first) — includes the full bank account number for the transfer
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: status, in: query, schema: { type: string, enum: [REQUESTED, PAID, REJECTED] } }
+ *       - { name: page, in: query, schema: { type: string } }
+ *       - { name: limit, in: query, schema: { type: string } }
+ *     responses:
+ *       200: { description: Paginated payouts }
+ */
+adminRoutes.get('/payouts', ...adminOnly, validate({ query: adminListPayoutsQuerySchema }), adminController.listPayouts);
+
+/**
+ * @openapi
+ * /admin/payouts/{id}/mark-paid:
+ *   patch:
+ *     tags: [Admin]
+ *     summary: Record that the bank transfer was made (UTR/reference number); notifies the provider
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema: { type: object, required: [referenceNumber], properties: { referenceNumber: { type: string }, note: { type: string } } }
+ *     responses:
+ *       200: { description: Payout PAID }
+ *       400: { description: Already settled }
+ */
+adminRoutes.patch(
+  '/payouts/:id/mark-paid',
+  ...adminOnly,
+  validate({ params: idParamSchema, body: markPayoutPaidSchema }),
+  adminController.markPayoutPaid,
+);
+
+/**
+ * @openapi
+ * /admin/payouts/{id}/reject:
+ *   patch:
+ *     tags: [Admin]
+ *     summary: Reject a withdrawal — amount is credited back to the provider's wallet
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema: { type: object, required: [reason], properties: { reason: { type: string } } }
+ *     responses:
+ *       200: { description: Payout REJECTED }
+ */
+adminRoutes.patch(
+  '/payouts/:id/reject',
+  ...adminOnly,
+  validate({ params: idParamSchema, body: rejectPayoutSchema }),
+  adminController.rejectPayout,
 );
 
 // Public read-only routers, mounted separately at top level (see routes/index.ts)

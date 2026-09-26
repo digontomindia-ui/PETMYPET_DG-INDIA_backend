@@ -137,11 +137,15 @@
     },
     {
       "name": "Uploads",
-      "description": "Generic Cloudinary-backed file upload, used as a first step by many other flows (KYC documents, pet photos, lost-and-found photos, chat attachments, booking session photos) — upload here first, then pass the returned URL into the relevant endpoint."
+      "description": "Generic Bunny CDN-backed file upload, used as a first step by many other flows (KYC documents, pet photos, lost-and-found photos, chat attachments, booking session photos) — upload here first, then pass the returned URL into the relevant endpoint."
     },
     {
       "name": "Community",
       "description": "Social feed: posts, comments, likes, bookmarks, and moderation/reporting."
+    },
+    {
+      "name": "ProviderApp",
+      "description": "\nBare-path (no `/provider-app` prefix) API surface mirroring a separately-specified vendor\nmobile app contract, reusing the existing auth/provider/booking/chat services underneath.\nResponse *shapes* are role-specific (`role` is one of `pet-groomer`, `pet-clinics`, `vets`,\n`boarding-center`, `dogs-trainer`, `dog-walker`, `pet-sitter`) — the schemas below document\nthe groomer/default shape actually returned; other roles add/rename a few fields on the same\n`data` envelope. See **Auth**, **Providers**, **Bookings**, and **Chat** for the underlying flows\nthis module aliases.\n\n```\nPOST /signin-signup {role, phone}        (auto-creates account, sends OTP)\n        ▼\nPOST /verify-otp {role, phone, otp}      ──▶  {token, isDocumentSubmited, isDocumentApproved}\n        │  first verify auto-creates a shell provider profile (kycStatus: PENDING)\n        ▼\nPOST /upload-documents (role-specific fields, Bearer token)\n        │\n        ▼\nGET /home                                 (role-shaped dashboard)\n        │\n        ├── GET /my-appointments | /appointments | /trainer/dashboard | /patients\n        ├── GET /analytics | /profile\n        │\n        ▼\nPOST /start-Session/verify-otp {otp}      (booking ACCEPTED/ON_THE_WAY → STARTED)\n        ├── POST /session/resend-otp\n        ├── POST /session/upload-training-process   (trainer progress log)\n        ▼\nPOST /end-Session/verify-otp {otp}        (STARTED → COMPLETED, payout computed)\n        ▼\nGET /end-Session                          (session summary)\n\nGET /message, GET /message/{room_id}/history   — REST aliases for the Chat inbox/history\n```\n"
     }
   ],
   "components": {
@@ -3092,7 +3096,7 @@
         "tags": [
           "Uploads"
         ],
-        "summary": "Upload a file to Cloudinary (multipart/form-data, field name \"file\")",
+        "summary": "Upload a file to Bunny CDN (multipart/form-data, field name \"file\")",
         "security": [
           {
             "bearerAuth": []
@@ -3159,8 +3163,8 @@
                   "success": true,
                   "message": "File uploaded",
                   "data": {
-                    "url": "https://res.cloudinary.com/patmypets/image/upload/v1699999999/avatars/ananya.jpg",
-                    "publicId": "patmypets/avatars/ananya_qk3f8x",
+                    "url": "https://patmypets.b-cdn.net/patmypets/avatars/3f1e2a4b-1c2d-4e5f-9a6b-7c8d9e0f1a2b.jpg",
+                    "publicId": "patmypets/avatars/3f1e2a4b-1c2d-4e5f-9a6b-7c8d9e0f1a2b.jpg",
                     "resourceType": "image",
                     "bytes": 184320,
                     "format": "jpg"
@@ -3205,7 +3209,7 @@
         "tags": [
           "Uploads"
         ],
-        "summary": "Delete a previously uploaded Cloudinary asset by publicId",
+        "summary": "Delete a previously uploaded Bunny CDN asset by publicId",
         "security": [
           {
             "bearerAuth": []
@@ -4024,6 +4028,20 @@
                       "images": [
                         "https://cdn.petmypet.in/services/grooming-package.jpg"
                       ],
+                      "includedItems": [
+                        {
+                          "name": "Bath",
+                          "imageUrl": "https://cdn.petmypet.in/icons/bath.png"
+                        },
+                        {
+                          "name": "Blow Dry",
+                          "imageUrl": "https://cdn.petmypet.in/icons/blow-dry.png"
+                        },
+                        {
+                          "name": "Nail Trim",
+                          "imageUrl": "https://cdn.petmypet.in/icons/nail-trim.png"
+                        }
+                      ],
                       "isActive": true,
                       "createdAt": "2026-05-10T08:00:00.000Z"
                     }
@@ -4113,6 +4131,31 @@
                     },
                     "default": []
                   },
+                  "includedItems": {
+                    "type": "array",
+                    "default": [],
+                    "description": "\"What's Included\" list on the service detail screen — each item's icon is a provider-uploaded image (via Uploads), not a client-side guess.",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "imageUrl"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100,
+                          "example": "Bath"
+                        },
+                        "imageUrl": {
+                          "type": "string",
+                          "format": "uri",
+                          "description": "URL from Uploads"
+                        }
+                      }
+                    }
+                  },
                   "addOnCatalog": {
                     "type": "array",
                     "default": [],
@@ -4146,6 +4189,20 @@
                 "durationMinutes": 60,
                 "images": [
                   "https://cdn.petmypet.in/services/grooming-package.jpg"
+                ],
+                "includedItems": [
+                  {
+                    "name": "Bath",
+                    "imageUrl": "https://cdn.petmypet.in/icons/bath.png"
+                  },
+                  {
+                    "name": "Blow Dry",
+                    "imageUrl": "https://cdn.petmypet.in/icons/blow-dry.png"
+                  },
+                  {
+                    "name": "Nail Trim",
+                    "imageUrl": "https://cdn.petmypet.in/icons/nail-trim.png"
+                  }
                 ],
                 "addOnCatalog": [
                   {
@@ -4183,6 +4240,20 @@
                     "durationMinutes": 60,
                     "images": [
                       "https://cdn.petmypet.in/services/grooming-package.jpg"
+                    ],
+                    "includedItems": [
+                      {
+                        "name": "Bath",
+                        "imageUrl": "https://cdn.petmypet.in/icons/bath.png"
+                      },
+                      {
+                        "name": "Blow Dry",
+                        "imageUrl": "https://cdn.petmypet.in/icons/blow-dry.png"
+                      },
+                      {
+                        "name": "Nail Trim",
+                        "imageUrl": "https://cdn.petmypet.in/icons/nail-trim.png"
+                      }
                     ],
                     "addOnCatalog": [
                       {
@@ -4289,6 +4360,20 @@
                     "images": [
                       "https://cdn.petmypet.in/services/grooming-package.jpg"
                     ],
+                    "includedItems": [
+                      {
+                        "name": "Bath",
+                        "imageUrl": "https://cdn.petmypet.in/icons/bath.png"
+                      },
+                      {
+                        "name": "Blow Dry",
+                        "imageUrl": "https://cdn.petmypet.in/icons/blow-dry.png"
+                      },
+                      {
+                        "name": "Nail Trim",
+                        "imageUrl": "https://cdn.petmypet.in/icons/nail-trim.png"
+                      }
+                    ],
                     "isActive": true,
                     "createdAt": "2026-05-10T08:00:00.000Z"
                   }
@@ -4373,6 +4458,30 @@
                       "format": "uri"
                     }
                   },
+                  "includedItems": {
+                    "type": "array",
+                    "description": "\"What's Included\" list on the service detail screen — replaces the full array when sent.",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "imageUrl"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100,
+                          "example": "Bath"
+                        },
+                        "imageUrl": {
+                          "type": "string",
+                          "format": "uri",
+                          "description": "URL from Uploads"
+                        }
+                      }
+                    }
+                  },
                   "addOnCatalog": {
                     "type": "array",
                     "items": {
@@ -4403,6 +4512,20 @@
                 "price": 949,
                 "originalPrice": 1099,
                 "durationMinutes": 75,
+                "includedItems": [
+                  {
+                    "name": "Bath",
+                    "imageUrl": "https://cdn.petmypet.in/icons/bath.png"
+                  },
+                  {
+                    "name": "Blow Dry",
+                    "imageUrl": "https://cdn.petmypet.in/icons/blow-dry.png"
+                  },
+                  {
+                    "name": "Nail Trim",
+                    "imageUrl": "https://cdn.petmypet.in/icons/nail-trim.png"
+                  }
+                ],
                 "addOnCatalog": [
                   {
                     "name": "Extra 15 Min",
@@ -4439,6 +4562,20 @@
                     "durationMinutes": 75,
                     "images": [
                       "https://cdn.petmypet.in/services/grooming-package.jpg"
+                    ],
+                    "includedItems": [
+                      {
+                        "name": "Bath",
+                        "imageUrl": "https://cdn.petmypet.in/icons/bath.png"
+                      },
+                      {
+                        "name": "Blow Dry",
+                        "imageUrl": "https://cdn.petmypet.in/icons/blow-dry.png"
+                      },
+                      {
+                        "name": "Nail Trim",
+                        "imageUrl": "https://cdn.petmypet.in/icons/nail-trim.png"
+                      }
                     ],
                     "addOnCatalog": [
                       {
@@ -7588,6 +7725,2253 @@
         }
       }
     },
+    "/signin-signup": {
+      "post": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Provider signup/login step 1 — sends an OTP, auto-creating the user account if new",
+        "description": "No auth required. Creates a `SERVICE_PROVIDER`-role user on first call for this phone (name\nleft blank). Returns `409 CONFLICT` if the phone is already a customer account, or already\nregistered under a *different* provider role slug.\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "role",
+                  "phone"
+                ],
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "pet-groomer",
+                      "pet-clinics",
+                      "vets",
+                      "boarding-center",
+                      "dogs-trainer",
+                      "dog-walker",
+                      "pet-sitter"
+                    ]
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "9876543210"
+                  },
+                  "fcm_token": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "device_type": {
+                    "type": "string",
+                    "enum": [
+                      "android",
+                      "ios"
+                    ],
+                    "nullable": true
+                  },
+                  "device_id": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "OTP sent successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Phone already registered under a different account/role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/verify-otp": {
+      "post": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Provider signup/login step 2 — verifies the OTP and issues an access token",
+        "description": "No auth required. On the very first successful verification, auto-creates a shell provider\nprofile (`kycStatus: PENDING`, placeholder businessName/location) — fill it in via\n`POST /upload-documents` right after.\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "role",
+                  "phone",
+                  "otp"
+                ],
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "pet-groomer",
+                      "pet-clinics",
+                      "vets",
+                      "boarding-center",
+                      "dogs-trainer",
+                      "dog-walker",
+                      "pet-sitter"
+                    ]
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "9876543210"
+                  },
+                  "otp": {
+                    "type": "string",
+                    "example": "111111"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login/signup successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "isDocumentSubmited": {
+                      "type": "boolean"
+                    },
+                    "isDocumentApproved": {
+                      "type": "boolean"
+                    },
+                    "token": {
+                      "type": "string",
+                      "description": "Bearer access token"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Login or signup successful",
+                  "isDocumentSubmited": false,
+                  "isDocumentApproved": false,
+                  "token": "eyJhbGciOiJIUzI1NiIs..."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No pending signup for this phone, or invalid/expired OTP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/upload-documents": {
+      "post": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Complete the provider's onboarding profile (KYC docs + role-specific business info)",
+        "description": "Bearer token required (`SERVICE_PROVIDER`). One superset body for every role — which fields\nare actually required depends on the caller's own provider role (e.g. `clinic_name` for\n`pet-clinics`, `name` for everyone else). Re-submitting after a KYC rejection resets\n`kycStatus` back to `PENDING`. If `location.longtude`/`location.latatude` are both given,\nthe provider's zone is auto-assigned to the nearest one (drives `GET /profile`'s\n`service_areas` and eligibility for nearby search).\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 150
+                  },
+                  "experience": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "bio": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "profile_image": {
+                    "type": "string",
+                    "description": "URL from Uploads"
+                  },
+                  "documents": {
+                    "type": "object",
+                    "properties": {
+                      "adhar_card": {
+                        "type": "string",
+                        "description": "URL from Uploads"
+                      },
+                      "pan_card": {
+                        "type": "string",
+                        "description": "URL from Uploads"
+                      }
+                    }
+                  },
+                  "clinic_name": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "description": "Required for pet-clinics"
+                  },
+                  "boarding_name": {
+                    "type": "string",
+                    "maxLength": 150,
+                    "description": "Required for boarding-center"
+                  },
+                  "location": {
+                    "type": "object",
+                    "properties": {
+                      "address": {
+                        "type": "string"
+                      },
+                      "longtude": {
+                        "type": "number"
+                      },
+                      "latatude": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  "founded": {
+                    "type": "string",
+                    "description": "Year founded, e.g. \"2018\""
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "specialization": {
+                    "type": "string"
+                  },
+                  "clinic_images": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "media": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "name": "Dr. Asha Rao",
+                  "experience": 5,
+                  "bio": "Small-animal vet",
+                  "documents": {
+                    "adhar_card": "https://cdn.example.com/adhar.jpg",
+                    "pan_card": "https://cdn.example.com/pan.jpg"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Documents submitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Documents submitted successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing a role-required field, or validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Provider profile not found (verify-otp not called yet)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/home": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Role-shaped dashboard for the current provider",
+        "description": "Bearer token required (`SERVICE_PROVIDER`). Response shape depends on the caller's provider\nrole — trainers get the **GET /trainer/dashboard** shape; the example below is the\ngroomer/default shape (also used for pet-walker/pet-sitter/vet/boarding, each with its own\nfield set on `data`).\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboard data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Groomer dashboard retrieved successfully.",
+                  "data": {
+                    "header": {
+                      "greeting": "Good Day",
+                      "location": "12 MG Road",
+                      "notifications_count": 0,
+                      "is_available": true
+                    },
+                    "profile_summary": {
+                      "name": "Asha",
+                      "is_verified": true,
+                      "designation": "Professional Pet Groomer",
+                      "rating": 4.8,
+                      "reviews_count": 12,
+                      "avatar_url": null
+                    },
+                    "stats_overview": {
+                      "total_bookings": 40,
+                      "today_grooming": 2,
+                      "rating": 4.8,
+                      "total_revenue": 15000
+                    },
+                    "todays_grooming_session": null,
+                    "active_grooming": null,
+                    "earnings_overview": {
+                      "this_week": {
+                        "amount": "₹2000",
+                        "percentage_change": "",
+                        "chart_points": []
+                      },
+                      "this_month": 15000
+                    },
+                    "recent_reviews": null,
+                    "recent_prescriptions": []
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User or provider profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/my-appointments": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Pet-sitter-shaped appointment list for the current provider",
+        "description": "Bearer token required (`SERVICE_PROVIDER`).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "upcoming",
+                "completed",
+                "cancelled"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "20"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Appointment list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Appointments fetched successfully",
+                  "user_name": "Asha",
+                  "appointments": [
+                    {
+                      "id": "64f8b9c0d1e2f3a4b5c6d7e8",
+                      "pet": {
+                        "id": "64f6f7a8b9c0d1e2f3a4b5c6",
+                        "name": "Bruno",
+                        "image_url": null
+                      },
+                      "owner": {
+                        "id": "64f6f7a8b9c0d1e2f3a4b5c7",
+                        "name": "Ravi"
+                      },
+                      "service_type": "Full Grooming",
+                      "appointment_date": "2026-09-20T09:00:00.000Z",
+                      "status": "ACCEPTED"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/appointments": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Paginated appointment list (walker/sitter/etc. shape), or vet/clinic schedule shape",
+        "description": "Bearer token required (`SERVICE_PROVIDER`). `vets`/`pet-clinics` providers get a flat\n`{ \"total appointments\", schedule }` shape instead of the paginated one shown below.\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "upcoming",
+                "upcomming",
+                "completed",
+                "cancelled"
+              ]
+            },
+            "description": "\"upcomming\" (sic) is accepted as an alias for \"upcoming\"."
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "05-09-26"
+            },
+            "description": "DD-MM-YY"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "20"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Appointment list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Appointments fetched successfully.",
+                  "data": {
+                    "appointments": [
+                      {
+                        "id": "64f8b9c0d1e2f3a4b5c6d7e8",
+                        "pet": {
+                          "id": "64f6f7a8b9c0d1e2f3a4b5c6",
+                          "name": "Bruno",
+                          "breed": "Labrador",
+                          "image_url": null
+                        },
+                        "owner": {
+                          "id": "64f6f7a8b9c0d1e2f3a4b5c7",
+                          "name": "Ravi"
+                        },
+                        "appointment_date": "2026-09-20T09:00:00.000Z",
+                        "display_time": "Today, 09:00 AM",
+                        "location": "12 MG Road, Bengaluru",
+                        "status": "ACCEPTED"
+                      }
+                    ],
+                    "pagination": {
+                      "current_page": 1,
+                      "total_pages": 3,
+                      "total_items": 42,
+                      "has_next": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trainer/dashboard": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Trainer home dashboard, or (with type/filter) trainer's paginated session list",
+        "description": "Bearer token required (`SERVICE_PROVIDER`, trainer). With neither `type` nor `filter` set,\nreturns the dashboard shape (`quick_metrics` + `upcoming_sessions`); passing either switches\nto the paginated session-list shape shown as the alternate example below. This is also what\n`GET /home` returns for a `dogs-trainer` role.\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "upcoming",
+                "past"
+              ]
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "today",
+                "this_week",
+                "pending"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "20"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboard or session-list data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Dashboard data retrieved successfully.",
+                  "data": {
+                    "user": {
+                      "id": "64f6f7a8b9c0d1e2f3a4b5c6",
+                      "name": "Coach Dev",
+                      "is_verified": true
+                    },
+                    "quick_metrics": {
+                      "today_sessions": 2,
+                      "earnings": 1200,
+                      "rating": 4.9,
+                      "reviews": 30
+                    },
+                    "upcoming_sessions": [
+                      {
+                        "id": "64f8b9c0d1e2f3a4b5c6d7e8",
+                        "pet": {
+                          "id": "64f6f7a8b9c0d1e2f3a4b5c6",
+                          "name": "Bruno",
+                          "image_url": null
+                        },
+                        "owner": {
+                          "id": "64f6f7a8b9c0d1e2f3a4b5c7",
+                          "name": "Ravi"
+                        },
+                        "time_slot": "09:00 AM - 10:30 AM",
+                        "start_time": "2026-09-20T09:00:00.000Z",
+                        "end_time": "2026-09-20T10:30:00.000Z",
+                        "tag": "OBEDIENCE TRAINING"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analytics": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Role-shaped earnings/performance analytics for the current provider",
+        "description": "Bearer token required (`SERVICE_PROVIDER`). Shape depends on role — sitter, trainer, and\neveryone else (walker/groomer/vet/boarding default) each get a differently-keyed `data`\nobject. Example below is the walker/default shape.\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "time_range",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "week",
+                "month",
+                "year"
+              ],
+              "default": "week"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Analytics data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Analytics fetched successfully",
+                  "data": {
+                    "selected_range": "week",
+                    "earnings_chart": {
+                      "total_earnings": "4500",
+                      "percentage": "0",
+                      "level": "flat",
+                      "chart_data": [
+                        {
+                          "label": "Mon",
+                          "value": 500
+                        }
+                      ]
+                    },
+                    "overview": {
+                      "total_walks": "12",
+                      "avg_rating": "4.7",
+                      "total_earnings": 4500,
+                      "active_client": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profile": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "The current provider's own profile",
+        "description": "Bearer token required (`SERVICE_PROVIDER`). `vets`/`pet-clinics` get a clinic-shaped\nprofile; every other role gets the generic shape shown below.\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Profile fetched successfully.",
+                  "data": {
+                    "user": {
+                      "id": "64f6f7a8b9c0d1e2f3a4b5c6",
+                      "name": "Asha",
+                      "avatar_url": null,
+                      "is_verified": true,
+                      "bio": "Small-animal groomer"
+                    },
+                    "stats": {
+                      "total_walks": 40,
+                      "rating": 4.8,
+                      "reviews_count": 12
+                    },
+                    "details": {
+                      "experience": 5,
+                      "specializations": [
+                        "Full Grooming"
+                      ],
+                      "service_areas": [
+                        "Koramangala"
+                      ],
+                      "documents": [
+                        {
+                          "type": "GOVERNMENT_ID",
+                          "status": "APPROVED",
+                          "document_url": "https://cdn.example.com/adhar.jpg"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/patients": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Pets the current provider has an active or completed booking with",
+        "description": "Bearer token required (`SERVICE_PROVIDER`).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "Dog",
+                "Cat",
+                "Birds",
+                "All"
+              ],
+              "default": "All"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Patient list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "64f6f7a8b9c0d1e2f3a4b5c6",
+                    "name": "Bruno",
+                    "breed": "Labrador",
+                    "age": "",
+                    "breed_and_age": "Labrador",
+                    "image_url": null,
+                    "health_status": "HEALTHY",
+                    "owner": {
+                      "id": "64f6f7a8b9c0d1e2f3a4b5c7",
+                      "name": "Ravi"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/start-Session/verify-otp": {
+      "post": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Verify the customer's start-OTP for the provider's current session",
+        "description": "Bearer token required (`SERVICE_PROVIDER`). Resolves \"the current session\" from the\nprovider's own `ACCEPTED`/`ON_THE_WAY` booking — there is no bookingId in the payload, so\nonly one such booking may exist at a time. On success the booking moves to `STARTED`.\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "otp"
+                ],
+                "properties": {
+                  "otp": {
+                    "type": "string",
+                    "example": "111111"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP matched, session started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "OTP matched successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid OTP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No session ready to start right now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/session/resend-otp": {
+      "post": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Regenerate and SMS the pending start/end OTP for the provider's current session",
+        "description": "Bearer token required (`SERVICE_PROVIDER`). Checks for a start-eligible session first, then\nan active (in-progress) one. No-ops (still returns 200) if SMS delivery isn't configured.\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OTP sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "OTP sent successfully"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No active session to resend an OTP for",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/end-Session/verify-otp": {
+      "post": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Verify the customer's end-OTP, completing the provider's current session",
+        "description": "Bearer token required (`SERVICE_PROVIDER`). Marks the `STARTED` booking `COMPLETED`,\ncomputes commission/payout, notifies the customer, and triggers first-booking referral\nrewards.\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "otp"
+                ],
+                "properties": {
+                  "otp": {
+                    "type": "string",
+                    "example": "111111"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP matched, session completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "OTP matched successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid end OTP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No active session to end right now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/end-Session": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Summary for the provider's just-ended (or most recent completed) session",
+        "description": "Bearer token required (`SERVICE_PROVIDER`).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "summary": {
+                      "type": "object",
+                      "properties": {
+                        "distance": {
+                          "type": "string",
+                          "example": "2.4 km"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "Completed",
+                            "In Process"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "summary fatch sucessfully.",
+                  "summary": {
+                    "distance": "2.4 km",
+                    "status": "Completed"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No session found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/session/upload-training-process": {
+      "post": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Log a progress update (caption + note + media) against the provider's active session",
+        "description": "Bearer token required (`SERVICE_PROVIDER`). Requires a `STARTED` booking.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "media"
+                ],
+                "properties": {
+                  "caption": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "default": ""
+                  },
+                  "progress_note": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "default": ""
+                  },
+                  "media": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "description": "URLs from Uploads"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Progress update saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Training progress uploaded successfully"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No active session to post a progress update for, or validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/message": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Chat inbox — REST alias for the provider app's message list screen",
+        "description": "Bearer token required (any authenticated role). Thin wrapper over the **Chat** module's\nroom list.\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "20"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Inbox rooms",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "message receive successfully.",
+                  "data": [
+                    {
+                      "id": "64f8b9c0d1e2f3a4b5c6d7e8",
+                      "profile_image": null,
+                      "name": "Ravi",
+                      "last_msg": "See you at 5pm",
+                      "unread_msg": "2",
+                      "data_time": "2026-09-19T05:00:00.000Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/message/{room_id}/history": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Message history for one chat room — REST alias for the provider app's chat screen",
+        "description": "Bearer token required (any authenticated role). Thin wrapper over the **Chat** module's\nmessage history; real-time delivery for connected clients is over Socket.IO instead.\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f8b9c0d1e2f3a4b5c6d7e8"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "20"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Message history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Messages fetched successfully.",
+                  "data": {
+                    "room_id": "64f8b9c0d1e2f3a4b5c6d7e8",
+                    "messages": [
+                      {
+                        "id": "64f6f7a8b9c0d1e2f3a4b5c6",
+                        "room_id": "64f8b9c0d1e2f3a4b5c6d7e8",
+                        "sender_id": "64f6f7a8b9c0d1e2f3a4b5c7",
+                        "message": "See you at 5pm",
+                        "type": "TEXT",
+                        "status": "SEEN",
+                        "created_at": "2026-09-19T05:00:00.000Z"
+                      }
+                    ],
+                    "pagination": {
+                      "current_page": 1,
+                      "total_pages": 1,
+                      "has_more": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid room_id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reviews-ratings": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Reviews & Ratings screen — rating summary + paginated reviews for the caller's provider profile",
+        "description": "Provider type comes from the bearer token; every role gets the same shape. `summary` is\nalways over all reviews; `rating` only filters the `reviews` list (star filter chips).\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rating",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "1"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "20"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reviews",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Reviews fetched successfully.",
+                  "data": {
+                    "summary": {
+                      "average_rating": 4.8,
+                      "total_reviews": 32,
+                      "breakdown": [
+                        {
+                          "star": 5,
+                          "count": 28,
+                          "percentage": 88
+                        },
+                        {
+                          "star": 4,
+                          "count": 3,
+                          "percentage": 9
+                        }
+                      ]
+                    },
+                    "reviews": [
+                      {
+                        "id": "66f0c0ffee0000000000abcd",
+                        "rating": 5,
+                        "comment": "Excellent groomer, very patient.",
+                        "reviewer": {
+                          "name": "Priya Sharma",
+                          "avatar_url": null
+                        },
+                        "pet": {
+                          "name": "Bruno",
+                          "breed": "Golden Retriever",
+                          "image_url": null
+                        },
+                        "service_name": "Premium Grooming",
+                        "booking_id": "66f0c0ffee0000000000beef",
+                        "reply": {
+                          "text": "Thank you!",
+                          "replied_at": "2026-09-20T10:00:00.000Z"
+                        },
+                        "created_at": "2026-09-19T10:00:00.000Z"
+                      }
+                    ],
+                    "pagination": {
+                      "current_page": 1,
+                      "total_pages": 2,
+                      "total_items": 32,
+                      "has_next": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reviews-ratings/{review_id}/reply": {
+      "post": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Reply Review — public reply to one of your reviews (sending again edits it)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reply"
+                ],
+                "properties": {
+                  "reply": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reply saved"
+          },
+          "404": {
+            "description": "Review not found or not yours"
+          }
+        }
+      }
+    },
+    "/earnings": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Earnings screen / \"View wallet\" — wallet balance, earnings totals, chart, per-service transactions",
+        "description": "Earnings = `providerPayoutAmount` (price − discount − platform commission) of COMPLETED\nbookings, bucketed by completion time in IST. Online-paid bookings are credited to\n`wallet_balance` automatically on completion (`credited_to_wallet: true`); cash bookings\ncount as earnings but aren't credited — you already collected the cash.\n`range`: week = last 7 days (7 daily bars), month = last 30 days, year = last 12 months.\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "week",
+                "month",
+                "year"
+              ],
+              "default": "week"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Earnings",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Earnings fetched successfully.",
+                  "data": {
+                    "currency": "INR",
+                    "wallet_balance": 18450,
+                    "min_withdrawal_amount": 100,
+                    "can_withdraw": true,
+                    "bank_account": {
+                      "account_holder_name": "Sarah Wilson",
+                      "bank_name": "HDFC Bank",
+                      "ifsc_code": "HDFC0000452",
+                      "account_type": "SAVINGS",
+                      "account_number_last4": "0394"
+                    },
+                    "summary": {
+                      "today": 799,
+                      "this_week": 18500,
+                      "this_month": 78900,
+                      "lifetime": 240000,
+                      "completed_services": 312
+                    },
+                    "selected_range": "week",
+                    "range_summary": {
+                      "total": 18500,
+                      "services": 21,
+                      "previous_total": 16500,
+                      "percentage_change": 12.1,
+                      "level": "up"
+                    },
+                    "chart": [
+                      {
+                        "label": "Mon",
+                        "date": "2026-09-21",
+                        "value": 2400
+                      }
+                    ],
+                    "transactions": [
+                      {
+                        "booking_id": "66f0c0ffee0000000000beef",
+                        "booking_code": "#0000BEEF",
+                        "pet": {
+                          "name": "Bruno",
+                          "image_url": null
+                        },
+                        "service_name": "Premium Grooming",
+                        "completed_at": "2026-09-21T06:15:00.000Z",
+                        "amount": 799,
+                        "commission": 119.85,
+                        "earning": 679.15,
+                        "payment_method": "RAZORPAY",
+                        "credited_to_wallet": true
+                      }
+                    ],
+                    "pagination": {
+                      "current_page": 1,
+                      "total_pages": 16,
+                      "total_items": 312,
+                      "has_next": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/earnings/withdraw": {
+      "post": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Withdraw wallet balance to the saved bank account",
+        "description": "Debits the wallet immediately and creates a `REQUESTED` payout that the Patmypets team\ntransfers manually (admin panel → Payouts). If rejected, the amount returns to the wallet.\nNeeds an approved KYC, a saved bank account, and amount ≥ `min_withdrawal_amount`.\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "amount"
+                ],
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "example": 5000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Withdrawal requested — returns the withdrawal and the new wallet_balance"
+          },
+          "400": {
+            "description": "No bank account / KYC not approved / below minimum / insufficient balance"
+          }
+        }
+      }
+    },
+    "/earnings/withdrawals": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Withdrawal history (REQUESTED / PAID with bank reference / REJECTED with reason)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Withdrawals"
+          }
+        }
+      }
+    },
+    "/profile/personal-info": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Personal Info screen",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Personal info",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Personal info fetched successfully.",
+                  "data": {
+                    "full_name": "Sarah Wilson",
+                    "email": "sarah@petcare.com",
+                    "phone": "+919876543210",
+                    "date_of_birth": "1995-04-12",
+                    "gender": "FEMALE",
+                    "address": "Flat 402, Sector 45, Gurgaon",
+                    "profile_image": null
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Save Changes on Personal Info (all fields optional; phone is read-only — it's the login)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "full_name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "date_of_birth": {
+                    "type": "string",
+                    "example": "1995-04-12",
+                    "nullable": true
+                  },
+                  "gender": {
+                    "type": "string",
+                    "enum": [
+                      "MALE",
+                      "FEMALE",
+                      "OTHER"
+                    ],
+                    "nullable": true
+                  },
+                  "address": {
+                    "type": "string"
+                  },
+                  "profile_image": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated personal info (same shape as GET)"
+          },
+          "409": {
+            "description": "Email already used by another account"
+          }
+        }
+      }
+    },
+    "/profile/experience-skills": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Experience & Skills screen",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Experience & skills",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Experience & skills fetched successfully.",
+                  "data": {
+                    "experience_years": 5,
+                    "work_experience": [
+                      {
+                        "id": "66f0...",
+                        "title": "Senior Pet Sitter",
+                        "company": "Happy Paws Co.",
+                        "start_date": "2021-06-01",
+                        "end_date": null,
+                        "is_current": true
+                      }
+                    ],
+                    "skills": [
+                      "Cleaning",
+                      "Cooking",
+                      "Driving"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Save the whole Experience & Skills screen (each list sent is a full replace)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "experience_years": 5,
+                "work_experience": [
+                  {
+                    "title": "Dog Walker",
+                    "company": "PetCare Solutions",
+                    "start_date": "2019-01-01",
+                    "end_date": "2021-05-31"
+                  }
+                ],
+                "skills": [
+                  "Cleaning",
+                  "Driving"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated (same shape as GET)"
+          }
+        }
+      }
+    },
+    "/profile/documents": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Documents screen — Aadhaar / PAN / Driving License / Police Verification with per-document status",
+        "description": "`status` is VERIFIED | PENDING | REJECTED | MISSING (not uploaded yet).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Documents",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Documents fetched successfully.",
+                  "data": {
+                    "kyc_status": "APPROVED",
+                    "documents": [
+                      {
+                        "id": "66f0...",
+                        "name": "AADHAAR_CARD",
+                        "title": "Aadhaar Card",
+                        "status": "VERIFIED",
+                        "document_url": "https://...",
+                        "uploaded_at": "2026-09-01T00:00:00.000Z"
+                      },
+                      {
+                        "id": null,
+                        "name": "POLICE_VERIFICATION",
+                        "title": "Police Verification",
+                        "status": "MISSING",
+                        "document_url": null,
+                        "uploaded_at": null
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Upload New Document (upload the file via POST /uploads first, send its URL). Same name replaces the old one.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "url"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "enum": [
+                      "AADHAAR_CARD",
+                      "PAN_CARD",
+                      "DRIVING_LICENSE",
+                      "POLICE_VERIFICATION",
+                      "OTHER"
+                    ]
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Updated documents list (same shape as GET)"
+          }
+        }
+      }
+    },
+    "/profile/bank-account": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Bank Details — masked (only last 4 digits of the account number are ever returned)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ data: { bank_account: {...} | null } }"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Save Bank Details (Add Bank Account screen)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "account_holder_name": "Sarah Wilson",
+                "bank_name": "HDFC Bank",
+                "account_number": "50100482910394",
+                "confirm_account_number": "50100482910394",
+                "ifsc_code": "HDFC0000452",
+                "account_type": "SAVINGS"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved (masked)"
+          },
+          "400": {
+            "description": "Account numbers don't match / invalid IFSC"
+          }
+        }
+      }
+    },
+    "/appointments/{booking_id}": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "One appointment in full — Start Service / Start Visit / Boarding Details / session screens (any role)",
+        "description": "Client contact (name, initials, phone, address, map coords), pet profile (breed, gender,\nage, weight, is_vaccinated), service package with `includes`, add-ons, price, notes,\nuploaded photos/prescriptions/receipts, progress updates, timeline timestamps, and up to 5\n`past_sessions` with this pet (date + your notes) for the \"Past Session Summary\" strip.\nNever returns the OTP codes — ask the pet parent.\n",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Appointment detail"
+          },
+          "404": {
+            "description": "Not found or not your booking"
+          }
+        }
+      }
+    },
     "/pets": {
       "post": {
         "tags": [
@@ -8557,6 +10941,113 @@
         }
       }
     },
+    "/pets/{id}/activities": {
+      "post": {
+        "tags": [
+          "Pets"
+        ],
+        "summary": "Log an activity for a pet (shown on the companion detail page's \"Recent Activities\")",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "title"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "PARK_VISIT",
+                      "MEETUP",
+                      "PLAYDATE",
+                      "WALK",
+                      "OTHER"
+                    ]
+                  },
+                  "title": {
+                    "type": "string",
+                    "maxLength": 150
+                  },
+                  "location": {
+                    "type": "string",
+                    "maxLength": 150
+                  },
+                  "occurredAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              },
+              "example": {
+                "type": "PARK_VISIT",
+                "title": "Carter Road Park",
+                "location": "Carter Road, Bandra West"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Activity added"
+          }
+        }
+      }
+    },
+    "/pets/{id}/activities/{activityId}": {
+      "delete": {
+        "tags": [
+          "Pets"
+        ],
+        "summary": "Delete a logged activity from a pet",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "activityId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity removed"
+          }
+        }
+      }
+    },
     "/pets/{id}/companion-profile": {
       "put": {
         "tags": [
@@ -8926,122 +11417,6 @@
                   "success": false,
                   "error": "BAD_REQUEST",
                   "message": "One or more pets were not found for this account"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "example": {
-                  "success": false,
-                  "error": "UNAUTHORIZED",
-                  "message": "Authentication required"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/pet-taxi/bookings/me": {
-      "get": {
-        "tags": [
-          "PetTaxi"
-        ],
-        "summary": "List the caller's own pet taxi bookings",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "status",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "PENDING",
-                "CONFIRMED",
-                "COMPLETED",
-                "CANCELLED"
-              ]
-            },
-            "example": "PENDING"
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "example": "1"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "example": "20"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of the caller's pet taxi bookings",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                },
-                "example": {
-                  "success": true,
-                  "message": "Success",
-                  "data": [
-                    {
-                      "id": "64f1a2b3c4d5e6f7a8b9c0d1",
-                      "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
-                      "tripType": "ROUND_TRIP",
-                      "petIds": [
-                        "64f1a2b3c4d5e6f7a8b9c0d3"
-                      ],
-                      "pickupAddress": "12, Lavelle Road, Bengaluru",
-                      "dropAddress": "Pet Care Clinic, Indiranagar, Bengaluru",
-                      "pickupDate": "2026-08-25T00:00:00.000Z",
-                      "pickupTime": "14:30",
-                      "price": 899,
-                      "currency": "INR",
-                      "status": "PENDING",
-                      "cancellationReason": null,
-                      "createdAt": "2026-08-22T08:00:00.000Z"
-                    }
-                  ],
-                  "meta": {
-                    "page": 1,
-                    "limit": 20,
-                    "total": 1,
-                    "totalPages": 1
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid query parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "example": {
-                  "success": false,
-                  "error": "BAD_REQUEST",
-                  "message": "limit must be a valid number"
                 }
               }
             }
@@ -9561,106 +11936,6 @@
         }
       }
     },
-    "/pet-relocation/requests/me": {
-      "get": {
-        "tags": [
-          "PetRelocation"
-        ],
-        "summary": "List the authenticated user's own relocation requests",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "example": "1"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "example": "20"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of the caller's relocation requests",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                },
-                "example": {
-                  "success": true,
-                  "message": "Success",
-                  "data": [
-                    {
-                      "id": "64f1a2b3c4d5e6f7a8b9c0d1",
-                      "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
-                      "ownerName": "Rahul Sharma",
-                      "ownerPhone": "+919876543210",
-                      "ownerEmail": "rahul.sharma@example.com",
-                      "petId": "64f1a2b3c4d5e6f7a8b9c0d3",
-                      "originAddress": "12th Main, Indiranagar, Bangalore, Karnataka",
-                      "destinationAddress": "Park Street, Kolkata, West Bengal",
-                      "relocationDate": "2026-09-10T00:00:00.000Z",
-                      "transportType": "ROAD",
-                      "preferredTimeSlot": "MORNING",
-                      "status": "SUBMITTED",
-                      "createdAt": "2026-08-22T08:00:00.000Z"
-                    }
-                  ],
-                  "meta": {
-                    "page": 1,
-                    "limit": 20,
-                    "total": 1,
-                    "totalPages": 1
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid query parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "example": {
-                  "success": false,
-                  "error": "BAD_REQUEST",
-                  "message": "limit must be a valid number"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "example": {
-                  "success": false,
-                  "error": "UNAUTHORIZED",
-                  "message": "Authentication required"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/pet-relocation/requests/{id}": {
       "get": {
         "tags": [
@@ -9755,6 +12030,104 @@
                   "success": false,
                   "error": "FORBIDDEN",
                   "message": "You do not have access to this request"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Relocation request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Relocation request not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-relocation/requests/{id}/cancel": {
+      "patch": {
+        "tags": [
+          "PetRelocation"
+        ],
+        "summary": "Cancel a relocation request (owner only)",
+        "description": "Only requests still SUBMITTED or CONTACTED can be self-cancelled; once ops has CONFIRMED a transport slot, the owner must go through support.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                }
+              },
+              "example": {
+                "reason": "Found relocation help locally"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Relocation request cancelled"
+          },
+          "400": {
+            "description": "Invalid request, or the request is already CONFIRMED/CANCELLED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Cannot cancel a request that is already CONFIRMED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller does not own this request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "This request does not belong to you"
                 }
               }
             }
@@ -10244,114 +12617,6 @@
         }
       }
     },
-    "/pet-insurance/applications/me": {
-      "get": {
-        "tags": [
-          "PetInsurance"
-        ],
-        "summary": "List the authenticated user's own insurance applications",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "example": "1"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "example": "20"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of the caller's insurance applications",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                },
-                "example": {
-                  "success": true,
-                  "message": "Success",
-                  "data": [
-                    {
-                      "id": "64f1a2b3c4d5e6f7a8b9c0d1",
-                      "userId": "64f1a2b3c4d5e6f7a8b9c0d2",
-                      "ownerName": "Ananya Rao",
-                      "ownerEmail": "ananya.rao@example.com",
-                      "ownerPhone": "+919876543210",
-                      "petName": "Bruno",
-                      "petType": "DOG",
-                      "petAge": "3 years",
-                      "petBreed": "Labrador Retriever",
-                      "previousIllness": true,
-                      "illnessDocumentUrls": [
-                        "https://res.cloudinary.com/patmypets/image/upload/v1699999999/kyc-documents/bruno-illness.pdf"
-                      ],
-                      "previousSurgery": false,
-                      "vaccinated": true,
-                      "vaccinationDocumentUrls": [
-                        "https://res.cloudinary.com/patmypets/image/upload/v1699999999/kyc-documents/bruno-vaccination.pdf"
-                      ],
-                      "status": "SUBMITTED",
-                      "rejectionReason": null,
-                      "createdAt": "2026-08-20T08:00:00.000Z"
-                    }
-                  ],
-                  "meta": {
-                    "page": 1,
-                    "limit": 20,
-                    "total": 1,
-                    "totalPages": 1
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid query parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "example": {
-                  "success": false,
-                  "error": "BAD_REQUEST",
-                  "message": "limit must be a valid number"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "example": {
-                  "success": false,
-                  "error": "UNAUTHORIZED",
-                  "message": "Authentication required"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/pet-insurance/applications/{id}": {
       "get": {
         "tags": [
@@ -10453,6 +12718,104 @@
                   "success": false,
                   "error": "FORBIDDEN",
                   "message": "You do not have access to this application"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Insurance application not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "NOT_FOUND",
+                  "message": "Insurance application not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-insurance/applications/{id}/cancel": {
+      "patch": {
+        "tags": [
+          "PetInsurance"
+        ],
+        "summary": "Cancel an insurance application (owner only)",
+        "description": "Only SUBMITTED or UNDER_REVIEW applications can be self-cancelled; once underwriting has APPROVED or REJECTED it, the applicant must go through support.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0d1"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                }
+              },
+              "example": {
+                "reason": "Found coverage elsewhere"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Insurance application cancelled"
+          },
+          "400": {
+            "description": "Invalid request, or the application is already APPROVED/REJECTED/CANCELLED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "Cannot cancel an application that is already APPROVED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller does not own this application",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "FORBIDDEN",
+                  "message": "This application does not belong to you"
                 }
               }
             }
@@ -10624,6 +12987,109 @@
                   "success": false,
                   "error": "NOT_FOUND",
                   "message": "Insurance application not found"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-companion/pets/{id}": {
+      "get": {
+        "tags": [
+          "PetCompanion"
+        ],
+        "summary": "Get another pet's full companion profile (gallery, activities, reviews, likes/views, verification badges)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Companion profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0e1",
+                    "ownerId": "64f1a2b3c4d5e6f7a8b9c0e2",
+                    "ownerName": "Ananya S.",
+                    "name": "Luna",
+                    "species": "DOG",
+                    "breed": "Golden Retriever",
+                    "gender": "FEMALE",
+                    "avatarUrl": "https://picsum.photos/seed/pet-luna/400/400",
+                    "galleryUrls": [],
+                    "activities": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0f1",
+                        "type": "PARK_VISIT",
+                        "title": "Carter Road Park",
+                        "location": "Carter Road, Bandra West",
+                        "occurredAt": "2026-09-01T08:30:00.000Z"
+                      }
+                    ],
+                    "companionProfile": {
+                      "isEnabled": true,
+                      "bio": "Loves the dog park."
+                    },
+                    "likesCount": 12,
+                    "viewCount": 341,
+                    "verification": {
+                      "mobileVerified": true,
+                      "identityVerified": false,
+                      "vaccinationVerified": true,
+                      "locationVerified": true
+                    },
+                    "isOwnPet": false,
+                    "recentReviews": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0f2",
+                        "userId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                        "authorName": "Priya Sharma",
+                        "authorAvatarUrl": "https://picsum.photos/seed/user-priya-sharma/300/300",
+                        "rating": 5,
+                        "comment": "Extremely friendly and gentle.",
+                        "createdAt": "2026-08-20T10:00:00.000Z"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Pet not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -11232,6 +13698,128 @@
         }
       }
     },
+    "/pet-companion/wishlist": {
+      "get": {
+        "tags": [
+          "PetCompanion"
+        ],
+        "summary": "Get the current user's saved (wishlisted) companion pets",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wishlist retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0a1",
+                    "pets": [
+                      {
+                        "id": "64f1a2b3c4d5e6f7a8b9c0b1",
+                        "name": "Bruno",
+                        "species": "DOG",
+                        "breed": "Golden Retriever",
+                        "avatarUrl": "https://cdn.petmypet.in/pets/bruno-avatar.jpg"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pet-companion/wishlist/{petId}": {
+      "post": {
+        "tags": [
+          "PetCompanion"
+        ],
+        "summary": "Save a pet to the wishlist",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0b1"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Pet added to wishlist"
+          },
+          "400": {
+            "description": "Invalid pet id"
+          },
+          "401": {
+            "description": "Missing or invalid authentication token"
+          },
+          "404": {
+            "description": "Pet not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "PetCompanion"
+        ],
+        "summary": "Remove a pet from the wishlist",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0b1"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pet removed from wishlist"
+          },
+          "400": {
+            "description": "Invalid pet id"
+          },
+          "401": {
+            "description": "Missing or invalid authentication token"
+          }
+        }
+      }
+    },
     "/payments/webhook": {
       "post": {
         "tags": [
@@ -11429,6 +14017,118 @@
                   "success": false,
                   "error": "UNAUTHORIZED",
                   "message": "Authentication required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/{id}/verify": {
+      "post": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "Confirm a RAZORPAY payment right after checkout succeeds on the client (USER only) — synchronous alternative to waiting on the webhook",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "64f1a2b3c4d5e6f7a8b9c0e1",
+            "description": "The paymentId returned by POST /payments/bookings/{bookingId}/order"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "razorpayOrderId",
+                  "razorpayPaymentId",
+                  "razorpaySignature"
+                ],
+                "properties": {
+                  "razorpayOrderId": {
+                    "type": "string"
+                  },
+                  "razorpayPaymentId": {
+                    "type": "string"
+                  },
+                  "razorpaySignature": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "razorpayOrderId": "order_NXtZ4xyzABC123",
+                "razorpayPaymentId": "pay_NXtZ9xyzDEF456",
+                "razorpaySignature": "9ef4dffbc55c8..."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment verified and booking marked paid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Payment verified",
+                  "data": {
+                    "id": "64f1a2b3c4d5e6f7a8b9c0e1",
+                    "bookingId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                    "amount": 899,
+                    "currency": "INR",
+                    "method": "RAZORPAY",
+                    "status": "CAPTURED",
+                    "razorpayOrderId": "order_NXtZ4xyzABC123",
+                    "razorpayPaymentId": "pay_NXtZ9xyzDEF456"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, or razorpayOrderId does not match this payment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "BAD_REQUEST",
+                  "message": "razorpayOrderId does not match this payment"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated, or invalid payment signature",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Invalid payment signature"
                 }
               }
             }
@@ -11680,6 +14380,90 @@
                   "success": false,
                   "error": "BAD_REQUEST",
                   "message": "Invalid limit"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "UNAUTHORIZED",
+                  "message": "Authentication required"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/me": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "List the current user's own payment history",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "1"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "20"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of the caller's payments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0e1",
+                      "bookingId": "64f1a2b3c4d5e6f7a8b9c0d1",
+                      "amount": 899,
+                      "currency": "INR",
+                      "method": "RAZORPAY",
+                      "status": "CAPTURED",
+                      "razorpayOrderId": "order_NXtZ4xyzABC123",
+                      "refundedAmount": 0,
+                      "failureReason": null,
+                      "createdAt": "2026-08-04T06:35:00.000Z"
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 1,
+                    "totalPages": 1
+                  }
                 }
               }
             }
@@ -15216,7 +18000,7 @@
         "tags": [
           "Coupons"
         ],
-        "summary": "List all coupons (SUPER_ADMIN only)",
+        "summary": "List all coupons",
         "security": [
           {
             "bearerAuth": []
@@ -15483,7 +18267,7 @@
         "tags": [
           "Coupons"
         ],
-        "summary": "Get a coupon by id (SUPER_ADMIN only)",
+        "summary": "Get a coupon by id",
         "security": [
           {
             "bearerAuth": []
@@ -18432,6 +21216,54 @@
         }
       }
     },
+    "/breeds": {
+      "get": {
+        "tags": [
+          "Breeds"
+        ],
+        "summary": "List breeds for a species (used by the \"Select Breed\" pet-onboarding screen)",
+        "parameters": [
+          {
+            "name": "species",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DOG",
+                "CAT",
+                "BIRD",
+                "RABBIT",
+                "FISH",
+                "OTHER"
+              ]
+            },
+            "example": "DOG"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Breed list for the requested species",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    "Labrador Retriever",
+                    "Golden Retriever",
+                    "German Shepherd"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/bookings": {
       "post": {
         "tags": [
@@ -18639,7 +21471,8 @@
         "tags": [
           "Bookings"
         ],
-        "summary": "List bookings for the current user",
+        "summary": "List \"my bookings\" — works for both a USER token (their own bookings) and a SERVICE_PROVIDER token (bookings against their provider profile), same filters either way",
+        "description": "For a USER token, this merges four sources into one list, newest first: service bookings, pet-taxi bookings, pet-insurance applications, and pet-relocation requests. Each item carries a `bookingType` field (SERVICE, PET_TAXI, PET_INSURANCE, or PET_RELOCATION) so the app can render the right card. `status`/`from`/`to` filter every type by its own `status`/`createdAt` field — a status token that type doesn't use (e.g. PENDING against an insurance application) simply excludes that type's items rather than matching them.\n",
         "security": [
           {
             "bearerAuth": []
@@ -18653,7 +21486,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Single status, or comma-separated list e.g. PENDING,ACCEPTED,ON_THE_WAY,STARTED for an \"Upcoming\" bucket",
+            "description": "Single status, or comma-separated list e.g. PENDING,ACCEPTED,ON_THE_WAY,STARTED for an \"Upcoming\" bucket — applies to service bookings only",
             "example": "PENDING,ACCEPTED,ON_THE_WAY,STARTED"
           },
           {
@@ -18778,7 +21611,8 @@
         "tags": [
           "Bookings"
         ],
-        "summary": "List bookings for the current service provider (service provider only)",
+        "deprecated": true,
+        "summary": "Deprecated — use GET /bookings/me instead, it now returns this same view for a service-provider token",
         "security": [
           {
             "bearerAuth": []
@@ -19342,18 +22176,30 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "code"
+                  "code",
+                  "lat",
+                  "lng"
                 ],
                 "properties": {
                   "code": {
                     "type": "string",
                     "minLength": 4,
                     "maxLength": 6
+                  },
+                  "lat": {
+                    "type": "number",
+                    "description": "Provider's current latitude"
+                  },
+                  "lng": {
+                    "type": "number",
+                    "description": "Provider's current longitude"
                   }
                 }
               },
               "example": {
-                "code": "117042"
+                "code": "117042",
+                "lat": 12.9716,
+                "lng": 77.5946
               }
             }
           }
@@ -19403,7 +22249,7 @@
                 "example": {
                   "success": false,
                   "error": "BAD_REQUEST",
-                  "message": "Invalid end OTP"
+                  "message": "You must be at the service location to verify the end OTP"
                 }
               }
             }
@@ -20402,11 +23248,13 @@
                       {
                         "start": "2026-08-01T09:00:00.000Z",
                         "end": "2026-08-01T09:45:00.000Z",
+                        "timeSlot": "09:00 AM - 09:45 AM",
                         "isAvailable": true
                       },
                       {
                         "start": "2026-08-01T09:30:00.000Z",
                         "end": "2026-08-01T10:15:00.000Z",
+                        "timeSlot": "09:30 AM - 10:15 AM",
                         "isAvailable": false
                       }
                     ]
@@ -20872,7 +23720,7 @@
         },
         "responses": {
           "200": {
-            "description": "OTP sent — `isRegistered` tells the client whether to route to onboarding (false, brand-new account) or straight home (true) after OTP verify",
+            "description": "OTP sent — `isRegistered` means \"this account exists AND has finished onboarding\" (i.e. `PUT /users/me` has set a name at least once), NOT just \"a row exists for this phone number\". A phone-only account is created the moment OTP is first requested for it, so relying on mere existence would wrongly send a user who closed the app mid-onboarding straight to Home instead of back into onboarding on their next login. `false` means route to onboarding either way (new account or an old one that never finished it); `true` means route straight to Home. The same field is also returned from `/auth/login/otp/verify` — prefer checking it there, right after verify, rather than a value cached from this earlier call.",
             "content": {
               "application/json": {
                 "schema": {
@@ -20880,7 +23728,7 @@
                 },
                 "examples": {
                   "registered": {
-                    "summary": "Account exists, OTP sent",
+                    "summary": "Account exists and has completed onboarding",
                     "value": {
                       "success": true,
                       "message": "OTP sent",
@@ -20890,7 +23738,17 @@
                     }
                   },
                   "newAccount": {
-                    "summary": "New phone number — account auto-created, OTP sent",
+                    "summary": "New phone number — account auto-created, OTP sent, onboarding still needed",
+                    "value": {
+                      "success": true,
+                      "message": "OTP sent",
+                      "data": {
+                        "isRegistered": false
+                      }
+                    }
+                  },
+                  "existingIncomplete": {
+                    "summary": "Account already existed but never finished onboarding (e.g. app was closed mid-signup) — still routes to onboarding",
                     "value": {
                       "success": true,
                       "message": "OTP sent",
@@ -20900,10 +23758,10 @@
                     }
                   },
                   "notRegistered": {
-                    "summary": "Unrecognized email identifier (auto-signup is phone-only, so nothing was created)",
+                    "summary": "Unrecognized email identifier (auto-signup is phone-only, so nothing was created, no OTP sent — still a 200)",
                     "value": {
                       "success": true,
-                      "message": "OTP sent",
+                      "message": "No account found for this identifier",
                       "data": {
                         "isRegistered": false
                       }
@@ -20936,7 +23794,7 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Verify OTP and log in",
+        "summary": "Verify OTP and log in — check `data.isRegistered` here (don't rely on the value cached from /auth/login/otp/request; a lost/restarted app session shouldn't be able to skip onboarding)",
         "requestBody": {
           "required": true,
           "content": {
@@ -20967,7 +23825,7 @@
         },
         "responses": {
           "200": {
-            "description": "Login successful",
+            "description": "Login successful — `isRegistered:false` means onboarding (PUT /users/me etc.) was never completed for this account, even if it already existed; route to onboarding, not Home",
             "content": {
               "application/json": {
                 "schema": {
@@ -20977,6 +23835,7 @@
                   "success": true,
                   "message": "Login successful",
                   "data": {
+                    "isRegistered": true,
                     "user": {
                       "id": "64f1a2b3c4d5e6f7a8b9c0d1",
                       "role": "USER",
@@ -21910,6 +24769,173 @@
                   "success": false,
                   "error": "FORBIDDEN",
                   "message": "Insufficient permissions"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai-chat/messages": {
+      "get": {
+        "tags": [
+          "AI Chat"
+        ],
+        "summary": "List the current user's AI chat history (newest first)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "1"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "20"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chat history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0e1",
+                      "role": "ASSISTANT",
+                      "text": "A weekly bath is usually enough for most dogs — more often can dry out their skin.",
+                      "createdAt": "2026-08-31T10:05:00.000Z"
+                    },
+                    {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0e0",
+                      "role": "USER",
+                      "text": "How often should I bathe my golden retriever?",
+                      "createdAt": "2026-08-31T10:04:50.000Z"
+                    }
+                  ],
+                  "meta": {
+                    "page": 1,
+                    "limit": 20,
+                    "total": 2,
+                    "totalPages": 1
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "AI Chat"
+        ],
+        "summary": "Send a message to the AI assistant and get its reply",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "text"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                }
+              },
+              "example": {
+                "text": "How often should I bathe my golden retriever?"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Both the user's message and the assistant's reply",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "userMessage": {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0e0",
+                      "role": "USER",
+                      "text": "How often should I bathe my golden retriever?",
+                      "createdAt": "2026-08-31T10:04:50.000Z"
+                    },
+                    "assistantMessage": {
+                      "id": "64f1a2b3c4d5e6f7a8b9c0e1",
+                      "role": "ASSISTANT",
+                      "text": "A weekly bath is usually enough for most dogs — more often can dry out their skin.",
+                      "createdAt": "2026-08-31T10:05:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Gemini is not configured, or the AI call failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "success": false,
+                  "error": "INTERNAL_ERROR",
+                  "message": "Gemini is not configured"
                 }
               }
             }
@@ -23084,6 +26110,470 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/admin/providers": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Provider directory (all providers, any KYC state) with owner contact",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "providerType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kycStatus",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "APPROVED",
+                "REJECTED"
+              ]
+            }
+          },
+          {
+            "name": "isActive",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Business name contains"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated providers"
+          }
+        }
+      }
+    },
+    "/admin/providers/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Full provider view — KYC documents, masked bank, owner, booking/earnings stats",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Provider"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/admin/providers/{id}/status": {
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Suspend (isActive false) or reactivate a provider — a suspended provider can't switch themselves back on",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "isActive"
+                ],
+                "properties": {
+                  "isActive": {
+                    "type": "boolean"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated provider"
+          }
+        }
+      }
+    },
+    "/admin/bookings": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "All service bookings with customer/provider/service/pet names. Detail = GET /bookings/{id}, cancel = PATCH /bookings/{id}/cancel, refund = POST /payments/bookings/{id}/refund",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated, e.g. PENDING,ACCEPTED"
+          },
+          {
+            "name": "paymentStatus",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "PAID",
+                "FAILED",
+                "REFUNDED"
+              ]
+            }
+          },
+          {
+            "name": "providerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "2026-09-01"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "2026-09-30"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated bookings"
+          }
+        }
+      }
+    },
+    "/admin/reviews": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Provider reviews for moderation (with provider reply)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "providerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rating",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated reviews"
+          }
+        }
+      }
+    },
+    "/admin/reviews/{id}": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Delete an abusive/fake review; the provider's rating is recomputed",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          }
+        }
+      }
+    },
+    "/admin/payouts": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Provider withdrawal requests (oldest first) — includes the full bank account number for the transfer",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "REQUESTED",
+                "PAID",
+                "REJECTED"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated payouts"
+          }
+        }
+      }
+    },
+    "/admin/payouts/{id}/mark-paid": {
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Record that the bank transfer was made (UTR/reference number); notifies the provider",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "referenceNumber"
+                ],
+                "properties": {
+                  "referenceNumber": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payout PAID"
+          },
+          "400": {
+            "description": "Already settled"
+          }
+        }
+      }
+    },
+    "/admin/payouts/{id}/reject": {
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Reject a withdrawal — amount is credited back to the provider's wallet",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payout REJECTED"
           }
         }
       }

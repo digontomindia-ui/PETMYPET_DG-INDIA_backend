@@ -14,6 +14,10 @@ export interface IBookingAddOn {
 export const BOOKING_PHOTO_PHASES = {
   BEFORE: 'BEFORE',
   AFTER: 'AFTER',
+  /** Vet end-visit prescription (PDF/image). */
+  PRESCRIPTION: 'PRESCRIPTION',
+  /** Boarding check-out receipt/voucher. */
+  RECEIPT: 'RECEIPT',
 } as const;
 
 export type BookingPhotoPhase = (typeof BOOKING_PHOTO_PHASES)[keyof typeof BOOKING_PHOTO_PHASES];
@@ -21,6 +25,7 @@ export type BookingPhotoPhase = (typeof BOOKING_PHOTO_PHASES)[keyof typeof BOOKI
 export interface IBookingPhoto {
   url: string;
   phase: BookingPhotoPhase;
+  caption?: string;
   uploadedAt: Date;
 }
 
@@ -58,6 +63,7 @@ export interface IBooking {
   otpStartVerifiedAt: Date | null;
   otpEnd: string;
   otpEndVerifiedAt: Date | null;
+  payoutCreditedAt: Date | null;
   price: number;
   currency: string;
   couponCode: string | null;

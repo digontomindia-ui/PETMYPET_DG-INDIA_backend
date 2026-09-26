@@ -32,7 +32,13 @@ export const updateProviderNotesSchema = z.object({
 
 export const addBookingPhotoSchema = z.object({
   url: z.string().url(),
-  phase: z.enum([BOOKING_PHOTO_PHASES.BEFORE, BOOKING_PHOTO_PHASES.AFTER]),
+  phase: z.enum([
+    BOOKING_PHOTO_PHASES.BEFORE,
+    BOOKING_PHOTO_PHASES.AFTER,
+    BOOKING_PHOTO_PHASES.PRESCRIPTION,
+    BOOKING_PHOTO_PHASES.RECEIPT,
+  ]),
+  caption: z.string().max(200).optional(),
 });
 
 export const cancelBookingSchema = z.object({

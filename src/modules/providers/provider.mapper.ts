@@ -20,11 +20,20 @@ function maskBankAccount(bankAccount: IBankAccount | null): PublicBankAccount | 
     accountHolderName: bankAccount.accountHolderName,
     bankName: bankAccount.bankName,
     last4: bankAccount.accountNumber.slice(-4),
+    ifscCode: bankAccount.ifscCode,
+    accountType: bankAccount.accountType ?? 'SAVINGS',
   };
 }
 
 export function mapKycDocument(doc: IKycDocument): PublicKycDocument {
-  return { id: doc._id.toString(), type: doc.type, url: doc.url, uploadedAt: doc.uploadedAt };
+  return {
+    id: doc._id.toString(),
+    type: doc.type,
+    name: doc.name ?? 'OTHER',
+    status: doc.status ?? 'PENDING',
+    url: doc.url,
+    uploadedAt: doc.uploadedAt,
+  };
 }
 
 function mapCertification(cert: ICertification): PublicCertification {

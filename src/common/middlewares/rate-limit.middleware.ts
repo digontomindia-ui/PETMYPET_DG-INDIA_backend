@@ -25,6 +25,8 @@ export const generalRateLimiter = rateLimit({
     message: 'Too many requests, please try again later',
   },
   store: buildStore('rl:general:'),
+  // Redis down must not take the API down with it — fail open (no limiting) until it's back.
+  passOnStoreError: true,
 });
 
 export const authRateLimiter = rateLimit({
@@ -39,4 +41,5 @@ export const authRateLimiter = rateLimit({
     message: 'Too many attempts, please try again later',
   },
   store: buildStore('rl:auth:'),
+  passOnStoreError: true,
 });

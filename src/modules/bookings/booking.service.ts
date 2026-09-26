@@ -15,6 +15,7 @@ import { tryGetSocketServer } from '../../sockets/index.js';
 import { haversineMeters } from '../../common/utils/geo.js';
 import { UserModel } from '../users/user.schema.js';
 import { bookingRepository } from './booking.repository.js';
+import { creditProviderPayoutIfDue, reverseProviderPayout } from './booking-payout.js';
 import { toOwnerBookingView, toProviderBookingView } from './booking.mapper.js';
 import { petTaxiRepository } from '../pet-taxi/pet-taxi.repository.js';
 import { petTaxiService } from '../pet-taxi/pet-taxi.service.js';
@@ -467,6 +468,16 @@ export const bookingService = {
       throw AppError.badRequest('You must be at the service location to verify the end OTP');
     }
 
+    await this.completeBooking(booking);
+    return await toProviderBookingView(booking);
+  },
+
+  /** The one place a booking becomes COMPLETED (end-OTP already verified by the caller) — both
+   * POST /bookings/:id/otp/end and the provider app's /end-Session/verify-otp route through here,
+   * so amounts, notifications, referral rewards and the provider wallet payout never diverge. */
+  async completeBooking(booking: BookingDocument): Promise<void> {
+    assertTransition(booking.status, BOOKING_STATUSES.COMPLETED);
+    const bookingId = booking._id.toString();
     const { commissionAmount, providerPayoutAmount } = computeAmounts(
       booking.price,
       booking.discountAmount,
@@ -488,12 +499,11 @@ export const bookingService = {
       type: NOTIFICATION_TYPES.BOOKING_COMPLETED,
       title: 'Service completed',
       body: 'Your service is complete. Please rate your experience.',
-      data: { bookingId: booking._id.toString() },
+      data: { bookingId },
     });
 
     await referralService.onFirstBookingCompleted(booking.userId.toString());
-
-    return await toProviderBookingView(booking);
+    await creditProviderPayoutIfDue(bookingId);
   },
 
   async updateProviderNotes(
@@ -511,7 +521,12 @@ export const bookingService = {
   async addPhoto(bookingId: string, providerUserId: string, input: AddBookingPhotoInput) {
     const booking = await requireBookingForProvider(bookingId, providerUserId);
     assertBookingEditableByProvider(booking.status);
-    booking.photos.push({ url: input.url, phase: input.phase, uploadedAt: new Date() });
+    booking.photos.push({
+      url: input.url,
+      phase: input.phase,
+      caption: input.caption ?? '',
+      uploadedAt: new Date(),
+    });
     await booking.save();
     return await toProviderBookingView(booking);
   },
@@ -578,6 +593,7 @@ export const bookingService = {
     booking.status = BOOKING_STATUSES.REFUNDED;
     booking.paymentStatus = PAYMENT_STATUSES.REFUNDED;
     await booking.save();
+    await reverseProviderPayout(booking);
     return booking;
   },
 };

@@ -2,13 +2,29 @@ import type { HydratedDocument, Types } from 'mongoose';
 import type { ProviderType } from '../../common/constants/roles.js';
 import type { SoftDeletable } from '../../common/database/plugins/soft-delete.plugin.js';
 import type { IWorkingHours } from '../../common/schemas/working-hours.schema.js';
-import type { KycDocumentType, KycStatus } from './provider.constants.js';
+import type {
+  KycDocumentName,
+  KycDocumentStatus,
+  KycDocumentType,
+  KycStatus,
+} from './provider.constants.js';
 
 export interface IKycDocument {
   _id: Types.ObjectId;
   type: KycDocumentType;
+  name: KycDocumentName;
+  status: KycDocumentStatus;
   url: string;
   uploadedAt: Date;
+}
+
+export interface IWorkExperience {
+  _id: Types.ObjectId;
+  title: string;
+  company: string;
+  startDate: Date;
+  /** null = "Present" */
+  endDate: Date | null;
 }
 
 export interface IBankAccount {
@@ -16,6 +32,7 @@ export interface IBankAccount {
   accountNumber: string;
   ifscCode: string;
   bankName: string;
+  accountType: 'SAVINGS' | 'CURRENT';
 }
 
 export interface IAttendanceEntry {
@@ -97,6 +114,11 @@ export interface IProvider extends SoftDeletable {
   rating: number;
   ratingCount: number;
   isActive: boolean;
+  suspendedByAdmin: boolean;
+  dateOfBirth: Date | null;
+  gender: 'MALE' | 'FEMALE' | 'OTHER' | null;
+  workExperience: Types.DocumentArray<IWorkExperience>;
+  skills: string[];
   attendance: Types.DocumentArray<IAttendanceEntry>;
   /** Profile photo shown on listing cards and the detail page. */
   profileImageUrl: string | null;
@@ -115,6 +137,8 @@ export type ProviderDocument = HydratedDocument<IProvider>;
 export interface PublicKycDocument {
   id: string;
   type: KycDocumentType;
+  name: KycDocumentName;
+  status: KycDocumentStatus;
   url: string;
   uploadedAt: Date;
 }
@@ -123,6 +147,8 @@ export interface PublicBankAccount {
   accountHolderName: string;
   bankName: string;
   last4: string;
+  ifscCode: string;
+  accountType: 'SAVINGS' | 'CURRENT';
 }
 
 export interface PublicAttendanceEntry {

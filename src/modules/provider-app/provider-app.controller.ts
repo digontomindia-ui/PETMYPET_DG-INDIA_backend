@@ -3,7 +3,13 @@ import { asyncHandler } from '../../common/utils/async-handler.js';
 import { AppError } from '../../common/errors/app-error.js';
 import { HTTP_STATUS } from '../../common/constants/http-status.js';
 import { providerAppService } from './provider-app.service.js';
+import { providerAppAccountService as account } from './provider-app.account.service.js';
 import type {
+  BankAccountInput,
+  EarningsQuery,
+  ExperienceSkillsInput,
+  PersonalInfoInput,
+  ProviderDocumentInput,
   PatientsQuery,
   ProviderAppAnalyticsQuery,
   ProviderVerifyOtpInput,
@@ -139,5 +145,73 @@ export const providerAppController = {
       req.query,
     );
     res.status(HTTP_STATUS.OK).json(data);
+  }),
+
+  getReviews: asyncHandler(async (req: Request, res: Response) => {
+    res.status(HTTP_STATUS.OK).json(await account.getReviews(requireAuth(req), req.query));
+  }),
+
+  replyToReview: asyncHandler(async (req: Request, res: Response) => {
+    const { reply } = req.body as { reply: string };
+    res
+      .status(HTTP_STATUS.OK)
+      .json(await account.replyToReview(requireAuth(req), req.params.review_id as string, reply));
+  }),
+
+  getEarnings: asyncHandler(async (req: Request, res: Response) => {
+    res.status(HTTP_STATUS.OK).json(await account.getEarnings(requireAuth(req), req.query as unknown as EarningsQuery));
+  }),
+
+  withdraw: asyncHandler(async (req: Request, res: Response) => {
+    const { amount } = req.body as { amount: number };
+    res.status(HTTP_STATUS.CREATED).json(await account.withdraw(requireAuth(req), amount));
+  }),
+
+  listWithdrawals: asyncHandler(async (req: Request, res: Response) => {
+    res.status(HTTP_STATUS.OK).json(await account.listWithdrawals(requireAuth(req), req.query));
+  }),
+
+  getPersonalInfo: asyncHandler(async (req: Request, res: Response) => {
+    res.status(HTTP_STATUS.OK).json(await account.getPersonalInfo(requireAuth(req)));
+  }),
+
+  updatePersonalInfo: asyncHandler(async (req: Request, res: Response) => {
+    res
+      .status(HTTP_STATUS.OK)
+      .json(await account.updatePersonalInfo(requireAuth(req), req.body as PersonalInfoInput));
+  }),
+
+  getExperienceSkills: asyncHandler(async (req: Request, res: Response) => {
+    res.status(HTTP_STATUS.OK).json(await account.getExperienceSkills(requireAuth(req)));
+  }),
+
+  updateExperienceSkills: asyncHandler(async (req: Request, res: Response) => {
+    res
+      .status(HTTP_STATUS.OK)
+      .json(await account.updateExperienceSkills(requireAuth(req), req.body as ExperienceSkillsInput));
+  }),
+
+  getDocuments: asyncHandler(async (req: Request, res: Response) => {
+    res.status(HTTP_STATUS.OK).json(await account.getDocuments(requireAuth(req)));
+  }),
+
+  uploadDocument: asyncHandler(async (req: Request, res: Response) => {
+    res
+      .status(HTTP_STATUS.CREATED)
+      .json(await account.uploadDocument(requireAuth(req), req.body as ProviderDocumentInput));
+  }),
+
+  getBankAccount: asyncHandler(async (req: Request, res: Response) => {
+    res.status(HTTP_STATUS.OK).json(await account.getBankAccount(requireAuth(req)));
+  }),
+
+  setBankAccount: asyncHandler(async (req: Request, res: Response) => {
+    res.status(HTTP_STATUS.OK).json(await account.setBankAccount(requireAuth(req), req.body as BankAccountInput));
+  }),
+
+  getAppointmentDetail: asyncHandler(async (req: Request, res: Response) => {
+    res
+      .status(HTTP_STATUS.OK)
+      .json(await providerAppService.getAppointmentDetail(requireAuth(req), req.params.booking_id as string));
   }),
 };

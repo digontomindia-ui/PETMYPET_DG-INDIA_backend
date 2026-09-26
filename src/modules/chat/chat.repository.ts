@@ -37,7 +37,7 @@ export const chatRepository = {
     const message = await MessageModel.create({ roomId, senderId, text, imageUrl });
     await ChatRoomModel.updateOne(
       { _id: roomId },
-      { lastMessageAt: message.createdAt, lastMessagePreview: text.slice(0, 200) },
+      { lastMessageAt: message.createdAt, lastMessagePreview: text ? text.slice(0, 200) : imageUrl ? 'Photo' : '' },
     ).exec();
     return message;
   },
@@ -46,6 +46,15 @@ export const chatRepository = {
     const filter: Record<string, unknown> = { roomId };
     if (before) filter._id = { $lt: new Types.ObjectId(before) };
     return MessageModel.find(filter).sort({ _id: -1 }).limit(limit).exec();
+  },
+
+  /** Page-numbered variant (newest first) for clients that page by number rather than cursor. */
+  async listMessagesPage(roomId: string, skip: number, limit: number) {
+    const [items, total] = await Promise.all([
+      MessageModel.find({ roomId }).sort({ _id: -1 }).skip(skip).limit(limit).exec(),
+      MessageModel.countDocuments({ roomId }).exec(),
+    ]);
+    return { items, total };
   },
 
   async markRoomRead(roomId: string, readerId: string): Promise<void> {

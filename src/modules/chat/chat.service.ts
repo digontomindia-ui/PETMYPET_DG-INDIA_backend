@@ -5,8 +5,8 @@ import { notificationService } from '../notifications/notification.service.js';
 import { NOTIFICATION_TYPES } from '../notifications/notification.constants.js';
 import { tryGetSocketServer } from '../../sockets/index.js';
 import { chatRepository } from './chat.repository.js';
-import { toMessageDto, toRoomDto } from './chat.mapper.js';
-import { CHAT_SOCKET_EVENTS } from './chat.constants.js';
+import { toMessageDto, toProviderAppMessage, toRoomDto } from './chat.mapper.js';
+import { CHAT_SOCKET_EVENTS, PROVIDER_APP_SOCKET_EVENTS } from './chat.constants.js';
 import type {
   CreateRoomInput,
   ListMessagesQuery,
@@ -26,6 +26,9 @@ async function requireParticipant(roomId: string, userId: string): Promise<ChatR
 }
 
 export const chatService = {
+  /** Throws unless userId is one of the room's two participants; returns the room. */
+  requireParticipant,
+
   async createOrGetRoom(userId: string, input: CreateRoomInput) {
     if (input.participantId === userId) {
       throw AppError.badRequest('Cannot create a chat room with yourself');
@@ -64,6 +67,12 @@ export const chatService = {
     return messages.map(toMessageDto).reverse();
   },
 
+  async listMessagesPage(roomId: string, userId: string, page: number, limit: number) {
+    await requireParticipant(roomId, userId);
+    const { items, total } = await chatRepository.listMessagesPage(roomId, (page - 1) * limit, limit);
+    return { messages: items.map(toMessageDto).reverse(), total };
+  },
+
   async sendMessage(roomId: string, senderId: string, input: SendMessageInput) {
     const room = await requireParticipant(roomId, senderId);
     const message = await chatRepository.appendMessage(
@@ -80,6 +89,14 @@ export const chatService = {
     const recipientId = room.participantIds.find((id) => id.toString() !== senderId);
     if (recipientId) {
       io?.to(`user:${recipientId.toString()}`).emit(CHAT_SOCKET_EVENTS.MESSAGE, dto);
+      if (io) {
+        const sender = await userRepository.findById(senderId);
+        // One emit to both rooms = delivered once per socket; the sender's own sockets get
+        // message_ack instead, so they're excluded here.
+        io.to([`room:${roomId}`, `user:${recipientId.toString()}`])
+          .except(`user:${senderId}`)
+          .emit(PROVIDER_APP_SOCKET_EVENTS.NEW_MESSAGE, toProviderAppMessage(dto, sender?.name ?? ''));
+      }
       await notificationService.notify({
         userId: recipientId.toString(),
         type: NOTIFICATION_TYPES.NEW_MESSAGE,
@@ -95,9 +112,15 @@ export const chatService = {
   async markRead(roomId: string, userId: string): Promise<void> {
     await requireParticipant(roomId, userId);
     await chatRepository.markRoomRead(roomId, userId);
-    tryGetSocketServer()
-      ?.to(`room:${roomId}`)
-      .emit(CHAT_SOCKET_EVENTS.READ, { roomId, readerId: userId });
+    const io = tryGetSocketServer();
+    io?.to(`room:${roomId}`).emit(CHAT_SOCKET_EVENTS.READ, { roomId, readerId: userId });
+    io?.to(`room:${roomId}`)
+      .except(`user:${userId}`)
+      .emit(PROVIDER_APP_SOCKET_EVENTS.MESSAGES_READ, {
+        room_id: roomId,
+        read_by: userId,
+        read_at: new Date(),
+      });
   },
 
   async setUrgent(roomId: string, userId: string, input: UpdateUrgentInput) {

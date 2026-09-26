@@ -159,6 +159,9 @@ export const providerService = {
 
   async setActive(userId: string, isActive: boolean) {
     const provider = await requireOwnProvider(userId);
+    if (isActive && provider.suspendedByAdmin) {
+      throw AppError.forbidden('Your account has been suspended by the Patmypets team');
+    }
     provider.isActive = isActive;
     await provider.save();
     return toPublicProvider(provider);
@@ -166,7 +169,12 @@ export const providerService = {
 
   async uploadKycDocument(userId: string, input: UploadKycDocumentInput) {
     const provider = await requireOwnProvider(userId);
-    provider.kycDocuments.push({ type: input.type, url: input.url, uploadedAt: new Date() });
+    provider.kycDocuments.push({
+      type: input.type,
+      name: input.name ?? 'OTHER',
+      url: input.url,
+      uploadedAt: new Date(),
+    });
     if (provider.kycStatus === KYC_STATUSES.REJECTED) {
       provider.kycStatus = KYC_STATUSES.PENDING;
       provider.kycRejectionReason = null;
@@ -255,6 +263,7 @@ export const providerService = {
     const provider = await providerRepository.updateById(id, {
       kycStatus: KYC_STATUSES.APPROVED,
       kycRejectionReason: null,
+      'kycDocuments.$[].status': 'VERIFIED',
     });
     if (!provider) throw AppError.notFound('Provider not found');
 
@@ -274,6 +283,7 @@ export const providerService = {
     const provider = await providerRepository.updateById(id, {
       kycStatus: KYC_STATUSES.REJECTED,
       kycRejectionReason: input.reason,
+      'kycDocuments.$[].status': 'REJECTED',
     });
     if (!provider) throw AppError.notFound('Provider not found');
 

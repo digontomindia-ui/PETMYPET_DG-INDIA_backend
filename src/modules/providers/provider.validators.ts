@@ -91,6 +91,9 @@ export const uploadKycDocumentSchema = z.object({
     KYC_DOCUMENT_TYPES.ADDRESS_PROOF,
     KYC_DOCUMENT_TYPES.OTHER,
   ]),
+  name: z
+    .enum(['AADHAAR_CARD', 'PAN_CARD', 'DRIVING_LICENSE', 'POLICE_VERIFICATION', 'OTHER'])
+    .optional(),
   url: z.string().url(),
 });
 
@@ -117,6 +120,7 @@ export const setBankAccountSchema = z.object({
   accountNumber: z.string().min(4).max(30),
   ifscCode: z.string().min(4).max(15),
   bankName: z.string().min(1).max(150),
+  accountType: z.enum(['SAVINGS', 'CURRENT']).default('SAVINGS'),
 });
 
 export const idParamSchema = z.object({ id: objectIdSchema });

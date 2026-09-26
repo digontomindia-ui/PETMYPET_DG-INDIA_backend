@@ -5,6 +5,18 @@ import { validate } from '../../common/middlewares/validate.middleware.js';
 import { ROLES } from '../../common/constants/roles.js';
 import { providerAppController } from './provider-app.controller.js';
 import {
+  bankAccountSchema,
+  bookingIdParamSchema,
+  earningsQuerySchema,
+  experienceSkillsSchema,
+  inboxQuerySchema,
+  listQuerySchema,
+  personalInfoSchema,
+  providerDocumentSchema,
+  replyReviewSchema,
+  reviewIdParamSchema,
+  reviewsQuerySchema,
+  withdrawSchema,
   appointmentsQuerySchema,
   messageHistoryQuerySchema,
   messageRoomParamSchema,
@@ -835,7 +847,12 @@ providerAppRoutes.post(
  *           application/json:
  *             schema: { $ref: '#/components/schemas/ErrorResponse' }
  */
-providerAppRoutes.get('/message', authenticate, providerAppController.getInbox);
+providerAppRoutes.get(
+  '/message',
+  authenticate,
+  validate({ query: inboxQuerySchema }),
+  providerAppController.getInbox,
+);
 
 /**
  * @openapi
@@ -895,4 +912,373 @@ providerAppRoutes.get(
   authenticate,
   validate({ params: messageRoomParamSchema, query: messageHistoryQuerySchema }),
   providerAppController.getRoomHistory,
+);
+
+/**
+ * @openapi
+ * /reviews-ratings:
+ *   get:
+ *     tags: [ProviderApp]
+ *     summary: Reviews & Ratings screen — rating summary + paginated reviews for the caller's provider profile
+ *     description: |
+ *       Provider type comes from the bearer token; every role gets the same shape. `summary` is
+ *       always over all reviews; `rating` only filters the `reviews` list (star filter chips).
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: rating, in: query, schema: { type: string, enum: ["1","2","3","4","5"] } }
+ *       - { name: page, in: query, schema: { type: string, example: "1" } }
+ *       - { name: limit, in: query, schema: { type: string, example: "20" } }
+ *     responses:
+ *       200:
+ *         description: Reviews
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Reviews fetched successfully."
+ *               data:
+ *                 summary:
+ *                   average_rating: 4.8
+ *                   total_reviews: 32
+ *                   breakdown: [{ star: 5, count: 28, percentage: 88 }, { star: 4, count: 3, percentage: 9 }]
+ *                 reviews:
+ *                   - id: "66f0c0ffee0000000000abcd"
+ *                     rating: 5
+ *                     comment: "Excellent groomer, very patient."
+ *                     reviewer: { name: "Priya Sharma", avatar_url: null }
+ *                     pet: { name: "Bruno", breed: "Golden Retriever", image_url: null }
+ *                     service_name: "Premium Grooming"
+ *                     booking_id: "66f0c0ffee0000000000beef"
+ *                     reply: { text: "Thank you!", replied_at: "2026-09-20T10:00:00.000Z" }
+ *                     created_at: "2026-09-19T10:00:00.000Z"
+ *                 pagination: { current_page: 1, total_pages: 2, total_items: 32, has_next: true }
+ */
+providerAppRoutes.get(
+  '/reviews-ratings',
+  ...requireProvider,
+  validate({ query: reviewsQuerySchema }),
+  providerAppController.getReviews,
+);
+
+/**
+ * @openapi
+ * /reviews-ratings/{review_id}/reply:
+ *   post:
+ *     tags: [ProviderApp]
+ *     summary: Reply Review — public reply to one of your reviews (sending again edits it)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: review_id, in: path, required: true, schema: { type: string } }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [reply]
+ *             properties: { reply: { type: string, maxLength: 1000 } }
+ *     responses:
+ *       200: { description: Reply saved }
+ *       404: { description: Review not found or not yours }
+ */
+providerAppRoutes.post(
+  '/reviews-ratings/:review_id/reply',
+  ...requireProvider,
+  validate({ params: reviewIdParamSchema, body: replyReviewSchema }),
+  providerAppController.replyToReview,
+);
+
+/**
+ * @openapi
+ * /earnings:
+ *   get:
+ *     tags: [ProviderApp]
+ *     summary: Earnings screen / "View wallet" — wallet balance, earnings totals, chart, per-service transactions
+ *     description: |
+ *       Earnings = `providerPayoutAmount` (price − discount − platform commission) of COMPLETED
+ *       bookings, bucketed by completion time in IST. Online-paid bookings are credited to
+ *       `wallet_balance` automatically on completion (`credited_to_wallet: true`); cash bookings
+ *       count as earnings but aren't credited — you already collected the cash.
+ *       `range`: week = last 7 days (7 daily bars), month = last 30 days, year = last 12 months.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: range, in: query, schema: { type: string, enum: [week, month, year], default: week } }
+ *       - { name: page, in: query, schema: { type: string } }
+ *       - { name: limit, in: query, schema: { type: string } }
+ *     responses:
+ *       200:
+ *         description: Earnings
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Earnings fetched successfully."
+ *               data:
+ *                 currency: INR
+ *                 wallet_balance: 18450
+ *                 min_withdrawal_amount: 100
+ *                 can_withdraw: true
+ *                 bank_account: { account_holder_name: "Sarah Wilson", bank_name: "HDFC Bank", ifsc_code: "HDFC0000452", account_type: SAVINGS, account_number_last4: "0394" }
+ *                 summary: { today: 799, this_week: 18500, this_month: 78900, lifetime: 240000, completed_services: 312 }
+ *                 selected_range: week
+ *                 range_summary: { total: 18500, services: 21, previous_total: 16500, percentage_change: 12.1, level: up }
+ *                 chart: [{ label: Mon, date: "2026-09-21", value: 2400 }]
+ *                 transactions:
+ *                   - booking_id: "66f0c0ffee0000000000beef"
+ *                     booking_code: "#0000BEEF"
+ *                     pet: { name: Bruno, image_url: null }
+ *                     service_name: Premium Grooming
+ *                     completed_at: "2026-09-21T06:15:00.000Z"
+ *                     amount: 799
+ *                     commission: 119.85
+ *                     earning: 679.15
+ *                     payment_method: RAZORPAY
+ *                     credited_to_wallet: true
+ *                 pagination: { current_page: 1, total_pages: 16, total_items: 312, has_next: true }
+ */
+providerAppRoutes.get(
+  '/earnings',
+  ...requireProvider,
+  validate({ query: earningsQuerySchema }),
+  providerAppController.getEarnings,
+);
+
+/**
+ * @openapi
+ * /earnings/withdraw:
+ *   post:
+ *     tags: [ProviderApp]
+ *     summary: Withdraw wallet balance to the saved bank account
+ *     description: |
+ *       Debits the wallet immediately and creates a `REQUESTED` payout that the Patmypets team
+ *       transfers manually (admin panel → Payouts). If rejected, the amount returns to the wallet.
+ *       Needs an approved KYC, a saved bank account, and amount ≥ `min_withdrawal_amount`.
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema: { type: object, required: [amount], properties: { amount: { type: number, example: 5000 } } }
+ *     responses:
+ *       201: { description: Withdrawal requested — returns the withdrawal and the new wallet_balance }
+ *       400: { description: No bank account / KYC not approved / below minimum / insufficient balance }
+ */
+providerAppRoutes.post(
+  '/earnings/withdraw',
+  ...requireProvider,
+  validate({ body: withdrawSchema }),
+  providerAppController.withdraw,
+);
+
+/**
+ * @openapi
+ * /earnings/withdrawals:
+ *   get:
+ *     tags: [ProviderApp]
+ *     summary: Withdrawal history (REQUESTED / PAID with bank reference / REJECTED with reason)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: page, in: query, schema: { type: string } }
+ *       - { name: limit, in: query, schema: { type: string } }
+ *     responses:
+ *       200: { description: Withdrawals }
+ */
+providerAppRoutes.get(
+  '/earnings/withdrawals',
+  ...requireProvider,
+  validate({ query: listQuerySchema }),
+  providerAppController.listWithdrawals,
+);
+
+/**
+ * @openapi
+ * /profile/personal-info:
+ *   get:
+ *     tags: [ProviderApp]
+ *     summary: Personal Info screen
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200:
+ *         description: Personal info
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Personal info fetched successfully."
+ *               data: { full_name: "Sarah Wilson", email: "sarah@petcare.com", phone: "+919876543210", date_of_birth: "1995-04-12", gender: FEMALE, address: "Flat 402, Sector 45, Gurgaon", profile_image: null }
+ *   put:
+ *     tags: [ProviderApp]
+ *     summary: Save Changes on Personal Info (all fields optional; phone is read-only — it's the login)
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               full_name: { type: string }
+ *               email: { type: string }
+ *               date_of_birth: { type: string, example: "1995-04-12", nullable: true }
+ *               gender: { type: string, enum: [MALE, FEMALE, OTHER], nullable: true }
+ *               address: { type: string }
+ *               profile_image: { type: string, nullable: true }
+ *     responses:
+ *       200: { description: Updated personal info (same shape as GET) }
+ *       409: { description: Email already used by another account }
+ */
+providerAppRoutes.get('/profile/personal-info', ...requireProvider, providerAppController.getPersonalInfo);
+providerAppRoutes.put(
+  '/profile/personal-info',
+  ...requireProvider,
+  validate({ body: personalInfoSchema }),
+  providerAppController.updatePersonalInfo,
+);
+
+/**
+ * @openapi
+ * /profile/experience-skills:
+ *   get:
+ *     tags: [ProviderApp]
+ *     summary: Experience & Skills screen
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200:
+ *         description: Experience & skills
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Experience & skills fetched successfully."
+ *               data:
+ *                 experience_years: 5
+ *                 work_experience: [{ id: "66f0...", title: "Senior Pet Sitter", company: "Happy Paws Co.", start_date: "2021-06-01", end_date: null, is_current: true }]
+ *                 skills: [Cleaning, Cooking, Driving]
+ *   put:
+ *     tags: [ProviderApp]
+ *     summary: Save the whole Experience & Skills screen (each list sent is a full replace)
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           example:
+ *             experience_years: 5
+ *             work_experience: [{ title: "Dog Walker", company: "PetCare Solutions", start_date: "2019-01-01", end_date: "2021-05-31" }]
+ *             skills: [Cleaning, Driving]
+ *     responses:
+ *       200: { description: Updated (same shape as GET) }
+ */
+providerAppRoutes.get('/profile/experience-skills', ...requireProvider, providerAppController.getExperienceSkills);
+providerAppRoutes.put(
+  '/profile/experience-skills',
+  ...requireProvider,
+  validate({ body: experienceSkillsSchema }),
+  providerAppController.updateExperienceSkills,
+);
+
+/**
+ * @openapi
+ * /profile/documents:
+ *   get:
+ *     tags: [ProviderApp]
+ *     summary: Documents screen — Aadhaar / PAN / Driving License / Police Verification with per-document status
+ *     description: "`status` is VERIFIED | PENDING | REJECTED | MISSING (not uploaded yet)."
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200:
+ *         description: Documents
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Documents fetched successfully."
+ *               data:
+ *                 kyc_status: APPROVED
+ *                 documents:
+ *                   - { id: "66f0...", name: AADHAAR_CARD, title: "Aadhaar Card", status: VERIFIED, document_url: "https://...", uploaded_at: "2026-09-01T00:00:00.000Z" }
+ *                   - { id: null, name: POLICE_VERIFICATION, title: "Police Verification", status: MISSING, document_url: null, uploaded_at: null }
+ *   post:
+ *     tags: [ProviderApp]
+ *     summary: Upload New Document (upload the file via POST /uploads first, send its URL). Same name replaces the old one.
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, url]
+ *             properties:
+ *               name: { type: string, enum: [AADHAAR_CARD, PAN_CARD, DRIVING_LICENSE, POLICE_VERIFICATION, OTHER] }
+ *               url: { type: string }
+ *     responses:
+ *       201: { description: Updated documents list (same shape as GET) }
+ */
+providerAppRoutes.get('/profile/documents', ...requireProvider, providerAppController.getDocuments);
+providerAppRoutes.post(
+  '/profile/documents',
+  ...requireProvider,
+  validate({ body: providerDocumentSchema }),
+  providerAppController.uploadDocument,
+);
+
+/**
+ * @openapi
+ * /profile/bank-account:
+ *   get:
+ *     tags: [ProviderApp]
+ *     summary: Bank Details — masked (only last 4 digits of the account number are ever returned)
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: "{ data: { bank_account: {...} | null } }" }
+ *   put:
+ *     tags: [ProviderApp]
+ *     summary: Save Bank Details (Add Bank Account screen)
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           example:
+ *             account_holder_name: "Sarah Wilson"
+ *             bank_name: "HDFC Bank"
+ *             account_number: "50100482910394"
+ *             confirm_account_number: "50100482910394"
+ *             ifsc_code: "HDFC0000452"
+ *             account_type: SAVINGS
+ *     responses:
+ *       200: { description: Saved (masked) }
+ *       400: { description: Account numbers don't match / invalid IFSC }
+ */
+providerAppRoutes.get('/profile/bank-account', ...requireProvider, providerAppController.getBankAccount);
+providerAppRoutes.put(
+  '/profile/bank-account',
+  ...requireProvider,
+  validate({ body: bankAccountSchema }),
+  providerAppController.setBankAccount,
+);
+
+/**
+ * @openapi
+ * /appointments/{booking_id}:
+ *   get:
+ *     tags: [ProviderApp]
+ *     summary: One appointment in full — Start Service / Start Visit / Boarding Details / session screens (any role)
+ *     description: |
+ *       Client contact (name, initials, phone, address, map coords), pet profile (breed, gender,
+ *       age, weight, is_vaccinated), service package with `includes`, add-ons, price, notes,
+ *       uploaded photos/prescriptions/receipts, progress updates, timeline timestamps, and up to 5
+ *       `past_sessions` with this pet (date + your notes) for the "Past Session Summary" strip.
+ *       Never returns the OTP codes — ask the pet parent.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: booking_id, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Appointment detail }
+ *       404: { description: Not found or not your booking }
+ */
+providerAppRoutes.get(
+  '/appointments/:booking_id',
+  ...requireProvider,
+  validate({ params: bookingIdParamSchema }),
+  providerAppController.getAppointmentDetail,
 );

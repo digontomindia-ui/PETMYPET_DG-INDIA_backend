@@ -1,5 +1,6 @@
 import type { IProvider, ProviderAnalytics } from '../providers/provider.types.js';
 import type { IUser } from '../users/user.types.js';
+import { toProviderAppMessage, type toMessageDto } from '../chat/chat.mapper.js';
 
 /**
  * ponytail: this app spec asks for concepts this backend has no data model for yet — lab
@@ -23,9 +24,14 @@ export interface EnrichedBooking {
     breed: string;
     avatarUrl: string | null;
     dateOfBirth: Date | null;
+    gender?: string;
+    species?: string;
   } | null;
   owner: { id: string; name: string; phone: string } | null;
   serviceName: string;
+  /** CLINIC / ONLINE for vet bookings, null = home visit. */
+  consultationMode?: string | null;
+  price?: number;
 }
 
 function timeLabel(date: Date): string {
@@ -338,8 +344,10 @@ export function mapGroomerHome(
   }[] = [],
   notificationsCount = 0,
   previousWeekEarnings = 0,
+  extras: DashboardExtras = {},
 ) {
   const weekGrowth = growth(weekEarnings, previousWeekEarnings);
+  const todaysSessions = extras.todaysSessions ?? [];
   return {
     success: true,
     message: 'Groomer dashboard retrieved successfully.',
@@ -353,7 +361,7 @@ export function mapGroomerHome(
       profile_summary: {
         name: user.name || provider.businessName,
         is_verified: provider.kycStatus === 'APPROVED',
-        designation: 'Professional Pet Groomer',
+        designation: extras.designation ?? 'Professional Pet Groomer',
         rating: provider.rating,
         reviews_count: provider.ratingCount,
         avatar_url: provider.profileImageUrl,
@@ -363,7 +371,27 @@ export function mapGroomerHome(
         today_grooming: todaysBookingsCount,
         rating: provider.rating,
         total_revenue: monthEarnings,
+        appointments_today: todaysBookingsCount,
+        new_today: extras.newClientsToday ?? 0,
+        wallet_balance: extras.walletBalance ?? 0,
       },
+      /** Every one of today's bookings (the "Today's Visits" list); todays_grooming_session is
+       * kept as the first of these for older builds. */
+      todays_sessions: todaysSessions.map((b) => ({
+        id: b.id,
+        pet: b.pet
+          ? { name: b.pet.name, breed: b.pet.breed, species: b.pet.species ?? null, image_url: b.pet.avatarUrl }
+          : null,
+        status: b.status,
+        owner_name: b.owner?.name ?? '',
+        phone: b.owner?.phone ?? '',
+        scheduled_time: timeLabel(b.scheduledStart),
+        start_time: b.scheduledStart,
+        service_name: b.serviceName,
+        mode: visitMode(b.consultationMode),
+        address: b.location,
+        location: b.coordinates ? { longitude: b.coordinates[0], latitude: b.coordinates[1] } : null,
+      })),
       todays_grooming_session: todaysNextSession
         ? {
             id: todaysNextSession.id,
@@ -413,6 +441,7 @@ export function mapGroomerHome(
           })),
         },
         this_month: monthEarnings,
+        this_month_completed: extras.monthCompleted ?? 0,
       },
       recent_reviews: recentReviews.map((r) => ({
         id: r.id,
@@ -422,9 +451,41 @@ export function mapGroomerHome(
         comment: r.comment,
         created_at: r.createdAt,
       })),
-      recent_prescriptions: [] as unknown[],
+      recent_services: (extras.recentServices ?? []).map(mapRecentService),
+      /** Vets: completed visits with an uploaded prescription. Others: same as recent_services
+       * (the design reuses this card for "View Invoice"). */
+      recent_prescriptions: (extras.recentPrescriptions ?? extras.recentServices ?? []).map(mapRecentService),
     },
   };
+}
+
+export interface RecentService {
+  id: string;
+  pet: { name: string; breed: string; image_url: string | null } | null;
+  service_name: string;
+  completed_at: Date | null;
+  amount: number;
+  document_url: string | null;
+}
+
+export interface DashboardExtras {
+  designation?: string;
+  walletBalance?: number;
+  todaysSessions?: EnrichedBooking[];
+  newClientsToday?: number;
+  monthCompleted?: number;
+  recentServices?: RecentService[];
+  recentPrescriptions?: RecentService[];
+}
+
+function mapRecentService(s: RecentService) {
+  return { ...s, status: 'COMPLETED' };
+}
+
+function visitMode(mode: string | null | undefined): 'CLINIC' | 'VIDEO' | 'HOME' {
+  if (mode === 'CLINIC') return 'CLINIC';
+  if (mode === 'ONLINE') return 'VIDEO';
+  return 'HOME';
 }
 
 function buildGroomingSteps(status: string) {
@@ -535,6 +596,10 @@ export function mapVetAppointments(appointments: EnrichedBooking[]) {
       status: b.status,
       image: b.pet?.avatarUrl ?? '',
       created_at: b.scheduledStart,
+      time: timeLabel(b.scheduledStart),
+      gender: b.pet?.gender ?? null,
+      mode: visitMode(b.consultationMode),
+      service_name: b.serviceName,
     })),
   };
 }
@@ -729,42 +794,50 @@ export function mapInboxItem(room: {
   lastMessagePreview: string;
   unreadCount: number;
   lastMessageAt: Date | null;
+  isUrgent: boolean;
+  bookingId: string | null;
+  isOnline: boolean;
+  lastSeen: Date | null;
+  petName?: string | null;
+  petImage?: string | null;
 }) {
   return {
     id: room.id,
+    user_id: room.otherParticipantId,
     profile_image: room.otherParticipantAvatar,
     name: room.otherParticipantName,
     last_msg: room.lastMessagePreview,
     unread_msg: String(room.unreadCount),
     data_time: room.lastMessageAt,
+    is_urgent: room.isUrgent,
+    booking_id: room.bookingId,
+    is_online: room.isOnline,
+    last_seen: room.lastSeen,
+    pet_name: room.petName ?? null,
+    pet_image: room.petImage ?? null,
+    /** "Owner (Pet)" as the Messages rows show it. */
+    title: room.petName ? `${room.otherParticipantName} (${room.petName})` : room.otherParticipantName,
   };
 }
 
 export function mapMessageHistory(
   roomId: string,
-  messages: { id: string; roomId: string; senderId: string; text: string; isRead: boolean; createdAt: Date }[],
+  messages: ReturnType<typeof toMessageDto>[],
   page: number,
   limit: number,
-  hasMore: boolean,
+  total: number,
 ) {
+  const totalPages = Math.max(1, Math.ceil(total / limit));
   return {
     success: true,
     message: 'Messages fetched successfully.',
     data: {
       room_id: roomId,
-      messages: messages.map((m) => ({
-        id: m.id,
-        room_id: m.roomId,
-        sender_id: m.senderId,
-        message: m.text,
-        type: 'TEXT',
-        status: m.isRead ? 'SEEN' : 'DELIVERED',
-        created_at: m.createdAt,
-      })),
+      messages: messages.map((m) => toProviderAppMessage(m)),
       pagination: {
         current_page: page,
-        total_pages: hasMore ? page + 1 : page,
-        has_more: hasMore,
+        total_pages: totalPages,
+        has_more: page < totalPages,
       },
     },
   };

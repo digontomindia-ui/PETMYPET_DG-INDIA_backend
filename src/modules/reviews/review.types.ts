@@ -11,6 +11,7 @@ export interface IReview {
   providerId: Types.ObjectId | null;
   rating: number;
   comment: string;
+  reply: { text: string; repliedAt: Date } | null;
   createdAt: Date;
 }
 

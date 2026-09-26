@@ -9,7 +9,11 @@ import {
   settingService,
 } from './admin.service.js';
 import { adminDashboardService } from './admin.dashboard.service.js';
+import { adminOperationsService } from './admin.operations.service.js';
+import { payoutService } from '../wallet/payout.service.js';
+import { AppError } from '../../common/errors/app-error.js';
 import type {
+  SetProviderStatusInput,
   CreateBannerInput,
   UpdateBannerInput,
   UpsertFeatureFlagInput,
@@ -80,4 +84,69 @@ export const adminController = {
     const { logs, total, page, limit } = await auditLogService.list(req.query);
     sendSuccess(res, HTTP_STATUS.OK, logs, 'Success', buildPaginationMeta(page, limit, total));
   }),
+
+  listProviders: asyncHandler(async (req: Request, res: Response) => {
+    const { items, total, page, limit } = await adminOperationsService.listProviders(
+      req.query,
+    );
+    sendSuccess(res, HTTP_STATUS.OK, items, 'Success', buildPaginationMeta(page, limit, total));
+  }),
+
+  getProvider: asyncHandler(async (req: Request, res: Response) => {
+    sendSuccess(res, HTTP_STATUS.OK, await adminOperationsService.getProvider(req.params.id as string));
+  }),
+
+  setProviderStatus: asyncHandler(async (req: Request, res: Response) => {
+    const provider = await adminOperationsService.setProviderStatus(
+      actorId(req),
+      req.params.id as string,
+      req.body as SetProviderStatusInput,
+    );
+    sendSuccess(res, HTTP_STATUS.OK, provider, provider.isActive ? 'Provider reactivated' : 'Provider suspended');
+  }),
+
+  listBookings: asyncHandler(async (req: Request, res: Response) => {
+    const { items, total, page, limit } = await adminOperationsService.listBookings(
+      req.query,
+    );
+    sendSuccess(res, HTTP_STATUS.OK, items, 'Success', buildPaginationMeta(page, limit, total));
+  }),
+
+  listReviews: asyncHandler(async (req: Request, res: Response) => {
+    const { items, total, page, limit } = await adminOperationsService.listReviews(
+      req.query,
+    );
+    sendSuccess(res, HTTP_STATUS.OK, items, 'Success', buildPaginationMeta(page, limit, total));
+  }),
+
+  deleteReview: asyncHandler(async (req: Request, res: Response) => {
+    await adminOperationsService.deleteReview(actorId(req), req.params.id as string);
+    sendSuccess(res, HTTP_STATUS.OK, null, 'Review deleted');
+  }),
+
+  listPayouts: asyncHandler(async (req: Request, res: Response) => {
+    const { items, total, page, limit } = await payoutService.adminList(
+      req.query,
+    );
+    sendSuccess(res, HTTP_STATUS.OK, items, 'Success', buildPaginationMeta(page, limit, total));
+  }),
+
+  markPayoutPaid: asyncHandler(async (req: Request, res: Response) => {
+    const payout = await payoutService.markPaid(
+      actorId(req),
+      req.params.id as string,
+      req.body as { referenceNumber: string; note?: string },
+    );
+    sendSuccess(res, HTTP_STATUS.OK, payout, 'Payout marked as paid');
+  }),
+
+  rejectPayout: asyncHandler(async (req: Request, res: Response) => {
+    const payout = await payoutService.reject(actorId(req), req.params.id as string, req.body as { reason: string });
+    sendSuccess(res, HTTP_STATUS.OK, payout, 'Payout rejected, amount returned to wallet');
+  }),
 };
+
+function actorId(req: Request): string {
+  if (!req.user) throw AppError.unauthorized();
+  return req.user.userId;
+}

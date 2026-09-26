@@ -148,3 +148,42 @@ four. `experienceYears`, `languages`, and `unavailableDates` ARE public.
 - Razorpay/Firebase credentials are blank in this repo's `docker-compose.yml`
   — push notifications and wallet top-up will fail until real keys are
   configured; not a code gap.
+
+---
+
+## 2026-09-26 update — provider-app (bare-path) endpoints for the new UI
+
+Every endpoint below reads the provider type from the bearer token — one URL for all roles
+(groomer, vet, clinic, boarding, trainer, walker, sitter). Full schemas + examples in Swagger
+under the **ProviderApp** tag.
+
+| Screen | Endpoint |
+|---|---|
+| Home / Dashboard | `GET /home` — VET now returns the same dashboard shape as GROOMER (designation "Veterinary Specialist"). New fields: `stats_overview.wallet_balance / appointments_today / new_today`, `todays_sessions[]` (all of today's visits with phone, mode HOME/CLINIC/VIDEO, map coords), `earnings_overview.this_month_completed`, `recent_services[]`, `recent_prescriptions[]` (vet: visits with an uploaded prescription). CLINIC "Revenue Today" is now today's revenue (was month). |
+| Start Service / Start Visit / Boarding Details | `GET /appointments/{booking_id}` — client (name, initials, phone, address, coords), pet (breed, gender, age, weight, `is_vaccinated`), package `includes`, add-ons, price, notes, photos, `past_sessions` |
+| Appointments list | `GET /appointments` (vet rows now also have `time`, `gender`, `mode`, `service_name`) |
+| Upload prescription / receipt / captioned photos | `POST /bookings/{id}/photos {url, phase: BEFORE\|AFTER\|PRESCRIPTION\|RECEIPT, caption?}` |
+| Service Completed | `GET /end-Session` — `summary` now also has booking_code, pet, service_name, completed_at, duration_minutes, amount, earnings, photos |
+| Reviews & Ratings / Reply Review | `GET /reviews-ratings?rating=&page=` → summary (avg, total, 5→1 breakdown) + reviews (reviewer, pet, service, reply); `POST /reviews-ratings/{review_id}/reply {reply}` |
+| Earnings / View wallet | `GET /earnings?range=week\|month\|year` → wallet_balance, today/week/month/lifetime, zero-filled chart, growth %, per-booking transactions |
+| Withdraw | `POST /earnings/withdraw {amount}` (min ₹100, needs approved KYC + bank account); `GET /earnings/withdrawals` |
+| Personal Info | `GET/PUT /profile/personal-info` (full_name, email, date_of_birth, gender, address, profile_image; phone read-only) |
+| Experience & Skills | `GET/PUT /profile/experience-skills` (full replace of work_experience[] and skills[]) |
+| Documents | `GET /profile/documents` (Aadhaar/PAN/DL/Police Verification with VERIFIED/PENDING/REJECTED/MISSING), `POST /profile/documents {name, url}` |
+| Bank Details | `GET/PUT /profile/bank-account` (confirm_account_number must match; account_type SAVINGS/CURRENT; only last 4 digits ever returned) |
+| Messages | `GET /message?filter=all\|unread\|emergency&search=` — rows now have `title` "Owner (Pet)", pet_name/pet_image, is_urgent, is_online, last_seen, user_id; image messages preview as "Photo". `GET /message/{room_id}/history?page=` now really paginates and returns `type: IMAGE` + `media_url` |
+
+**Wallet money flow.** Online-paid (Razorpay/wallet) bookings credit `providerPayoutAmount`
+to the provider wallet automatically when both COMPLETED and PAID (either order). Cash
+bookings count in earnings but aren't credited. A refund of a credited booking reverses it.
+Withdrawals debit the wallet immediately; admin marks them PAID (with UTR) or REJECTED
+(money returns to wallet).
+
+### Realtime chat (socket.io) — provider-app contract
+
+Connect with `io(BASE_URL, { auth: { token } })` (logged-out tokens are now rejected).
+
+- Emit `join_room {room_id}` when opening a chat → you get `user_status {user_id, is_online, last_seen}` for the other person immediately, and again whenever they go online/offline. Only the room's two participants can join.
+- Emit `send_message {room_id, temp_id, message, media_url?}` → `message_ack {temp_id, id, status: SENT|FAILED}` (also returned via socket ack callback).
+- Listen `new_message` — fires for every message from the other side, whether they sent via REST, owner-app `chat:message`, or `send_message`; delivered even if you haven't joined the room (inbox badges).
+- `typing_start` / `typing_stop` → `user_typing {room_id, user_id, is_typing}`; `mark_read {room_id}` → other side gets `messages_read`.

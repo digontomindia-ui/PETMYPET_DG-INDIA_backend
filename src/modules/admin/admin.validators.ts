@@ -36,5 +36,57 @@ export const listAuditLogsQuerySchema = z.object({
   limit: z.string().optional(),
 });
 
+export const adminListPayoutsQuerySchema = z.object({
+  status: z.enum(['REQUESTED', 'PAID', 'REJECTED']).optional(),
+  page: z.string().optional(),
+  limit: z.string().optional(),
+});
+
+export const markPayoutPaidSchema = z.object({
+  referenceNumber: z.string().trim().min(3).max(100),
+  note: z.string().max(500).optional(),
+});
+
+export const rejectPayoutSchema = z.object({
+  reason: z.string().trim().min(3).max(500),
+});
+
 export const keyParamSchema = z.object({ key: z.string().min(1).max(100) });
 export const idParamSchema = z.object({ id: objectIdSchema });
+
+const dateOnlySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD');
+
+export const adminListProvidersQuerySchema = z.object({
+  providerType: z
+    .enum(['VET', 'CLINIC', 'GROOMER', 'BOARDING', 'PET_WALKER', 'PET_SITTER', 'TRAINER', 'CLEANER', 'PHARMACY', 'RELOCATION', 'OTHER'])
+    .optional(),
+  kycStatus: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
+  isActive: z.enum(['true', 'false']).optional(),
+  search: z.string().max(100).optional(),
+  page: z.string().optional(),
+  limit: z.string().optional(),
+});
+
+export const setProviderStatusSchema = z.object({
+  isActive: z.boolean(),
+  reason: z.string().max(500).optional(),
+});
+
+export const adminListBookingsQuerySchema = z.object({
+  /** Comma-separated list, e.g. PENDING,ACCEPTED */
+  status: z.string().optional(),
+  paymentStatus: z.enum(['PENDING', 'PAID', 'FAILED', 'REFUNDED']).optional(),
+  providerId: objectIdSchema.optional(),
+  userId: objectIdSchema.optional(),
+  from: dateOnlySchema.optional(),
+  to: dateOnlySchema.optional(),
+  page: z.string().optional(),
+  limit: z.string().optional(),
+});
+
+export const adminListReviewsQuerySchema = z.object({
+  providerId: objectIdSchema.optional(),
+  rating: z.enum(['1', '2', '3', '4', '5']).optional(),
+  page: z.string().optional(),
+  limit: z.string().optional(),
+});

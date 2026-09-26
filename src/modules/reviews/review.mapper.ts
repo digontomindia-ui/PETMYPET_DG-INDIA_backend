@@ -10,6 +10,7 @@ export function toReviewDto(review: ReviewDocument) {
     providerId: review.providerId ? review.providerId.toString() : null,
     rating: review.rating,
     comment: review.comment,
+    reply: review.reply ?? null,
     createdAt: review.createdAt,
   };
 }

@@ -15,14 +15,10 @@ import { bookingRepository } from '../bookings/booking.repository.js';
 import { BookingModel } from '../bookings/booking.schema.js';
 import { ReviewModel } from '../reviews/review.schema.js';
 import { NotificationModel } from '../notifications/notification.schema.js';
-import { BOOKING_STATUSES, WALK_SOCKET_EVENTS } from '../bookings/booking.constants.js';
-import { computeAmounts } from '../bookings/booking.service.js';
+import { BOOKING_STATUSES } from '../bookings/booking.constants.js';
 import { bookingService } from '../bookings/booking.service.js';
-import { notificationService } from '../notifications/notification.service.js';
-import { NOTIFICATION_TYPES } from '../notifications/notification.constants.js';
-import { referralService } from '../referrals/referral.service.js';
-import { tryGetSocketServer } from '../../sockets/index.js';
 import { chatService } from '../chat/chat.service.js';
+import { isUserOnline, userLastSeen } from '../chat/chat.gateway.js';
 import {
   issueOtp as issueAuthOtp,
   verifyOtp as verifyAuthOtp,
@@ -38,6 +34,7 @@ import {
 } from './provider-app.constants.js';
 import type {
   AppointmentsQuery,
+  InboxQuery,
   MessageHistoryQuery,
   MyAppointmentsQuery,
   PatientsQuery,
@@ -69,7 +66,10 @@ import {
   mapWalkerAppointments,
   mapWalkerHome,
   type EnrichedBooking,
+  type RecentService,
 } from './provider-app.mapper.js';
+import { walletRepository } from '../wallet/wallet.repository.js';
+import type { Types } from 'mongoose';
 import type { ProviderAnalytics, ProviderDocument } from '../providers/provider.types.js';
 import type { BookingDocument } from '../bookings/booking.types.js';
 import type { UserDocument } from '../users/user.types.js';
@@ -129,7 +129,7 @@ async function enrichBookings(bookings: BookingDocument[]): Promise<EnrichedBook
   const serviceIds = [...new Set(bookings.map((b) => b.serviceId.toString()))];
 
   const [pets, owners, services] = await Promise.all([
-    PetModel.find({ _id: { $in: petIds } }).select('name breed avatarUrl dateOfBirth').lean(),
+    PetModel.find({ _id: { $in: petIds } }).select('name breed avatarUrl dateOfBirth gender species').lean(),
     UserModel.find({ _id: { $in: userIds } }).select('name phone addresses').lean(),
     ServiceModel.find({ _id: { $in: serviceIds } }).select('name').lean(),
   ]);
@@ -158,10 +158,14 @@ async function enrichBookings(bookings: BookingDocument[]): Promise<EnrichedBook
             breed: pet.breed,
             avatarUrl: pet.avatarUrl,
             dateOfBirth: pet.dateOfBirth ?? null,
+            gender: pet.gender,
+            species: pet.species,
           }
         : null,
       owner: owner ? { id: owner._id.toString(), name: owner.name, phone: owner.phone } : null,
       serviceName: service?.name ?? '',
+      consultationMode: booking.consultationMode ?? null,
+      price: Math.max(0, booking.price - booking.discountAmount),
     };
   });
 }
@@ -173,6 +177,46 @@ async function fetchBookingsForProvider(
 ): Promise<EnrichedBooking[]> {
   const { items } = await bookingRepository.findForProvider(providerId, statuses, {}, 0, limit);
   return enrichBookings(items);
+}
+
+/** Last few completed bookings for the dashboard's "recent services / prescriptions" cards;
+ * `phase` limits it to bookings with that kind of uploaded document (e.g. a vet's prescription). */
+async function recentCompleted(providerId: Types.ObjectId, phase?: string): Promise<RecentService[]> {
+  const filter: Record<string, unknown> = { providerId, status: BOOKING_STATUSES.COMPLETED };
+  if (phase) filter['photos.phase'] = phase;
+  const bookings = await BookingModel.find(filter).sort({ otpEndVerifiedAt: -1, updatedAt: -1 }).limit(5).lean();
+  const [pets, services] = await Promise.all([
+    PetModel.find({ _id: { $in: bookings.map((b) => b.petId).filter(Boolean) } }).select('name breed avatarUrl').lean(),
+    ServiceModel.find({ _id: { $in: bookings.map((b) => b.serviceId) } }).select('name').lean(),
+  ]);
+  const petById = new Map(pets.map((p) => [p._id.toString(), p]));
+  const serviceById = new Map(services.map((s) => [s._id.toString(), s]));
+  return bookings.map((b) => {
+    const pet = b.petId ? petById.get(b.petId.toString()) : undefined;
+    const doc = b.photos.find((p) => p.phase === (phase ?? 'RECEIPT')) ?? null;
+    return {
+      id: b._id.toString(),
+      pet: pet ? { name: pet.name, breed: pet.breed, image_url: pet.avatarUrl } : null,
+      service_name: serviceById.get(b.serviceId.toString())?.name ?? '',
+      completed_at: b.otpEndVerifiedAt ?? null,
+      amount: Math.max(0, b.price - b.discountAmount),
+      document_url: doc?.url ?? null,
+    };
+  });
+}
+
+/** "(New: 4)" on the Patients Today tile — today's pets that have never had an earlier booking
+ * with this provider. */
+async function countNewClients(providerId: Types.ObjectId, todays: EnrichedBooking[]): Promise<number> {
+  const petIds = [...new Set(todays.map((b) => b.pet?.id).filter((id): id is string => Boolean(id)))];
+  if (petIds.length === 0) return 0;
+  const earliestToday = new Date(Math.min(...todays.map((b) => b.scheduledStart.getTime())));
+  const returning = await BookingModel.distinct('petId', {
+    providerId,
+    petId: { $in: petIds },
+    scheduledStart: { $lt: earliestToday },
+  });
+  return petIds.length - returning.length;
 }
 
 /** Applies the role-specific subset of upload-documents fields onto a shell provider profile
@@ -258,6 +302,7 @@ function applyRoleFields(
     if (input.documents.adhar_card) {
       provider.kycDocuments.push({
         type: KYC_DOCUMENT_TYPES.GOVERNMENT_ID,
+        name: 'AADHAAR_CARD',
         url: input.documents.adhar_card,
         uploadedAt: now,
       });
@@ -265,6 +310,7 @@ function applyRoleFields(
     if (input.documents.pan_card) {
       provider.kycDocuments.push({
         type: KYC_DOCUMENT_TYPES.GOVERNMENT_ID,
+        name: 'PAN_CARD',
         url: input.documents.pan_card,
         uploadedAt: now,
       });
@@ -388,15 +434,17 @@ export const providerAppService = {
       return mapWalkerHome(user, provider, todays, todays.length, sumEarnings(weekAnalytics));
     }
 
-    if (provider.providerType === PROVIDER_TYPES.VET || provider.providerType === PROVIDER_TYPES.CLINIC) {
+    if (provider.providerType === PROVIDER_TYPES.CLINIC) {
       const active = await fetchBookingsForProvider(providerId, ACTIVE_STATUSES, 100);
       const todays = active.filter((b) => isSameDay(b.scheduledStart, today));
       const monthAnalytics = await providerService.getMyAnalytics(userId, { range: 'month' });
       const revenueTotal = sumEarnings(monthAnalytics);
+      const revenueToday =
+        monthAnalytics.earningsByDay.find((d) => isSameDay(new Date(d.date), today))?.amount ?? 0;
       return mapVetHome(
         user,
         provider,
-        { appointments: todays.length, walkIns: 0, surgeries: 0, revenue: revenueTotal },
+        { appointments: todays.length, walkIns: 0, surgeries: 0, revenue: revenueToday },
         todays,
         revenueTotal,
         monthAnalytics.earningsByDay,
@@ -434,7 +482,7 @@ export const providerAppService = {
       );
     }
 
-    // GROOMER and any other role default to the groomer-shaped dashboard.
+    // GROOMER, VET (individual vet — same dashboard layout, vet labels) and any other role.
     const active = await fetchBookingsForProvider(providerId, ACTIVE_STATUSES, 100);
     const todays = active.filter((b) => isSameDay(b.scheduledStart, today));
     const activeSession =
@@ -442,12 +490,33 @@ export const providerAppService = {
       active.find((b) => b.status === BOOKING_STATUSES.STARTED) ??
       null;
     const nextToday = todays[0] ?? null;
-    const [weekAnalytics, monthAnalytics, totalBookings, reviews, unreadNotifications] = await Promise.all([
+    const isVet = provider.providerType === PROVIDER_TYPES.VET;
+    const [
+      weekAnalytics,
+      monthAnalytics,
+      totalBookings,
+      reviews,
+      unreadNotifications,
+      wallet,
+      monthCompleted,
+      recentServices,
+      recentPrescriptions,
+      newClientsToday,
+    ] = await Promise.all([
       providerService.getMyAnalytics(userId, { range: 'week' }),
       providerService.getMyAnalytics(userId, { range: 'month' }),
       BookingModel.countDocuments({ providerId: provider._id, status: BOOKING_STATUSES.COMPLETED }),
       ReviewModel.find({ providerId: provider._id }).sort({ createdAt: -1 }).limit(3).lean(),
       NotificationModel.countDocuments({ userId: user._id, isRead: false }),
+      walletRepository.getOrCreate(userId),
+      BookingModel.countDocuments({
+        providerId: provider._id,
+        status: BOOKING_STATUSES.COMPLETED,
+        otpEndVerifiedAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+      }),
+      recentCompleted(provider._id),
+      isVet ? recentCompleted(provider._id, 'PRESCRIPTION') : Promise.resolve(undefined),
+      countNewClients(provider._id, todays),
     ]);
     const reviewers = await UserModel.find({ _id: { $in: reviews.map((r) => r.userId) } })
       .select('name avatarUrl')
@@ -477,6 +546,15 @@ export const providerAppService = {
       recentReviews,
       unreadNotifications,
       weekAnalytics.previousPeriodEarnings,
+      {
+        designation: isVet ? 'Veterinary Specialist' : undefined,
+        walletBalance: wallet.balance,
+        todaysSessions: todays,
+        newClientsToday,
+        monthCompleted,
+        recentServices,
+        recentPrescriptions,
+      },
     );
   },
 
@@ -531,6 +609,116 @@ export const providerAppService = {
       return mapVetAppointments(enriched);
     }
     return mapWalkerAppointments(enriched, page, limit, total);
+  },
+
+  /** Booking detail for Start Service / Start Visit / Boarding Details / session screens — one
+   * shape for every role, owner contact + pet profile + package + past sessions with this pet. */
+  async getAppointmentDetail(userId: string, bookingId: string) {
+    const provider = await requireOwnProvider(userId);
+    const booking = await BookingModel.findOne({ _id: bookingId, providerId: provider._id }).exec();
+    if (!booking) throw AppError.notFound('Appointment not found');
+
+    const [owner, pet, service, pastSessions] = await Promise.all([
+      UserModel.findById(booking.userId).select('name phone avatarUrl addresses').lean(),
+      booking.petId ? PetModel.findById(booking.petId).lean() : Promise.resolve(null),
+      ServiceModel.findById(booking.serviceId).select('name description price durationMinutes includedItems').lean(),
+      booking.petId
+        ? BookingModel.find({
+            providerId: provider._id,
+            petId: booking.petId,
+            status: BOOKING_STATUSES.COMPLETED,
+            _id: { $ne: booking._id },
+          })
+            .sort({ scheduledStart: -1 })
+            .limit(5)
+            .select('scheduledStart providerNotes serviceId')
+            .lean()
+        : Promise.resolve([]),
+    ]);
+    const address = owner?.addresses.find((a) => a.isDefault) ?? owner?.addresses[0];
+    const initials = (owner?.name ?? '')
+      .split(' ')
+      .filter(Boolean)
+      .map((w) => w[0]!.toUpperCase())
+      .slice(0, 2)
+      .join('');
+    const vaccinated = (pet?.vaccinations ?? []).some((v) => !v.expiresAt || v.expiresAt > new Date());
+
+    return {
+      success: true,
+      message: 'Appointment fetched successfully.',
+      data: {
+        id: booking._id.toString(),
+        booking_code: `#${booking._id.toString().slice(-8).toUpperCase()}`,
+        status: booking.status,
+        scheduled_start: booking.scheduledStart,
+        scheduled_end: booking.scheduledEnd,
+        mode: booking.consultationMode === 'CLINIC' ? 'CLINIC' : booking.consultationMode === 'ONLINE' ? 'VIDEO' : 'HOME',
+        duration_days: booking.durationDays,
+        drop_off_time: booking.dropOffTime,
+        pickup_time: booking.pickupTime,
+        client: owner
+          ? {
+              id: owner._id.toString(),
+              name: owner.name,
+              initials,
+              phone: owner.phone,
+              avatar_url: owner.avatarUrl,
+              address: address ? `${address.addressLine1}, ${address.city}` : '',
+              location: address ? { longitude: address.location.coordinates[0], latitude: address.location.coordinates[1] } : null,
+            }
+          : null,
+        pet: pet
+          ? {
+              id: pet._id.toString(),
+              name: pet.name,
+              species: pet.species,
+              breed: pet.breed,
+              gender: pet.gender,
+              date_of_birth: pet.dateOfBirth,
+              weight_kg: pet.weightKg,
+              image_url: pet.avatarUrl,
+              is_vaccinated: vaccinated,
+              notes: pet.notes,
+            }
+          : null,
+        service: service
+          ? {
+              id: service._id.toString(),
+              name: service.name,
+              description: service.description,
+              duration_minutes: service.durationMinutes,
+              includes: service.includedItems.map((i) => i.name),
+            }
+          : null,
+        add_ons: booking.addOns,
+        price: booking.price,
+        discount: booking.discountAmount,
+        total: Math.max(0, booking.price - booking.discountAmount),
+        payment_status: booking.paymentStatus,
+        customer_notes: booking.notes,
+        provider_notes: booking.providerNotes,
+        photos: booking.photos.map((p) => ({ url: p.url, phase: p.phase, caption: p.caption ?? '' })),
+        progress_updates: booking.progressUpdates.map((u) => ({
+          id: u._id.toString(),
+          caption: u.caption,
+          progress_note: u.progressNote,
+          media: u.media,
+          created_at: u.createdAt,
+        })),
+        timeline: {
+          booked_at: booking.createdAt,
+          started_at: booking.otpStartVerifiedAt,
+          completed_at: booking.otpEndVerifiedAt,
+        },
+        walk_stats: booking.walkStats,
+        past_sessions: pastSessions.map((s) => ({
+          id: s._id.toString(),
+          date: s.scheduledStart,
+          note: s.providerNotes,
+        })),
+      },
+    };
   },
 
   async getTrainerDashboard(userId: string, query: TrainerDashboardQuery) {
@@ -708,31 +896,7 @@ export const providerAppService = {
     );
     if (!booking) throw AppError.notFound('No active session to end right now');
     if (booking.otpEnd !== input.otp) throw AppError.badRequest('Invalid end OTP');
-
-    const { commissionAmount, providerPayoutAmount } = computeAmounts(
-      booking.price,
-      booking.discountAmount,
-      booking.commissionPercent,
-    );
-    booking.status = BOOKING_STATUSES.COMPLETED;
-    booking.otpEndVerifiedAt = new Date();
-    booking.commissionAmount = commissionAmount;
-    booking.providerPayoutAmount = providerPayoutAmount;
-    await booking.save();
-
-    tryGetSocketServer()
-      ?.to(`booking:${booking._id.toString()}`)
-      .emit(WALK_SOCKET_EVENTS.ENDED, { bookingId: booking._id.toString(), walkStats: booking.walkStats });
-
-    await notificationService.notify({
-      userId: booking.userId.toString(),
-      type: NOTIFICATION_TYPES.BOOKING_COMPLETED,
-      title: 'Service completed',
-      body: 'Your service is complete. Please rate your experience.',
-      data: { bookingId: booking._id.toString() },
-    });
-
-    await referralService.onFirstBookingCompleted(booking.userId.toString());
+    await bookingService.completeBooking(booking);
   },
 
   async getEndSessionSummary(userId: string) {
@@ -752,12 +916,30 @@ export const providerAppService = {
     if (!booking) throw AppError.notFound('No session found');
 
     const distanceKm = booking.walkStats ? (booking.walkStats.distanceMeters / 1000).toFixed(1) : '0.0';
+    const [enriched] = await enrichBookings([booking]);
     return {
       success: true,
       message: 'summary fatch sucessfully.',
       summary: {
         distance: `${distanceKm} km`,
         status: booking.status === BOOKING_STATUSES.COMPLETED ? 'Completed' : 'In Process',
+        // Service Completed screen fields:
+        booking_id: booking._id.toString(),
+        booking_code: `#${booking._id.toString().slice(-8).toUpperCase()}`,
+        pet: enriched?.pet ? { name: enriched.pet.name, breed: enriched.pet.breed, image_url: enriched.pet.avatarUrl } : null,
+        owner_name: enriched?.owner?.name ?? '',
+        service_name: enriched?.serviceName ?? '',
+        started_at: booking.otpStartVerifiedAt,
+        completed_at: booking.otpEndVerifiedAt,
+        duration_minutes:
+          booking.otpStartVerifiedAt && booking.otpEndVerifiedAt
+            ? Math.round((booking.otpEndVerifiedAt.getTime() - booking.otpStartVerifiedAt.getTime()) / 60000)
+            : null,
+        amount: Math.max(0, booking.price - booking.discountAmount),
+        earnings: booking.providerPayoutAmount,
+        payment_status: booking.paymentStatus,
+        photos: booking.photos.map((p) => ({ url: p.url, phase: p.phase, caption: p.caption ?? '' })),
+        walk_stats: booking.walkStats,
       },
     };
   },
@@ -779,22 +961,40 @@ export const providerAppService = {
     await booking.save();
   },
 
-  async getInbox(userId: string, query: { page?: string; limit?: string }) {
+  /** Messages screen. `filter` drives the All Chats / Unread / Emergency chips; `search` matches
+   * the owner's name or the pet's name (the row title is "Owner (Pet)").
+   * ponytail: unread/search are applied in memory over the newest 200 rooms — plenty for one
+   * provider's inbox; push them into the Mongo query if inboxes ever get that large. */
+  async getInbox(userId: string, query: InboxQuery) {
+    const urgentOnly = query.filter === 'emergency' || query.is_urgent === 'true';
+    const inMemory = query.filter === 'unread' || Boolean(query.search);
+    const { page, limit, skip } = parsePagination(query);
     const { rooms } = await chatService.listRooms(userId, {
-      page: query.page,
-      limit: query.limit,
-      isUrgent: undefined,
+      page: inMemory ? '1' : String(page),
+      limit: inMemory ? '200' : String(limit),
+      isUrgent: urgentOnly ? 'true' : undefined,
     });
     if (rooms.length === 0) return { success: true, message: 'message receive successfully.', data: [] };
 
     const otherIds = [
       ...new Set(rooms.map((r) => r.otherParticipantId).filter((id): id is string => id !== null)),
     ];
-    const users = await UserModel.find({ _id: { $in: otherIds } }).select('name avatarUrl').lean();
+    const bookingIds = rooms.map((r) => r.bookingId).filter((id): id is string => id !== null);
+    const [users, bookings] = await Promise.all([
+      UserModel.find({ _id: { $in: otherIds } }).select('name avatarUrl').lean(),
+      BookingModel.find({ _id: { $in: bookingIds } }).select('petId').lean(),
+    ]);
+    const pets = await PetModel.find({ _id: { $in: bookings.map((b) => b.petId).filter(Boolean) } })
+      .select('name avatarUrl')
+      .lean();
     const userById = new Map(users.map((u) => [u._id.toString(), u]));
+    const petIdByBooking = new Map(bookings.map((b) => [b._id.toString(), b.petId?.toString()]));
+    const petById = new Map(pets.map((p) => [p._id.toString(), p]));
 
-    const data = rooms.map((room) => {
+    let data = rooms.map((room) => {
       const other = room.otherParticipantId ? userById.get(room.otherParticipantId) : undefined;
+      const petId = room.bookingId ? petIdByBooking.get(room.bookingId) : undefined;
+      const pet = petId ? petById.get(petId) : undefined;
       return mapInboxItem({
         id: room.id,
         otherParticipantId: room.otherParticipantId ?? '',
@@ -803,8 +1003,27 @@ export const providerAppService = {
         lastMessagePreview: room.lastMessagePreview,
         unreadCount: room.unreadCount,
         lastMessageAt: room.lastMessageAt,
+        isUrgent: room.isUrgent,
+        bookingId: room.bookingId,
+        isOnline: room.otherParticipantId ? isUserOnline(room.otherParticipantId) : false,
+        lastSeen: room.otherParticipantId ? userLastSeen(room.otherParticipantId) : null,
+        petName: pet?.name ?? null,
+        petImage: pet?.avatarUrl ?? null,
       });
     });
+
+    if (inMemory) {
+      const needle = query.search?.trim().toLowerCase();
+      data = data
+        .filter((item) => query.filter !== 'unread' || Number(item.unread_msg) > 0)
+        .filter(
+          (item) =>
+            !needle ||
+            item.name.toLowerCase().includes(needle) ||
+            (item.pet_name ?? '').toLowerCase().includes(needle),
+        )
+        .slice(skip, skip + limit);
+    }
 
     return { success: true, message: 'message receive successfully.', data };
   },
@@ -812,8 +1031,7 @@ export const providerAppService = {
   async getRoomHistory(userId: string, roomId: string, query: MessageHistoryQuery) {
     const limit = Math.min(100, Math.max(1, Number.parseInt(query.limit ?? '', 10) || 20));
     const page = Math.max(1, Number.parseInt(query.page ?? '', 10) || 1);
-    const messages = await chatService.listMessages(roomId, userId, { limit: String(limit) });
-    const hasMore = messages.length === limit;
-    return mapMessageHistory(roomId, messages, page, limit, hasMore);
+    const { messages, total } = await chatService.listMessagesPage(roomId, userId, page, limit);
+    return mapMessageHistory(roomId, messages, page, limit, total);
   },
 };

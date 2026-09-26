@@ -3,9 +3,13 @@ import type { RedisOptions } from 'ioredis';
 import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 
+/** Only the rate limiter uses this client. A bounded retry count (instead of `null` = queue
+ * forever) makes commands fail fast while Redis is unreachable, so requests aren't held open;
+ * the limiter then fails open (see passOnStoreError). ioredis keeps reconnecting in the background. */
 export const redisClient = new Redis(env.REDIS_URL, {
-  maxRetriesPerRequest: null,
+  maxRetriesPerRequest: 1,
   lazyConnect: true,
+  connectTimeout: 5_000,
 });
 
 redisClient.on('error', (err: Error) => logger.error({ err }, 'Redis client error'));
@@ -15,7 +19,13 @@ export async function connectRedis(): Promise<void> {
   if (redisClient.status === 'ready' || redisClient.status === 'connecting') {
     return;
   }
-  await redisClient.connect();
+  try {
+    await redisClient.connect();
+  } catch (err) {
+    // Non-fatal: Mongo is the source of truth. Rate limiting fails open and queued jobs retry
+    // once ioredis reconnects, so the API keeps serving instead of crash-looping.
+    logger.error({ err, redisHost: new URL(env.REDIS_URL).host }, 'Redis unavailable at startup, continuing without it');
+  }
 }
 
 export function disconnectRedis(): void {

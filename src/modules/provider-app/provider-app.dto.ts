@@ -1,5 +1,12 @@
 import type { z } from 'zod';
 import type {
+  bankAccountSchema,
+  earningsQuerySchema,
+  experienceSkillsSchema,
+  inboxQuerySchema,
+  personalInfoSchema,
+  providerDocumentSchema,
+  reviewsQuerySchema,
   appointmentsQuerySchema,
   messageHistoryQuerySchema,
   myAppointmentsQuerySchema,
@@ -26,3 +33,10 @@ export type TrainerDashboardQuery = z.infer<typeof trainerDashboardQuerySchema>;
 export type ProviderAppAnalyticsQuery = z.infer<typeof providerAppAnalyticsQuerySchema>;
 export type PatientsQuery = z.infer<typeof patientsQuerySchema>;
 export type MessageHistoryQuery = z.infer<typeof messageHistoryQuerySchema>;
+export type InboxQuery = z.infer<typeof inboxQuerySchema>;
+export type ReviewsQuery = z.infer<typeof reviewsQuerySchema>;
+export type EarningsQuery = z.infer<typeof earningsQuerySchema>;
+export type PersonalInfoInput = z.infer<typeof personalInfoSchema>;
+export type ExperienceSkillsInput = z.infer<typeof experienceSkillsSchema>;
+export type ProviderDocumentInput = z.infer<typeof providerDocumentSchema>;
+export type BankAccountInput = z.infer<typeof bankAccountSchema>;
