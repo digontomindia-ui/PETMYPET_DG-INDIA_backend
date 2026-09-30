@@ -235,7 +235,12 @@ coupon — re-apply after changing quantities.
     {
       name: 'Chat',
       description:
-        '1:1 messaging between any two users (customer↔provider, or matched Pet Companion owners). Rooms can be flagged `isUrgent` for a provider-app "Emergency" inbox filter. Real-time delivery also available over Socket.IO for connected clients.',
+        '1:1 messaging between any two users (customer↔provider, or matched Pet Companion owners). Rooms can be flagged `isUrgent` for a provider-app "Emergency" inbox filter. Real-time delivery also available over Socket.IO for connected clients.\n\n' +
+        '**Socket.IO (not representable in OpenAPI)** — same host/port as the API, path `/socket.io`. Connect with `io(BASE_HOST, { auth: { token: "<accessToken>" } })`; handshake is rejected if the token is missing/invalid or the session was logged out. ' +
+        'Flow: `join_room` → `send_message` → listen `new_message`. Sending via REST also emits `new_message`.\n\n' +
+        '**Client → server (provider app):** `join_room {room_id}`, `leave_room {room_id}`, `send_message {room_id, temp_id?, message?, type?, media_url?}` (supports ack callback), `typing_start` / `typing_stop {room_id}`, `mark_read {room_id}`.\n\n' +
+        '**Server → client:** `new_message {id, room_id, sender_id, sender_name, message, type, media_url, status, created_at}`, `message_ack {temp_id, id, room_id, status: SENT|FAILED, created_at}`, `user_typing {room_id, user_id, is_typing}`, `messages_read {room_id, read_by, read_at}`, `user_status {user_id, is_online, last_seen}`.\n\n' +
+        '**Owner-app aliases (camelCase):** `chat:join`, `chat:typing`, `chat:message`, `chat:read` — payloads `{roomId, text?, imageUrl?}`; server emits `chat:message` (message DTO), `chat:typing {roomId, userId}`, `chat:read {roomId, readerId}`.',
     },
     {
       name: 'Notifications',
