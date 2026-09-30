@@ -58,6 +58,6 @@ for (const e of actual) {
 }
 
 console.log('\n=== STALE IN SWAGGER (documented, route no longer exists) ===');
-for (const key of [...documented].sort()) {
+for (const key of [...documented].sort((a, b) => a.localeCompare(b))) {
   if (!actualKeys.has(key)) console.log(key);
 }
