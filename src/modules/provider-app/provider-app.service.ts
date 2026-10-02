@@ -1031,7 +1031,14 @@ export const providerAppService = {
   async getRoomHistory(userId: string, roomId: string, query: MessageHistoryQuery) {
     const limit = Math.min(100, Math.max(1, Number.parseInt(query.limit ?? '', 10) || 20));
     const page = Math.max(1, Number.parseInt(query.page ?? '', 10) || 1);
+    const room = await chatService.requireParticipant(roomId, userId);
+    const otherId = room.participantIds.find((id) => id.toString() !== userId)?.toString();
     const { messages, total } = await chatService.listMessagesPage(roomId, userId, page, limit);
-    return mapMessageHistory(roomId, messages, page, limit, total);
+    // Opening the chat = seen; REST-only clients never emit mark_read, so unread_msg stuck at "1".
+    await chatService.markRead(roomId, userId);
+    return mapMessageHistory(roomId, messages, page, limit, total, {
+      is_online: otherId ? isUserOnline(otherId) : false,
+      last_seen: otherId ? userLastSeen(otherId) : null,
+    });
   },
 };

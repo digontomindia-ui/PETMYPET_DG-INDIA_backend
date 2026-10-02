@@ -826,6 +826,7 @@ export function mapMessageHistory(
   page: number,
   limit: number,
   total: number,
+  peer: { is_online: boolean; last_seen: Date | null },
 ) {
   const totalPages = Math.max(1, Math.ceil(total / limit));
   return {
@@ -833,6 +834,8 @@ export function mapMessageHistory(
     message: 'Messages fetched successfully.',
     data: {
       room_id: roomId,
+      is_online: peer.is_online,
+      last_seen: peer.last_seen,
       messages: messages.map((m) => toProviderAppMessage(m)),
       pagination: {
         current_page: page,

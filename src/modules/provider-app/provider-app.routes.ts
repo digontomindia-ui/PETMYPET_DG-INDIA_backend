@@ -863,6 +863,7 @@ providerAppRoutes.get(
  *     description: |
  *       Bearer token required (any authenticated role). Thin wrapper over the **Chat** module's
  *       message history; real-time delivery for connected clients is over Socket.IO instead.
+ *       `is_online`/`last_seen` describe the other participant. Fetching history marks the room read for the caller.
  *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - name: room_id
@@ -887,6 +888,8 @@ providerAppRoutes.get(
  *               message: "Messages fetched successfully."
  *               data:
  *                 room_id: "64f8b9c0d1e2f3a4b5c6d7e8"
+ *                 is_online: true
+ *                 last_seen: null
  *                 messages:
  *                   - id: "64f6f7a8b9c0d1e2f3a4b5c6"
  *                     room_id: "64f8b9c0d1e2f3a4b5c6d7e8"
