@@ -469,6 +469,10 @@ providerAppRoutes.get(
  *                   level: "flat"
  *                   chart_data: [{ label: "Mon", value: 500 }]
  *                 overview: { total_walks: "12", avg_rating: "4.7", total_earnings: 4500, active_client: 0 }
+ *                 # groomer / vet / clinic / boarding also get:
+ *                 monthly_growth: { percentage: 12, level: "up", chart_data: [{ label: "Oct", value: 4500 }] }
+ *                 top_rated_services: [{ id: "64f8…", name: "Core Vaccinations", price: 85, booking_count: 124, rating: 4.9 }]
+ *                 stats: { monthly_revenue: 4500, retention_rate: 89, avg_consult_time: 18, satisfaction_score: 4.92 }
  *       401:
  *         description: Missing/invalid bearer token
  *         content:

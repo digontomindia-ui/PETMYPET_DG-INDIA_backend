@@ -53,6 +53,7 @@ import {
   mapInboxItem,
   mapMessageHistory,
   mapPatients,
+  mapPerformanceAnalytics,
   mapSitterAnalytics,
   mapSitterAppointments,
   mapSitterHome,
@@ -776,6 +777,9 @@ export const providerAppService = {
     }
     if (provider.providerType === PROVIDER_TYPES.TRAINER) {
       return mapTrainerAnalytics(analytics);
+    }
+    if (provider.providerType !== PROVIDER_TYPES.PET_WALKER) {
+      return mapPerformanceAnalytics(query.time_range, analytics);
     }
     return mapWalkerAnalytics(query.time_range, analytics);
   },

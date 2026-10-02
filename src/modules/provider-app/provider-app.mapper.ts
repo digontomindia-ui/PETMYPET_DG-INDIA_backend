@@ -663,6 +663,49 @@ export function mapWalkerAnalytics(range: string, analytics: ProviderAnalytics) 
   };
 }
 
+/** Groomer / vet / clinic / boarding "Performance Analytics" screen: growth chart, top services, 4 stat tiles.
+ * Walker keys (earnings_chart, overview) are kept so existing clients don't break. */
+export function mapPerformanceAnalytics(range: string, analytics: ProviderAnalytics) {
+  const base = mapWalkerAnalytics(range, analytics);
+  const total = sumEarnings(analytics);
+  const g = growth(total, analytics.previousPeriodEarnings);
+  const byLabel = new Map<string, number>();
+  for (const d of analytics.earningsByDay) {
+    const date = new Date(d.date);
+    const label =
+      range === 'year'
+        ? date.toLocaleDateString('en-US', { month: 'short' })
+        : range === 'month'
+          ? date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
+          : date.toLocaleDateString('en-US', { weekday: 'short' });
+    byLabel.set(label, (byLabel.get(label) ?? 0) + d.amount);
+  }
+  return {
+    ...base,
+    data: {
+      ...base.data,
+      monthly_growth: {
+        percentage: g.percentage,
+        level: g.level,
+        chart_data: [...byLabel].map(([label, value]) => ({ label, value })),
+      },
+      top_rated_services: analytics.topServices.map((s) => ({
+        id: s.serviceId,
+        name: s.name,
+        price: s.price,
+        booking_count: s.bookingCount,
+        rating: analytics.satisfactionScore,
+      })),
+      stats: {
+        monthly_revenue: total,
+        retention_rate: analytics.repeatClientPercent,
+        avg_consult_time: analytics.avgServiceDurationMinutes,
+        satisfaction_score: analytics.satisfactionScore,
+      },
+    },
+  };
+}
+
 export function mapTrainerAnalytics(analytics: ProviderAnalytics) {
   return {
     success: true,
