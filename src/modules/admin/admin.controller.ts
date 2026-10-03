@@ -10,6 +10,7 @@ import {
 } from './admin.service.js';
 import { adminDashboardService } from './admin.dashboard.service.js';
 import { adminOperationsService } from './admin.operations.service.js';
+import { bookingService } from '../bookings/booking.service.js';
 import { payoutService } from '../wallet/payout.service.js';
 import { AppError } from '../../common/errors/app-error.js';
 import type {
@@ -110,6 +111,10 @@ export const adminController = {
       req.query,
     );
     sendSuccess(res, HTTP_STATUS.OK, items, 'Success', buildPaginationMeta(page, limit, total));
+  }),
+
+  acceptBooking: asyncHandler(async (req: Request, res: Response) => {
+    sendSuccess(res, HTTP_STATUS.OK, await bookingService.adminAccept(req.params.id as string), 'Booking accepted');
   }),
 
   listReviews: asyncHandler(async (req: Request, res: Response) => {

@@ -52,6 +52,13 @@ export const bookingController = {
     sendSuccess(res, HTTP_STATUS.OK, booking, 'Booking accepted');
   }),
 
+  reject: asyncHandler(async (req: Request, res: Response) => {
+    const { userId } = requireAuth(req);
+    const { reason } = req.body as { reason: string };
+    const booking = await bookingService.reject(req.params.id as string, userId, reason);
+    sendSuccess(res, HTTP_STATUS.OK, booking, 'Booking rejected');
+  }),
+
   startJourney: asyncHandler(async (req: Request, res: Response) => {
     const { userId } = requireAuth(req);
     const booking = await bookingService.startJourney(req.params.id as string, userId);

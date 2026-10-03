@@ -7,6 +7,7 @@ import { bookingController } from './booking.controller.js';
 import {
   addBookingPhotoSchema,
   cancelBookingSchema,
+  rejectBookingSchema,
   createBookingSchema,
   idParamSchema,
   listBookingsQuerySchema,
@@ -412,6 +413,33 @@ bookingRoutes.patch(
   ...requireProvider,
   validate({ params: idParamSchema }),
   bookingController.accept,
+);
+/**
+ * @openapi
+ * /bookings/{id}/reject:
+ *   patch:
+ *     tags: [Bookings]
+ *     summary: Reject a PENDING booking (service provider only). Booking becomes CANCELLED (cancelledBy PROVIDER) and the customer is notified.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string } }
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason: { type: string, example: "Fully booked that day" }
+ *     responses:
+ *       200: { description: Booking rejected }
+ *       400: { description: Booking is not pending }
+ */
+bookingRoutes.patch(
+  '/:id/reject',
+  ...requireProvider,
+  validate({ params: idParamSchema, body: rejectBookingSchema }),
+  bookingController.reject,
 );
 /**
  * @openapi

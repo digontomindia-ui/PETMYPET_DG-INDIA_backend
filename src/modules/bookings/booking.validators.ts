@@ -45,6 +45,10 @@ export const cancelBookingSchema = z.object({
   reason: z.string().min(1).max(500),
 });
 
+export const rejectBookingSchema = z.object({
+  reason: z.string().trim().min(1).max(500).default('Rejected by provider'),
+});
+
 export const verifyOtpSchema = z.object({
   code: z.string().min(4).max(6),
 });

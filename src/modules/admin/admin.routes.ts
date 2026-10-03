@@ -719,6 +719,25 @@ adminRoutes.get(
 
 /**
  * @openapi
+ * /admin/bookings/{id}/accept:
+ *   patch:
+ *     tags: [Admin]
+ *     summary: Accept a PENDING booking on the provider's behalf (customer gets the OTP / accepted notification)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Booking accepted }
+ */
+adminRoutes.patch(
+  '/bookings/:id/accept',
+  ...adminOnly,
+  validate({ params: idParamSchema }),
+  adminController.acceptBooking,
+);
+
+/**
+ * @openapi
  * /admin/reviews:
  *   get:
  *     tags: [Admin]

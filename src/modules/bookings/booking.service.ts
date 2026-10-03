@@ -178,6 +178,22 @@ async function requireBookingForProvider(
   return booking;
 }
 
+async function acceptBooking(booking: BookingDocument) {
+  assertTransition(booking.status, BOOKING_STATUSES.ACCEPTED);
+  booking.status = BOOKING_STATUSES.ACCEPTED;
+  await booking.save();
+
+  await notificationService.notify({
+    userId: booking.userId.toString(),
+    type: NOTIFICATION_TYPES.BOOKING_ACCEPTED,
+    title: 'Booking accepted',
+    body: 'Your booking has been accepted by the provider',
+    data: { bookingId: booking._id.toString() },
+  });
+
+  return await toProviderBookingView(booking);
+}
+
 export function computeAmounts(price: number, discountAmount: number, commissionPercent: number) {
   const netPrice = Math.max(0, price - discountAmount);
   const commissionAmount = Math.round(netPrice * (commissionPercent / 100) * 100) / 100;
@@ -377,19 +393,23 @@ export const bookingService = {
 
   async accept(bookingId: string, providerUserId: string) {
     const booking = await requireBookingForProvider(bookingId, providerUserId);
-    assertTransition(booking.status, BOOKING_STATUSES.ACCEPTED);
-    booking.status = BOOKING_STATUSES.ACCEPTED;
-    await booking.save();
+    return await acceptBooking(booking);
+  },
 
-    await notificationService.notify({
-      userId: booking.userId.toString(),
-      type: NOTIFICATION_TYPES.BOOKING_ACCEPTED,
-      title: 'Booking accepted',
-      body: 'Your booking has been accepted by the provider',
-      data: { bookingId: booking._id.toString() },
-    });
+  /** Provider declines a not-yet-accepted booking; stored as CANCELLED by PROVIDER, customer notified. */
+  async reject(bookingId: string, providerUserId: string, reason: string) {
+    const booking = await requireBookingForProvider(bookingId, providerUserId);
+    if (booking.status !== BOOKING_STATUSES.PENDING) {
+      throw AppError.badRequest('Only a pending booking can be rejected');
+    }
+    return await this.cancel(bookingId, providerUserId, ROLES.SERVICE_PROVIDER, { reason });
+  },
 
-    return await toProviderBookingView(booking);
+  /** Admin accepts on the provider's behalf — same transition and notification, no ownership check. */
+  async adminAccept(bookingId: string) {
+    const booking = await bookingRepository.findById(bookingId);
+    if (!booking) throw AppError.notFound('Booking not found');
+    return await acceptBooking(booking);
   },
 
   async startJourney(bookingId: string, providerUserId: string) {
