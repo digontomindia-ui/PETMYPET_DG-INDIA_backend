@@ -95,6 +95,12 @@ export const providerAppController = {
     res.status(HTTP_STATUS.OK).json(data);
   }),
 
+  getPatientRecords: asyncHandler(async (req: Request, res: Response) => {
+    res
+      .status(HTTP_STATUS.OK)
+      .json(await providerAppService.getPatientRecords(requireAuth(req), req.params.pet_id as string));
+  }),
+
   getPatients: asyncHandler(async (req: Request, res: Response) => {
     const data = await providerAppService.getPatients(
       requireAuth(req),

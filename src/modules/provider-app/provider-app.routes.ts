@@ -22,6 +22,7 @@ import {
   messageRoomParamSchema,
   myAppointmentsQuerySchema,
   patientsQuerySchema,
+  petIdParamSchema,
   providerAppAnalyticsQuerySchema,
   providerVerifyOtpSchema,
   sessionOtpSchema,
@@ -561,6 +562,26 @@ providerAppRoutes.get(
   ...requireProvider,
   validate({ query: patientsQuerySchema }),
   providerAppController.getPatients,
+);
+
+/**
+ * @openapi
+ * /patients/{pet_id}/records:
+ *   get:
+ *     tags: [ProviderApp]
+ *     summary: Patient "View Records" — pet profile, vaccinations, medical records and this provider's visit history
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: pet_id, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Patient records }
+ *       404: { description: Pet not found or never booked with this provider }
+ */
+providerAppRoutes.get(
+  '/patients/:pet_id/records',
+  ...requireProvider,
+  validate({ params: petIdParamSchema }),
+  providerAppController.getPatientRecords,
 );
 
 /**

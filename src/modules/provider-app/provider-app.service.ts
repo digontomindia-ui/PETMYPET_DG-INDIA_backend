@@ -853,6 +853,67 @@ export const providerAppService = {
     );
   },
 
+  /** "View Records" on the Patients screen: pet profile + vaccinations + medical records + this
+   * provider's visit history. Only pets the provider has actually been booked for are readable. */
+  async getPatientRecords(userId: string, petId: string) {
+    const provider = await requireOwnProvider(userId);
+    const visits = await BookingModel.find({ providerId: provider._id, petId })
+      .sort({ scheduledStart: -1 })
+      .limit(50)
+      .select('scheduledStart status providerNotes serviceId')
+      .lean();
+    if (visits.length === 0) throw AppError.notFound('Patient not found');
+
+    const [pet, services] = await Promise.all([
+      PetModel.findById(petId).lean(),
+      ServiceModel.find({ _id: { $in: visits.map((v) => v.serviceId) } }).select('name').lean(),
+    ]);
+    if (!pet) throw AppError.notFound('Patient not found');
+    const [owner] = await UserModel.find({ _id: pet.ownerId }).select('name phone').lean();
+    const serviceName = new Map(services.map((s) => [s._id.toString(), s.name]));
+    const day = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : null);
+
+    return {
+      success: true,
+      message: 'Patient records fetched successfully.',
+      data: {
+        pet: {
+          id: pet._id.toString(),
+          name: pet.name,
+          species: pet.species,
+          breed: pet.breed,
+          gender: pet.gender,
+          date_of_birth: day(pet.dateOfBirth ?? null),
+          weight_kg: pet.weightKg,
+          image_url: pet.avatarUrl,
+          notes: pet.notes,
+        },
+        owner: owner ? { id: owner._id.toString(), name: owner.name, phone: owner.phone } : null,
+        vaccinations: pet.vaccinations.map((v) => ({
+          id: v._id.toString(),
+          name: v.name,
+          administered_at: day(v.administeredAt),
+          expires_at: day(v.expiresAt ?? null),
+          certificate_url: v.certificateUrl,
+        })),
+        medical_records: pet.medicalRecords.map((r) => ({
+          id: r._id.toString(),
+          title: r.title,
+          description: r.description,
+          file_url: r.fileUrl,
+          recorded_at: r.recordedAt,
+        })),
+        visits: visits.map((v) => ({
+          booking_id: v._id.toString(),
+          date: v.scheduledStart,
+          status: v.status,
+          service: serviceName.get(v.serviceId.toString()) ?? '',
+          notes: v.providerNotes,
+        })),
+      },
+    };
+  },
+
   async startSessionVerifyOtp(userId: string, input: SessionOtpInput): Promise<void> {
     const provider = await requireOwnProvider(userId);
     const booking = await bookingRepository.findActiveForProvider(

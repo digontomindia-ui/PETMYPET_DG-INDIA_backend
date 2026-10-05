@@ -187,4 +187,5 @@ export const bankAccountSchema = z
     path: ['confirm_account_number'],
   });
 
+export const petIdParamSchema = z.object({ pet_id: objectIdSchema });
 export const bookingIdParamSchema = z.object({ booking_id: objectIdSchema });
