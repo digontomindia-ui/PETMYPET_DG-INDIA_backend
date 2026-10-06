@@ -42,17 +42,34 @@ export const chatRepository = {
     return message;
   },
 
-  async listMessages(roomId: string, limit: number, before?: string) {
+  async clearRoomFor(roomId: string, userId: string) {
+    const uid = new Types.ObjectId(userId);
+    await ChatRoomModel.updateOne({ _id: roomId }, { $pull: { clearedAt: { userId: uid } } }).exec();
+    await ChatRoomModel.updateOne({ _id: roomId }, { $push: { clearedAt: { userId: uid, at: new Date() } } }).exec();
+  },
+
+  async setBlocked(roomId: string, userId: string, blocked: boolean) {
+    const uid = new Types.ObjectId(userId);
+    return ChatRoomModel.findByIdAndUpdate(
+      roomId,
+      blocked ? { $addToSet: { blockedBy: uid } } : { $pull: { blockedBy: uid } },
+      { new: true },
+    ).exec();
+  },
+
+  async listMessages(roomId: string, limit: number, before?: string, since?: Date) {
     const filter: Record<string, unknown> = { roomId };
+    if (since) filter.createdAt = { $gt: since };
     if (before) filter._id = { $lt: new Types.ObjectId(before) };
     return MessageModel.find(filter).sort({ _id: -1 }).limit(limit).exec();
   },
 
   /** Page-numbered variant (newest first) for clients that page by number rather than cursor. */
-  async listMessagesPage(roomId: string, skip: number, limit: number) {
+  async listMessagesPage(roomId: string, skip: number, limit: number, since?: Date) {
+    const filter: Record<string, unknown> = since ? { roomId, createdAt: { $gt: since } } : { roomId };
     const [items, total] = await Promise.all([
-      MessageModel.find({ roomId }).sort({ _id: -1 }).skip(skip).limit(limit).exec(),
-      MessageModel.countDocuments({ roomId }).exec(),
+      MessageModel.find(filter).sort({ _id: -1 }).skip(skip).limit(limit).exec(),
+      MessageModel.countDocuments(filter).exec(),
     ]);
     return { items, total };
   },
@@ -64,11 +81,12 @@ export const chatRepository = {
     ).exec();
   },
 
-  async countUnreadInRoom(roomId: string, readerId: string): Promise<number> {
+  async countUnreadInRoom(roomId: string, readerId: string, since?: Date): Promise<number> {
     return MessageModel.countDocuments({
       roomId,
       senderId: { $ne: readerId },
       isRead: false,
+      ...(since && { createdAt: { $gt: since } }),
     }).exec();
   },
 };

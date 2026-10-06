@@ -53,4 +53,19 @@ export const chatController = {
     );
     sendSuccess(res, HTTP_STATUS.OK, room, 'Room updated');
   }),
+
+  clearChat: asyncHandler(async (req: Request, res: Response) => {
+    await chatService.clearChat(req.params.roomId as string, requireAuth(req));
+    sendSuccess(res, HTTP_STATUS.OK, null, 'Chat cleared');
+  }),
+
+  block: asyncHandler(async (req: Request, res: Response) => {
+    const data = await chatService.setBlocked(req.params.roomId as string, requireAuth(req), true);
+    sendSuccess(res, HTTP_STATUS.OK, data, 'Chat blocked');
+  }),
+
+  unblock: asyncHandler(async (req: Request, res: Response) => {
+    const data = await chatService.setBlocked(req.params.roomId as string, requireAuth(req), false);
+    sendSuccess(res, HTTP_STATUS.OK, data, 'Chat unblocked');
+  }),
 };

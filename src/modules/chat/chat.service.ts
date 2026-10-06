@@ -5,7 +5,7 @@ import { notificationService } from '../notifications/notification.service.js';
 import { NOTIFICATION_TYPES } from '../notifications/notification.constants.js';
 import { tryGetSocketServer } from '../../sockets/index.js';
 import { chatRepository } from './chat.repository.js';
-import { toMessageDto, toProviderAppMessage, toRoomDto } from './chat.mapper.js';
+import { clearedAtFor, toMessageDto, toProviderAppMessage, toRoomDto } from './chat.mapper.js';
 import { CHAT_SOCKET_EVENTS, PROVIDER_APP_SOCKET_EVENTS } from './chat.constants.js';
 import type {
   CreateRoomInput,
@@ -41,7 +41,11 @@ export const chatService = {
       input.participantId,
       input.bookingId,
     );
-    const unreadCount = await chatRepository.countUnreadInRoom(room._id.toString(), userId);
+    const unreadCount = await chatRepository.countUnreadInRoom(
+      room._id.toString(),
+      userId,
+      clearedAtFor(room, userId),
+    );
     return toRoomDto(room, userId, unreadCount);
   },
 
@@ -52,7 +56,11 @@ export const chatService = {
 
     const rooms = await Promise.all(
       items.map(async (room) => {
-        const unreadCount = await chatRepository.countUnreadInRoom(room._id.toString(), userId);
+        const unreadCount = await chatRepository.countUnreadInRoom(
+          room._id.toString(),
+          userId,
+          clearedAtFor(room, userId),
+        );
         return toRoomDto(room, userId, unreadCount);
       }),
     );
@@ -61,20 +69,26 @@ export const chatService = {
   },
 
   async listMessages(roomId: string, userId: string, query: ListMessagesQuery) {
-    await requireParticipant(roomId, userId);
+    const room = await requireParticipant(roomId, userId);
     const limit = Math.min(100, Math.max(1, Number.parseInt(query.limit ?? '', 10) || 50));
-    const messages = await chatRepository.listMessages(roomId, limit, query.before);
+    const messages = await chatRepository.listMessages(roomId, limit, query.before, clearedAtFor(room, userId));
     return messages.map(toMessageDto).reverse();
   },
 
   async listMessagesPage(roomId: string, userId: string, page: number, limit: number) {
-    await requireParticipant(roomId, userId);
-    const { items, total } = await chatRepository.listMessagesPage(roomId, (page - 1) * limit, limit);
+    const room = await requireParticipant(roomId, userId);
+    const { items, total } = await chatRepository.listMessagesPage(
+      roomId,
+      (page - 1) * limit,
+      limit,
+      clearedAtFor(room, userId),
+    );
     return { messages: items.map(toMessageDto).reverse(), total };
   },
 
   async sendMessage(roomId: string, senderId: string, input: SendMessageInput) {
     const room = await requireParticipant(roomId, senderId);
+    if (room.blockedBy.length > 0) throw AppError.forbidden('This chat is blocked');
     const message = await chatRepository.appendMessage(
       roomId,
       senderId,
@@ -123,11 +137,24 @@ export const chatService = {
       });
   },
 
+  /** Hides the room's existing messages for this user only; the other participant keeps theirs. */
+  async clearChat(roomId: string, userId: string): Promise<void> {
+    await requireParticipant(roomId, userId);
+    await chatRepository.clearRoomFor(roomId, userId);
+  },
+
+  async setBlocked(roomId: string, userId: string, blocked: boolean) {
+    await requireParticipant(roomId, userId);
+    const room = await chatRepository.setBlocked(roomId, userId, blocked);
+    if (!room) throw AppError.notFound('Chat room not found');
+    return { isBlocked: room.blockedBy.length > 0, blockedByMe: blocked };
+  },
+
   async setUrgent(roomId: string, userId: string, input: UpdateUrgentInput) {
     await requireParticipant(roomId, userId);
     const room = await chatRepository.setUrgent(roomId, input.isUrgent);
     if (!room) throw AppError.notFound('Chat room not found');
-    const unreadCount = await chatRepository.countUnreadInRoom(roomId, userId);
+    const unreadCount = await chatRepository.countUnreadInRoom(roomId, userId, clearedAtFor(room, userId));
     return toRoomDto(room, userId, unreadCount);
   },
 };

@@ -90,15 +90,17 @@ function sumEarnings(analytics: ProviderAnalytics): number {
   return analytics.earningsByDay.reduce((sum, day) => sum + day.amount, 0);
 }
 
-/** Spec's date query param is `DD-MM-YY` (e.g. "05-09-26"); returns the [00:00, 23:59:59.999]
- * range for that calendar day, or {} if unparseable/absent so the caller falls back to "all". */
+/** Date query param is `DD-MM-YY` or `DD-MM-YYYY` (also `YYYY-MM-DD`); returns the IST calendar-day
+ * range for it, or {} if unparseable/absent so the caller falls back to "all". */
 function dayRangeFor(dateStr: string | undefined): { from?: Date; to?: Date } {
   if (!dateStr) return {};
-  const match = /^(\d{2})-(\d{2})-(\d{2})$/.exec(dateStr);
-  if (!match) return {};
-  const [, dd, mm, yy] = match;
-  const from = new Date(`20${yy}-${mm}-${dd}T00:00:00.000Z`);
-  const to = new Date(`20${yy}-${mm}-${dd}T23:59:59.999Z`);
+  const dmy = /^(\d{2})-(\d{2})-(\d{2}|\d{4})$/.exec(dateStr);
+  const ymd = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  const [dd, mm, year] = dmy ? [dmy[1], dmy[2], dmy[3]] : ymd ? [ymd[3], ymd[2], ymd[1]] : [];
+  if (!dd || !mm || !year) return {};
+  const yyyy = year.length === 2 ? `20${year}` : year;
+  const from = new Date(`${yyyy}-${mm}-${dd}T00:00:00.000+05:30`);
+  const to = new Date(`${yyyy}-${mm}-${dd}T23:59:59.999+05:30`);
   if (Number.isNaN(from.getTime())) return {};
   return { from, to };
 }

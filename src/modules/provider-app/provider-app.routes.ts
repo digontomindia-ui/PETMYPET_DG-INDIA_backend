@@ -944,6 +944,40 @@ providerAppRoutes.get(
 
 /**
  * @openapi
+ * /message/{room_id}/clear:
+ *   post:
+ *     tags: [ProviderApp]
+ *     summary: Clear chat — hides the room's existing messages for the caller only
+ *     description: The other participant keeps their copy; new messages after this call show normally.
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: room_id, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Cleared }
+ * /message/{room_id}/block:
+ *   post:
+ *     tags: [ProviderApp]
+ *     summary: Block chat — nobody in the room can send until unblocked
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: room_id, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: "Blocked — data: { isBlocked, blockedByMe }" }
+ *   delete:
+ *     tags: [ProviderApp]
+ *     summary: Unblock chat (removes the caller's own block)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: room_id, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Unblocked }
+ */
+providerAppRoutes.post('/message/:room_id/clear', authenticate, validate({ params: messageRoomParamSchema }), providerAppController.clearChat);
+providerAppRoutes.post('/message/:room_id/block', authenticate, validate({ params: messageRoomParamSchema }), providerAppController.blockChat);
+providerAppRoutes.delete('/message/:room_id/block', authenticate, validate({ params: messageRoomParamSchema }), providerAppController.unblockChat);
+
+/**
+ * @openapi
  * /reviews-ratings:
  *   get:
  *     tags: [ProviderApp]

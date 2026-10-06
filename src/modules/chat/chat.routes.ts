@@ -430,3 +430,42 @@ chatRoutes.patch(
   validate({ params: roomIdParamSchema, body: updateUrgentSchema }),
   chatController.setUrgent,
 );
+
+/**
+ * @openapi
+ * /chat/rooms/{roomId}/clear:
+ *   post:
+ *     tags: [Chat]
+ *     summary: Clear chat for the caller only (the other participant keeps their messages)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: roomId, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Chat cleared }
+ *       403: { description: Not a participant }
+ *       404: { description: Room not found }
+ */
+chatRoutes.post('/rooms/:roomId/clear', validate({ params: roomIdParamSchema }), chatController.clearChat);
+
+/**
+ * @openapi
+ * /chat/rooms/{roomId}/block:
+ *   post:
+ *     tags: [Chat]
+ *     summary: Block the chat — nobody in the room can send messages until it is unblocked
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: roomId, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: "Blocked — data: { isBlocked, blockedByMe }" }
+ *   delete:
+ *     tags: [Chat]
+ *     summary: Unblock the chat (only removes the caller's own block)
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: roomId, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: "Unblocked — data: { isBlocked, blockedByMe }" }
+ */
+chatRoutes.post('/rooms/:roomId/block', validate({ params: roomIdParamSchema }), chatController.block);
+chatRoutes.delete('/rooms/:roomId/block', validate({ params: roomIdParamSchema }), chatController.unblock);

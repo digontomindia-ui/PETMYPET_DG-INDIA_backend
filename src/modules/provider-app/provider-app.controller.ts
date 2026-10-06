@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { asyncHandler } from '../../common/utils/async-handler.js';
 import { AppError } from '../../common/errors/app-error.js';
 import { HTTP_STATUS } from '../../common/constants/http-status.js';
+import { chatService } from '../chat/chat.service.js';
 import { providerAppService } from './provider-app.service.js';
 import { providerAppAccountService as account } from './provider-app.account.service.js';
 import type {
@@ -151,6 +152,21 @@ export const providerAppController = {
       req.query,
     );
     res.status(HTTP_STATUS.OK).json(data);
+  }),
+
+  clearChat: asyncHandler(async (req: Request, res: Response) => {
+    await chatService.clearChat(req.params.room_id as string, requireAuth(req));
+    res.status(HTTP_STATUS.OK).json({ success: true, message: 'Chat cleared' });
+  }),
+
+  blockChat: asyncHandler(async (req: Request, res: Response) => {
+    const data = await chatService.setBlocked(req.params.room_id as string, requireAuth(req), true);
+    res.status(HTTP_STATUS.OK).json({ success: true, message: 'Chat blocked', data });
+  }),
+
+  unblockChat: asyncHandler(async (req: Request, res: Response) => {
+    const data = await chatService.setBlocked(req.params.room_id as string, requireAuth(req), false);
+    res.status(HTTP_STATUS.OK).json({ success: true, message: 'Chat unblocked', data });
   }),
 
   getReviews: asyncHandler(async (req: Request, res: Response) => {

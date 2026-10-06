@@ -17,6 +17,13 @@ const chatRoomSchema = new Schema<IChatRoom>({
   lastMessageAt: { type: Date, default: null },
   lastMessagePreview: { type: String, default: '' },
   isUrgent: { type: Boolean, default: false },
+  clearedAt: {
+    type: [
+      new Schema({ userId: { type: Schema.Types.ObjectId, required: true }, at: { type: Date, required: true } }, { _id: false }),
+    ],
+    default: [],
+  },
+  blockedBy: { type: [{ type: Schema.Types.ObjectId, ref: USER_MODEL_NAME }], default: [] },
   createdAt: { type: Date, default: () => new Date() },
 });
 

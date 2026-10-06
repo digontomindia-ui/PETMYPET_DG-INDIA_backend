@@ -669,15 +669,23 @@ export function mapPerformanceAnalytics(range: string, analytics: ProviderAnalyt
   const base = mapWalkerAnalytics(range, analytics);
   const total = sumEarnings(analytics);
   const g = growth(total, analytics.previousPeriodEarnings);
+  const labelOf = (date: Date) =>
+    range === 'year'
+      ? date.toLocaleDateString('en-US', { month: 'short' })
+      : range === 'month'
+        ? date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
+        : date.toLocaleDateString('en-US', { weekday: 'short' });
+  // Pre-seed every bucket in the range with 0 so the chart isn't empty on days/months without earnings.
   const byLabel = new Map<string, number>();
+  const now = new Date();
+  if (range === 'year') {
+    for (let i = 11; i >= 0; i--) byLabel.set(labelOf(new Date(now.getFullYear(), now.getMonth() - i, 1)), 0);
+  } else {
+    const days = range === 'month' ? 30 : 7;
+    for (let i = days - 1; i >= 0; i--) byLabel.set(labelOf(new Date(now.getTime() - i * 86_400_000)), 0);
+  }
   for (const d of analytics.earningsByDay) {
-    const date = new Date(d.date);
-    const label =
-      range === 'year'
-        ? date.toLocaleDateString('en-US', { month: 'short' })
-        : range === 'month'
-          ? date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
-          : date.toLocaleDateString('en-US', { weekday: 'short' });
+    const label = labelOf(new Date(d.date));
     byLabel.set(label, (byLabel.get(label) ?? 0) + d.amount);
   }
   return {

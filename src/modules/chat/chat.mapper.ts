@@ -1,14 +1,23 @@
 import type { ChatRoomDocument, MessageDocument } from './chat.types.js';
 
+/** When the viewer last cleared this chat, if ever. */
+export function clearedAtFor(room: ChatRoomDocument, viewerId: string): Date | undefined {
+  return room.clearedAt?.find((c) => c.userId.toString() === viewerId)?.at;
+}
+
 export function toRoomDto(room: ChatRoomDocument, viewerId: string, unreadCount: number) {
+  const clearedAt = clearedAtFor(room, viewerId);
+  const cleared = clearedAt && (!room.lastMessageAt || room.lastMessageAt <= clearedAt);
   const otherParticipantId = room.participantIds.find((id) => id.toString() !== viewerId);
   return {
     id: room._id.toString(),
     otherParticipantId: otherParticipantId ? otherParticipantId.toString() : null,
     bookingId: room.bookingId ? room.bookingId.toString() : null,
-    lastMessageAt: room.lastMessageAt,
-    lastMessagePreview: room.lastMessagePreview,
+    lastMessageAt: cleared ? null : room.lastMessageAt,
+    lastMessagePreview: cleared ? '' : room.lastMessagePreview,
     isUrgent: room.isUrgent,
+    isBlocked: (room.blockedBy?.length ?? 0) > 0,
+    blockedByMe: room.blockedBy?.some((id) => id.toString() === viewerId) ?? false,
     unreadCount,
   };
 }
