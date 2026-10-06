@@ -877,7 +877,7 @@ export function mapMessageHistory(
   page: number,
   limit: number,
   total: number,
-  peer: { is_online: boolean; last_seen: Date | null },
+  peer: { is_online: boolean; last_seen: Date | null; is_blocked: boolean; blocked_by_me: boolean },
 ) {
   const totalPages = Math.max(1, Math.ceil(total / limit));
   return {
@@ -887,6 +887,8 @@ export function mapMessageHistory(
       room_id: roomId,
       is_online: peer.is_online,
       last_seen: peer.last_seen,
+      is_blocked: peer.is_blocked,
+      blocked_by_me: peer.blocked_by_me,
       messages: messages.map((m) => toProviderAppMessage(m)),
       pagination: {
         current_page: page,

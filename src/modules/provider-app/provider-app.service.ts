@@ -1115,6 +1115,8 @@ export const providerAppService = {
     return mapMessageHistory(roomId, messages, page, limit, total, {
       is_online: otherId ? isUserOnline(otherId) : false,
       last_seen: otherId ? userLastSeen(otherId) : null,
+      is_blocked: room.blockedBy.length > 0,
+      blocked_by_me: room.blockedBy.some((id) => id.toString() === userId),
     });
   },
 };
