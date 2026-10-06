@@ -918,10 +918,19 @@ export const providerAppService = {
 
   async startSessionVerifyOtp(userId: string, input: SessionOtpInput): Promise<void> {
     const provider = await requireOwnProvider(userId);
-    const booking = await bookingRepository.findActiveForProvider(
+    // The app sends only the OTP, so without booking_id pick the booking closest to now — the
+    // earliest one would be a stale/seeded booking from weeks ago.
+    const { items } = await bookingRepository.findForProvider(
       provider._id.toString(),
       SESSION_START_STATUSES,
+      {},
+      0,
+      50,
     );
+    const now = Date.now();
+    const booking = input.booking_id
+      ? items.find((b) => b._id.toString() === input.booking_id)
+      : items.sort((a, b) => Math.abs(a.scheduledStart.getTime() - now) - Math.abs(b.scheduledStart.getTime() - now))[0];
     if (!booking) throw AppError.notFound('No session is ready to start right now');
     await bookingService.verifyStartOtp(booking._id.toString(), userId, input.otp);
   },

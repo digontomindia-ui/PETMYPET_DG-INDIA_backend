@@ -53,6 +53,8 @@ export const uploadDocumentsSchema = z.object({
 
 export const sessionOtpSchema = z.object({
   otp: z.string().min(4).max(6),
+  /** Which booking to start; without it the booking closest to now is used. */
+  booking_id: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id').optional(),
 });
 
 export const uploadTrainingProcessSchema = z.object({

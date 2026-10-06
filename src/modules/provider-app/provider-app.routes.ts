@@ -1344,3 +1344,5 @@ providerAppRoutes.get(
   validate({ params: bookingIdParamSchema }),
   providerAppController.getAppointmentDetail,
 );
+
+providerAppRoutes.post('/message/:room_id/unblock', authenticate, validate({ params: messageRoomParamSchema }), providerAppController.unblockChat);

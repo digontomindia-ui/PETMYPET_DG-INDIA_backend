@@ -469,3 +469,4 @@ chatRoutes.post('/rooms/:roomId/clear', validate({ params: roomIdParamSchema }),
  */
 chatRoutes.post('/rooms/:roomId/block', validate({ params: roomIdParamSchema }), chatController.block);
 chatRoutes.delete('/rooms/:roomId/block', validate({ params: roomIdParamSchema }), chatController.unblock);
+chatRoutes.post('/rooms/:roomId/unblock', validate({ params: roomIdParamSchema }), chatController.unblock);
