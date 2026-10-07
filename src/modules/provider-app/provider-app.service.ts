@@ -754,7 +754,7 @@ export const providerAppService = {
         provider,
         todaysSessions.length,
         todayEarnings,
-        active.slice(0, 5),
+        active.slice(0, Math.max(5, todaysSessions.length)),
       );
     }
 

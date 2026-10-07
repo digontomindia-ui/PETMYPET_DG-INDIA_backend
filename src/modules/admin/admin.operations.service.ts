@@ -165,7 +165,9 @@ export const adminOperationsService = {
 
   async listBookings(query: AdminListBookingsQuery) {
     const { page, limit, skip } = parsePagination(query);
-    const filter: FilterQuery<IBooking> = {};
+    // A booking can't be created in the future; rows dated ahead (pre-scheduled showcase data)
+    // would otherwise sort above every real new booking in this newest-first list.
+    const filter: FilterQuery<IBooking> = { createdAt: { $lte: new Date() } };
     if (query.status) filter.status = { $in: query.status.split(',') };
     if (query.paymentStatus) filter.paymentStatus = query.paymentStatus;
     if (query.providerId) filter.providerId = query.providerId;
