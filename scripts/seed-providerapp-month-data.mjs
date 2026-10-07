@@ -62,7 +62,7 @@ function buildBooking({ provider, service, status, paymentStatus, scheduledStart
     commissionAmount,
     providerPayoutAmount,
     paymentStatus,
-    paymentId: paymentStatus === 'PAID' ? `seed_pay_${Math.random().toString(36).slice(2, 10)}` : null,
+    paymentId: null, // must stay null or an ObjectId — a string makes GET /earnings 400
     cancelledBy: null,
     cancellationReason: null,
     notes: '',

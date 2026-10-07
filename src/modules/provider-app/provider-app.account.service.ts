@@ -1,4 +1,4 @@
-import type { Types } from 'mongoose';
+import { isValidObjectId, type Types } from 'mongoose';
 import { AppError } from '../../common/errors/app-error.js';
 import { parsePagination } from '../../common/utils/pagination.js';
 import { userRepository } from '../users/user.repository.js';
@@ -273,7 +273,13 @@ export const providerAppAccountService = {
     const [pets, services, payments] = await Promise.all([
       PetModel.find({ _id: { $in: txs.map((t) => t.petId).filter(Boolean) } }).select('name avatarUrl').lean(),
       ServiceModel.find({ _id: { $in: txs.map((t) => t.serviceId) } }).select('name').lean(),
-      PaymentModel.find({ _id: { $in: txs.map((t) => t.paymentId).filter(Boolean) } }).select('method').lean(),
+      // Aggregate returns raw values, so a legacy non-ObjectId paymentId (e.g. "seed_pay_x") would
+      // throw `Invalid value for field "_id"` and 400 the whole screen — only look up real ids.
+      PaymentModel.find({
+        _id: { $in: txs.map((t) => t.paymentId).filter((id) => id && isValidObjectId(id)) },
+      })
+        .select('method')
+        .lean(),
     ]);
     const petById = new Map(pets.map((p) => [p._id.toString(), p]));
     const serviceById = new Map(services.map((s) => [s._id.toString(), s]));
@@ -382,6 +388,9 @@ export const providerAppAccountService = {
         gender: provider.gender,
         address: provider.address === 'Pending onboarding' ? '' : provider.address,
         profile_image: provider.profileImageUrl,
+        rating: provider.rating,
+        review_count: provider.ratingCount,
+        rating_text: `${provider.rating.toFixed(1)} (${provider.ratingCount} reviews)`,
       },
     };
   },

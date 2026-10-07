@@ -82,8 +82,11 @@ const ACTIVE_STATUSES = [
   BOOKING_STATUSES.STARTED,
 ];
 
+/** Same IST calendar day. Compared in IST (not server-local, which is UTC in Docker) so "today"
+ * on home agrees with the IST day range GET /appointments?date= filters by. */
 function isSameDay(a: Date, b: Date): boolean {
-  return a.toDateString() === b.toDateString();
+  const ist = (d: Date) => new Date(d.getTime() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return ist(a) === ist(b);
 }
 
 function sumEarnings(analytics: ProviderAnalytics): number {
@@ -928,9 +931,12 @@ export const providerAppService = {
       50,
     );
     const now = Date.now();
+    // The OTP identifies the booking: a provider can hold several ACCEPTED ones, so match the
+    // code first and only then fall back to "closest to now".
     const booking = input.booking_id
       ? items.find((b) => b._id.toString() === input.booking_id)
-      : items.sort((a, b) => Math.abs(a.scheduledStart.getTime() - now) - Math.abs(b.scheduledStart.getTime() - now))[0];
+      : (items.find((b) => b.otpStart === input.otp) ??
+        items.sort((a, b) => Math.abs(a.scheduledStart.getTime() - now) - Math.abs(b.scheduledStart.getTime() - now))[0]);
     if (!booking) throw AppError.notFound('No session is ready to start right now');
     await bookingService.verifyStartOtp(booking._id.toString(), userId, input.otp);
   },
@@ -966,12 +972,18 @@ export const providerAppService = {
 
   async endSessionVerifyOtp(userId: string, input: SessionOtpInput): Promise<void> {
     const provider = await requireOwnProvider(userId);
-    const booking = await bookingRepository.findActiveForProvider(
-      provider._id.toString(),
-      SESSION_ACTIVE_STATUSES,
-    );
-    if (!booking) throw AppError.notFound('No active session to end right now');
-    if (booking.otpEnd !== input.otp) throw AppError.badRequest('Invalid end OTP');
+    // findActiveForProvider returns the OLDEST STARTED booking, so a stale one hid the session the
+    // owner is actually looking at and every end OTP came back "Invalid". Match on the code instead.
+    const started = await BookingModel.find({
+      providerId: provider._id,
+      status: { $in: SESSION_ACTIVE_STATUSES },
+    })
+      .sort({ scheduledStart: -1 })
+      .limit(20)
+      .exec();
+    if (started.length === 0) throw AppError.notFound('No active session to end right now');
+    const booking = started.find((b) => b.otpEnd === input.otp);
+    if (!booking) throw AppError.badRequest('Invalid end OTP');
     await bookingService.completeBooking(booking);
   },
 

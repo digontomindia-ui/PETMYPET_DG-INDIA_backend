@@ -35,20 +35,26 @@ export interface EnrichedBooking {
 }
 
 function timeLabel(date: Date): string {
-  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'Asia/Kolkata',
+  });
 }
 
 function displayTime(date: Date): string {
   const now = new Date();
   const dayMs = 24 * 60 * 60 * 1000;
-  const dateDay = Math.floor(date.getTime() / dayMs);
-  const today = Math.floor(now.getTime() / dayMs);
+  const istOffsetMs = 5.5 * 60 * 60 * 1000;
+  const dateDay = Math.floor((date.getTime() + istOffsetMs) / dayMs);
+  const today = Math.floor((now.getTime() + istOffsetMs) / dayMs);
   const diff = dateDay - today;
   const time = timeLabel(date);
   if (diff === 0) return `Today, ${time}`;
   if (diff === 1) return `Tomorrow, ${time}`;
   if (diff === -1) return `Yesterday, ${time}`;
-  return `${date.toLocaleDateString('en-US', { day: '2-digit', month: 'short' })}, ${time}`;
+  return `${date.toLocaleDateString('en-US', { day: '2-digit', month: 'short', timeZone: 'Asia/Kolkata' })}, ${time}`;
 }
 
 function profileCompletionPercent(provider: IProvider): number {
