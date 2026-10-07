@@ -570,16 +570,26 @@ export const providerAppService = {
 
     const statusMap: Record<string, string[]> = {
       upcoming: ACTIVE_STATUSES,
+      today: ACTIVE_STATUSES,
       completed: [BOOKING_STATUSES.COMPLETED],
       cancelled: [BOOKING_STATUSES.CANCELLED],
     };
     const key = query.status?.toLowerCase();
     const statuses = key && key !== 'all' ? statusMap[key] : undefined;
 
+    // Trainers' "My Appointments" is a today view: with no explicit date, upcoming/today return
+    // only today's (IST) sessions instead of the whole backlog.
+    let dateRange = dayRangeFor(query.date);
+    const todayView = !query.date && (key === 'today' || (provider.providerType === PROVIDER_TYPES.TRAINER && (!key || key === 'upcoming')));
+    if (todayView) {
+      const ist = new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      dateRange = dayRangeFor(ist);
+    }
+
     const { items } = await bookingRepository.findForProvider(
       provider._id.toString(),
       statuses,
-      {},
+      dateRange,
       skip,
       limit,
     );

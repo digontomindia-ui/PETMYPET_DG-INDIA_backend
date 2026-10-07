@@ -69,6 +69,8 @@ export const providerHomeQuerySchema = z.object({
 
 export const myAppointmentsQuerySchema = z.object({
   status: z.string().optional(),
+  /** DD-MM-YYYY (or YYYY-MM-DD): only that IST day. Trainers default to today when omitted. */
+  date: z.string().optional(),
   page: z.string().optional(),
   limit: z.string().optional(),
 });

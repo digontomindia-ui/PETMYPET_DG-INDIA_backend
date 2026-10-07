@@ -65,19 +65,20 @@ const wipe = async (name, filter) => {
   if (!DRY && n) await col(name).deleteMany(filter);
   if (n) console.log(`  wiped ${n} ${name}`);
 };
-const oldBookings = await col('bookings').find({ seedTag: TAG, providerId }, { projection: { _id: 1 } }).toArray();
-const oldRooms = await col('chatrooms').find({ seedTag: TAG }, { projection: { _id: 1 } }).toArray();
-await wipe('reviews', { seedTag: TAG });
-await wipe('messages', { seedTag: TAG });
-await wipe('chatrooms', { seedTag: TAG });
-await wipe('notifications', { seedTag: TAG });
-await wipe('wallettransactions', { seedTag: TAG });
-await wipe('payoutrequests', { seedTag: TAG });
-await wipe('payments', { seedTag: TAG });
+// every wipe is scoped to THIS provider/user so seeding several accounts never clobbers each other.
+const oldBookingIds = (await col('bookings').find({ seedTag: TAG, providerId }, { projection: { _id: 1 } }).toArray()).map((b) => b._id);
+const oldRoomIds = (await col('chatrooms').find({ seedTag: TAG, participantIds: user._id }, { projection: { _id: 1 } }).toArray()).map((r) => r._id);
+await wipe('reviews', { seedTag: TAG, providerId });
+await wipe('messages', { seedTag: TAG, roomId: { $in: oldRoomIds } });
+await wipe('chatrooms', { seedTag: TAG, participantIds: user._id });
+await wipe('notifications', { seedTag: TAG, userId: user._id });
+await wipe('wallettransactions', { seedTag: TAG, userId: user._id });
+await wipe('payoutrequests', { seedTag: TAG, userId: user._id });
+await wipe('payments', { seedTag: TAG, bookingId: { $in: oldBookingIds } });
 await wipe('bookings', { seedTag: TAG, providerId });
 await wipe('services', { seedTag: TAG, providerId });
-await wipe('pets', { seedTag: TAG });
-void oldBookings; void oldRooms;
+// shared bird pets are created once and reused by every account (never wiped).
+const haveBirds = await col('pets').countDocuments({ seedTag: TAG, species: 'BIRD' });
 
 // ---------- 1. legacy fixes ----------
 const badPay = await col('bookings').countDocuments({ providerId, paymentId: { $type: 'string' } });
@@ -107,16 +108,49 @@ if (!DRY) {
   }
 }
 
+// overdue never-started bookings (old seed rows) sort first in every "upcoming" list and bury the
+// real ones -> close them out: accepted/on-the-way = completed, never-accepted = cancelled.
+const overdueCut = new Date(now.getTime() - 2 * DAY);
+const overdue = await col('bookings')
+  .find({ providerId, seedTag: { $exists: false }, status: { $in: ['PENDING', 'ACCEPTED', 'ON_THE_WAY'] }, scheduledStart: { $lt: overdueCut } })
+  .toArray();
+console.log(`overdue active bookings to close: ${overdue.length}`);
+if (!DRY) {
+  for (const b of overdue) {
+    const $set = b.status === 'PENDING'
+      ? { status: 'CANCELLED', cancelledBy: 'PROVIDER', cancellationReason: 'Request expired', paymentStatus: 'REFUNDED', updatedAt: b.scheduledEnd }
+      : { status: 'COMPLETED', otpStartVerifiedAt: b.scheduledStart, otpEndVerifiedAt: b.scheduledEnd, paymentStatus: 'PAID', updatedAt: b.scheduledEnd };
+    await col('bookings').updateOne({ _id: b._id }, { $set });
+  }
+}
+
 // ---------- 2. services ----------
 const baseService = await col('services').findOne({ providerId, seedTag: { $exists: false } });
 if (!baseService) throw new Error('provider has no base service');
-const svcDefs = [
+const GROOMER_DEFS = [
   { name: 'Full Grooming', price: 999, originalPrice: 1299, durationMinutes: 120, description: 'Bath, haircut, blow dry, nail trim and ear cleaning', items: ['Bath', 'Haircut', 'Blow Dry', 'Nail Trim', 'Ear Cleaning'] },
   { name: 'Spa & Bath', price: 699, originalPrice: 899, durationMinutes: 75, description: 'Aromatherapy bath with conditioner and massage', items: ['Aroma Bath', 'Conditioner', 'Massage'] },
   { name: 'De-shedding Treatment', price: 1199, originalPrice: 1499, durationMinutes: 120, description: 'Deep de-shedding for double-coated breeds', items: ['De-shed Brush', 'Bath', 'Blow Dry'] },
   { name: 'Nail & Ear Care', price: 299, originalPrice: 399, durationMinutes: 30, description: 'Quick nail trim, paw care and ear cleaning', items: ['Nail Trim', 'Paw Care', 'Ear Cleaning'] },
   { name: 'Puppy First Groom', price: 599, originalPrice: 799, durationMinutes: 60, description: 'Gentle first-groom experience for puppies', items: ['Gentle Bath', 'Light Trim', 'Cuddles'] },
 ];
+const WALKER_DEFS = [
+  { name: '15 Min Walk', price: 149, originalPrice: 199, durationMinutes: 15, description: 'Quick potty and sniff walk', items: ['Leash Walk', 'Water Break'] },
+  { name: '45 Min Walk', price: 349, originalPrice: 449, durationMinutes: 45, description: 'Long energetic walk with play breaks', items: ['Leash Walk', 'Play Time', 'Water Break'] },
+  { name: '60 Min Walk', price: 449, originalPrice: 599, durationMinutes: 60, description: 'Full hour of exercise and fun', items: ['Leash Walk', 'Fetch', 'Water Break'] },
+  { name: 'Evening Group Walk', price: 249, originalPrice: 299, durationMinutes: 40, description: 'Social group walk with other pups', items: ['Group Walk', 'Socialising'] },
+  { name: 'Puppy Potty Walk', price: 199, originalPrice: 249, durationMinutes: 20, description: 'Short potty-training focused walk', items: ['Potty Training', 'Treats'] },
+];
+const TRAINER_DEFS = [
+  { name: 'Puppy Basics Training', price: 799, originalPrice: 999, durationMinutes: 60, description: 'Sit, stay, recall and leash basics for puppies', items: ['Sit & Stay', 'Recall', 'Leash Manners'] },
+  { name: 'Behaviour Correction', price: 1299, originalPrice: 1599, durationMinutes: 75, description: 'Barking, biting and anxiety correction plan', items: ['Behaviour Assessment', 'Correction Plan'] },
+  { name: 'Advanced Obedience', price: 1099, originalPrice: 1399, durationMinutes: 75, description: 'Off-leash control and advanced commands', items: ['Off-leash Control', 'Advanced Commands'] },
+  { name: 'Agility Session', price: 899, originalPrice: 1099, durationMinutes: 60, description: 'Agility course for active dogs', items: ['Agility Course', 'Fitness'] },
+  { name: 'Home Training Visit', price: 999, originalPrice: 1199, durationMinutes: 60, description: 'One-to-one training at your home', items: ['Home Visit', 'Owner Coaching'] },
+];
+const svcDefs = provider.providerType === 'PET_WALKER' ? WALKER_DEFS : provider.providerType === 'TRAINER' ? TRAINER_DEFS : GROOMER_DEFS;
+const T = provider.providerType;
+
 const newServices = svcDefs.map((s) => ({
   _id: new mongoose.Types.ObjectId(),
   providerId,
@@ -129,9 +163,8 @@ const newServices = svcDefs.map((s) => ({
   images: [`https://picsum.photos/seed/${encodeURIComponent(s.name)}/600/600`],
   includedItems: s.items.map((n) => ({ name: n, imageUrl: `https://picsum.photos/seed/inc-${encodeURIComponent(n)}/100/100` })),
   addOnCatalog: [
-    { name: 'Teeth Brushing', price: 99 },
-    { name: 'Perfume Spray', price: 49 },
-    { name: 'De-tangling', price: 149 },
+    { name: 'Treat Pack', price: 49 },
+    { name: 'Photo Update', price: 29 },
   ],
   isActive: true,
   isDeleted: false,
@@ -145,7 +178,7 @@ const services = [
 ];
 const svcWeights = [4, 4, 2, 2, 1, 1]; // base, full, spa, deshed, nail, puppy
 const svcBag = services.flatMap((s, i) => Array(svcWeights[i]).fill(s));
-const addOnPool = [{ name: 'Teeth Brushing', price: 99 }, { name: 'Perfume Spray', price: 49 }, { name: 'De-tangling', price: 149 }];
+const addOnPool = T === 'GROOMER' ? [{ name: 'Teeth Brushing', price: 99 }, { name: 'Perfume Spray', price: 49 }, { name: 'De-tangling', price: 149 }] : [{ name: 'Treat Pack', price: 49 }, { name: 'Photo Update', price: 29 }];
 
 // ---------- 3. customers & pets ----------
 const customerSuffixes = ['23e5', '23e8', '23eb', '23ee', '3b80', '3b89', '3b9e', '3bac', '3bb3', '3bba', '3bc1', '3bc8', '3bcf', '3bd6', '3ba5', '3b90', '3b97'];
@@ -158,7 +191,7 @@ const birdSeeds = [
   { name: 'Kiwi', breed: 'Cockatiel', owner: customers.find((u) => String(u._id).endsWith('3b97')) },
 ];
 for (const b of birdSeeds) {
-  if (!b.owner) continue;
+  if (!b.owner || haveBirds > 0) continue;
   newPets.push({
     _id: new mongoose.Types.ObjectId(),
     ownerId: b.owner._id,
@@ -195,7 +228,7 @@ const bookings = [];
 const payments = [];
 const photosPool = (n, phase) => [{ url: `https://picsum.photos/seed/${phase}-${n}/600/600`, phase, caption: phase === 'BEFORE' ? 'Before grooming' : 'After grooming', uploadedAt: new Date() }];
 const customerNotes = ['Please use hypoallergenic shampoo.', 'Nervous around dryers, go slow.', 'Trim nails short please.', 'Please keep the teddy-bear cut.', 'Sensitive skin on belly.', '', '', ''];
-const providerNotes = ['Coat in good shape, used conditioner.', 'Calm throughout, nails trimmed.', 'Mild matting behind ears, de-tangled.', 'Recommended monthly grooming.', 'Skin check clear.'];
+const providerNotes = T !== 'GROOMER' ? ['Session went smoothly, pet was energetic.', 'Great progress today.', 'Pet was calm and responsive.', 'Followed all commands well.', 'Hydrated and happy after the session.'] : ['Coat in good shape, used conditioner.', 'Calm throughout, nails trimmed.', 'Mild matting behind ears, de-tangled.', 'Recommended monthly grooming.', 'Skin check clear.'];
 const cancelReasons = [['USER', 'Change of plans'], ['USER', 'Pet not well today'], ['PROVIDER', 'Provider unavailable at this slot'], ['USER', 'Booked by mistake']];
 const slotHours = [9, 10, 11, 12, 14, 15, 16, 17];
 
@@ -269,7 +302,7 @@ function makeBooking({ dayOffset, hour, minute = 0, status, createdAt, custIdx }
     pickupTime: null,
     consultationMode: null,
     providerNotes: completed ? pick(providerNotes) : '',
-    photos: completed && rnd() < 0.5 ? [...photosPool(String(_id).slice(-4), 'BEFORE'), ...photosPool(String(_id).slice(-4), 'AFTER')] : [],
+    photos: T === 'GROOMER' && completed && rnd() < 0.5 ? [...photosPool(String(_id).slice(-4), 'BEFORE'), ...photosPool(String(_id).slice(-4), 'AFTER')] : [],
     progressUpdates: [],
     walkStats: null,
     isDeleted: false,
@@ -329,7 +362,7 @@ for (let i = 0; deficit > 0 && i < ratings.length; i += 9) {
   ratings[i] -= drop;
   deficit -= drop;
 }
-const comments5 = [
+const comments5 = T !== 'GROOMER' ? ['Wonderful experience, my dog was so happy!', 'Very reliable and punctual.', 'Great with our energetic pup, sends updates too.', 'Highly recommended, will book again.', 'Patient and caring, my dog loves him/her.', 'Visible improvement after just a few sessions.', 'Professional and friendly throughout.', 'Best service in the area.'] : [
   'Amazing service, my dog was so happy and calm!',
   'Super gentle with my pet. Looks fabulous!',
   'On time, professional and very caring.',
@@ -341,7 +374,7 @@ const comments5 = [
   'Very patient with our puppy on the first groom.',
   'Clean tools, friendly staff, lovely result.',
 ];
-const comments4 = ['Good job overall, slightly late.', 'Nice cut, would like a bit more trimming next time.'];
+const comments4 = ['Good job overall, slightly late.', 'Nice session, would like a bit more time next time.'];
 const comments3 = ['Okay experience, took longer than expected.'];
 const replies = ['Thank you so much! See you next time 🐾', 'Glad your pet enjoyed it!', 'Thanks for the lovely feedback.', 'We appreciate you trusting us with your furry friend.'];
 const reviews = reviewable.map((b, i) => {
@@ -373,11 +406,13 @@ const creditable = bookings
   .sort((a, b) => a.otpEndVerifiedAt - b.otpEndVerifiedAt);
 const events = creditable.map((b) => ({ at: b.otpEndVerifiedAt, kind: 'credit', amount: b.providerPayoutAmount, booking: b }));
 const bank = { accountHolderName: user.name || 'Madhab', bankName: 'HDFC Bank', accountNumber: '50100123454821', ifscCode: 'HDFC0000123', accountType: 'SAVINGS' };
+const totalCredit = creditable.reduce((t, b) => t + b.providerPayoutAmount, 0);
+const frac = (f) => Math.max(100, Math.round((totalCredit * f) / 100) * 100);
 const withdrawalPlan = [
-  { daysAgo: 60, amount: 30000, status: 'PAID', ref: 'UTR2026080112345' },
-  { daysAgo: 30, amount: 25000, status: 'PAID', ref: 'UTR2026090798765' },
-  { daysAgo: 12, amount: 5000, status: 'REJECTED', ref: null, note: 'Bank account name mismatch' },
-  { daysAgo: 2, amount: 8000, status: 'REQUESTED', ref: null },
+  { daysAgo: 60, amount: frac(0.3), status: 'PAID', ref: 'UTR2026080112345' },
+  { daysAgo: 30, amount: frac(0.2), status: 'PAID', ref: 'UTR2026090798765' },
+  { daysAgo: 12, amount: frac(0.05), status: 'REJECTED', ref: null, note: 'Bank account name mismatch' },
+  { daysAgo: 2, amount: frac(0.08), status: 'REQUESTED', ref: null },
 ];
 const payoutRequests = [];
 for (const w of withdrawalPlan) {
@@ -482,7 +517,7 @@ const notifTemplates = [
   ['NEW_MESSAGE', 'New message', 'Rahul: Can we reschedule to 4 PM?', false],
   ['BOOKING_CANCELLED', 'Booking cancelled', 'A customer cancelled tomorrow\'s 12:00 slot.', false],
   ['BOOKING_COMPLETED', 'Session completed', 'Grooming for Luna was completed. ₹549 added to wallet.', true],
-  ['PAYMENT_RECEIVED', 'Payout processed', 'Your withdrawal of ₹25000 has been paid.', true],
+  ['PAYMENT_RECEIVED', 'Payout processed', 'Your withdrawal has been paid to your bank account.', true],
   ['GENERIC', 'Review received', 'You got a new 5★ review.', true],
   ['KYC_APPROVED', 'KYC approved', 'Your documents were verified. You are all set!', true],
   ['BOOKING_ACCEPTED', 'Booking accepted', 'You accepted Max\'s appointment.', true],
@@ -532,7 +567,8 @@ const providerSet = {
   ratingCount: allRatings.length,
   bankAccount: bank,
   galleryUrls: [1, 2, 3, 4].map((i) => `https://picsum.photos/seed/salon-${i}/800/600`),
-  'metadata.groomer': { specializations: ['Breed Cuts', 'De-shedding', 'Bath & Spa', 'Nail Trimming'] },
+  ...(T === 'GROOMER' ? { 'metadata.groomer': { specializations: ['Breed Cuts', 'De-shedding', 'Bath & Spa', 'Nail Trimming'] } } : {}),
+  ...((provider.skills ?? []).length ? {} : { skills: T === 'PET_WALKER' ? ['Dog Walking', 'Puppy Care', 'Leash Training', 'Pet First Aid'] : ['Obedience', 'Behaviour Correction', 'Puppy Training', 'Agility'] }),
   certifications: [
     { _id: new mongoose.Types.ObjectId(), title: 'Certified Professional Groomer', issuedBy: 'Indian Pet Grooming Academy', issuedYear: 2019 },
     { _id: new mongoose.Types.ObjectId(), title: 'Pet First Aid & CPR', issuedBy: 'Red Cross India', issuedYear: 2022 },

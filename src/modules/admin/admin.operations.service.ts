@@ -172,8 +172,8 @@ export const adminOperationsService = {
     if (query.userId) filter.userId = query.userId;
     if (query.from || query.to) {
       filter.scheduledStart = {
-        ...(query.from ? { $gte: new Date(`${query.from}T00:00:00.000Z`) } : {}),
-        ...(query.to ? { $lte: new Date(`${query.to}T23:59:59.999Z`) } : {}),
+        ...(query.from ? { $gte: new Date(`${query.from}T00:00:00.000+05:30`) } : {}),
+        ...(query.to ? { $lte: new Date(`${query.to}T23:59:59.999+05:30`) } : {}),
       };
     }
 
