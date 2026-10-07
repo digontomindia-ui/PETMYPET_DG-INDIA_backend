@@ -67,7 +67,9 @@ describe('availability', () => {
     expect(beforeSlots.every((slot) => slot.isAvailable)).toBe(true);
 
     const user = await signupAndVerify(app, { role: 'USER' });
-    const bookingStart = `${date}T10:00:00.000Z`;
+    // working hours are IST, so 10:00 IST == 04:30Z
+    const at = (hhmm: string) => new Date(`${date}T${hhmm}:00.000+05:30`).toISOString();
+    const bookingStart = at('10:00');
     await request(app)
       .post('/api/v1/bookings')
       .set('Authorization', `Bearer ${user.tokens.accessToken}`)
@@ -87,10 +89,10 @@ describe('availability', () => {
     // (each also 90 min) overlaps that window; 11:30 onward starts exactly when the booking
     // ends, so it doesn't.
     expect(slotsByStart.get(bookingStart)).toBe(false);
-    expect(slotsByStart.get(`${date}T09:30:00.000Z`)).toBe(false);
-    expect(slotsByStart.get(`${date}T09:00:00.000Z`)).toBe(false);
-    expect(slotsByStart.get(`${date}T11:00:00.000Z`)).toBe(false);
-    expect(slotsByStart.get(`${date}T11:30:00.000Z`)).toBe(true);
+    expect(slotsByStart.get(at('09:30'))).toBe(false);
+    expect(slotsByStart.get(at('09:00'))).toBe(false);
+    expect(slotsByStart.get(at('11:00'))).toBe(false);
+    expect(slotsByStart.get(at('11:30'))).toBe(true);
   });
 
   it('rejects a serviceId that does not belong to the given provider', async () => {

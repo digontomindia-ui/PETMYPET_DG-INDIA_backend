@@ -305,7 +305,7 @@ export const bookingService = {
       userId: provider.userId.toString(),
       type: NOTIFICATION_TYPES.BOOKING_CREATED,
       title: 'New booking request',
-      body: `You have a new booking request for ${scheduledStart.toLocaleString()}`,
+      body: `You have a new booking request for ${scheduledStart.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`,
       data: { bookingId: booking._id.toString() },
     });
 

@@ -7,12 +7,15 @@ import { SLOT_STEP_MINUTES, WEEKDAY_BY_JS_DAY_INDEX } from './availability.const
 import type { AvailabilitySlot } from './availability.types.js';
 import type { GetAvailabilityQuery } from './availability.dto.js';
 
+/** Working hours are the provider's local (IST) clock. They used to be read as UTC, so a slot the
+ * customer saw as "6:30 PM" was really 00:00 IST — the provider app then filed "today's" booking
+ * under tomorrow. */
 function parseTimeOnDate(date: string, time: string): Date {
-  return new Date(`${date}T${time}:00.000Z`);
+  return new Date(`${date}T${time}:00.000+05:30`);
 }
 
 function timeLabel(date: Date): string {
-  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' });
+  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
 }
 
 export const availabilityService = {
