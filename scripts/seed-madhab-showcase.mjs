@@ -148,7 +148,30 @@ const TRAINER_DEFS = [
   { name: 'Agility Session', price: 899, originalPrice: 1099, durationMinutes: 60, description: 'Agility course for active dogs', items: ['Agility Course', 'Fitness'] },
   { name: 'Home Training Visit', price: 999, originalPrice: 1199, durationMinutes: 60, description: 'One-to-one training at your home', items: ['Home Visit', 'Owner Coaching'] },
 ];
-const svcDefs = provider.providerType === 'PET_WALKER' ? WALKER_DEFS : provider.providerType === 'TRAINER' ? TRAINER_DEFS : GROOMER_DEFS;
+const VET_DEFS = [
+  { name: 'Vaccination Visit', price: 599, originalPrice: 799, durationMinutes: 20, description: 'Core vaccines with health check', items: ['Vaccine', 'Health Check'] },
+  { name: 'Dental Checkup', price: 799, originalPrice: 999, durationMinutes: 30, description: 'Oral exam and scaling advice', items: ['Oral Exam', 'Scaling Advice'] },
+  { name: 'Skin & Coat Consultation', price: 699, originalPrice: 899, durationMinutes: 30, description: 'Allergy and skin condition diagnosis', items: ['Skin Scrape', 'Treatment Plan'] },
+  { name: 'Follow-up Visit', price: 299, originalPrice: 399, durationMinutes: 15, description: 'Quick review after treatment', items: ['Review'] },
+  { name: 'Video Consultation', price: 399, originalPrice: 499, durationMinutes: 20, description: 'Online consult from home', items: ['Video Call', 'e-Prescription'] },
+];
+const BOARDING_DEFS = [
+  { name: 'Deluxe Boarding', price: 899, originalPrice: 1099, durationMinutes: 1440, description: 'AC room with daily walks and play time', items: ['AC Room', 'Daily Walks', 'Play Time'] },
+  { name: 'Premium Suite', price: 1499, originalPrice: 1799, durationMinutes: 1440, description: 'Private suite with CCTV and grooming', items: ['Private Suite', 'CCTV', 'Daily Grooming'] },
+  { name: 'Day Care', price: 399, originalPrice: 499, durationMinutes: 1440, description: 'Daytime care and socialising', items: ['Meals', 'Socialising'] },
+  { name: 'Puppy Boarding', price: 699, originalPrice: 849, durationMinutes: 1440, description: 'Extra attention for puppies', items: ['Puppy Care', 'Feeding Schedule'] },
+  { name: 'Weekend Stay', price: 999, originalPrice: 1199, durationMinutes: 1440, description: 'Comfortable weekend stay', items: ['AC Room', 'Walks'] },
+];
+const SITTER_DEFS = [
+  { name: '2 Hour Sit', price: 399, originalPrice: 499, durationMinutes: 120, description: 'Companionship and feeding at home', items: ['Feeding', 'Play Time'] },
+  { name: 'Overnight Sit', price: 999, originalPrice: 1299, durationMinutes: 600, description: 'Sitter stays overnight at your home', items: ['Overnight Stay', 'Feeding'] },
+  { name: 'Daily Visit', price: 249, originalPrice: 299, durationMinutes: 30, description: 'Quick visit for food, water and cuddles', items: ['Feeding', 'Cuddles'] },
+  { name: 'Weekend Sit', price: 1499, originalPrice: 1799, durationMinutes: 1440, description: 'Full weekend care', items: ['Feeding', 'Walks', 'Play Time'] },
+  { name: 'Puppy Sit', price: 349, originalPrice: 449, durationMinutes: 90, description: 'Puppy-safe supervised sit', items: ['Supervision', 'Potty Breaks'] },
+];
+const DEFS_BY_TYPE = { PET_WALKER: WALKER_DEFS, TRAINER: TRAINER_DEFS, GROOMER: GROOMER_DEFS, VET: VET_DEFS, CLINIC: VET_DEFS, BOARDING: BOARDING_DEFS, PET_SITTER: SITTER_DEFS };
+const svcDefs = DEFS_BY_TYPE[provider.providerType];
+if (!svcDefs) throw new Error(`unsupported provider type ${provider.providerType}`);
 const T = provider.providerType;
 
 const newServices = svcDefs.map((s) => ({
@@ -232,19 +255,25 @@ const providerNotes = T !== 'GROOMER' ? ['Session went smoothly, pet was energet
 const cancelReasons = [['USER', 'Change of plans'], ['USER', 'Pet not well today'], ['PROVIDER', 'Provider unavailable at this slot'], ['USER', 'Booked by mistake']];
 const slotHours = [9, 10, 11, 12, 14, 15, 16, 17];
 
-function makeBooking({ dayOffset, hour, minute = 0, status, createdAt, custIdx }) {
+function makeBooking({ dayOffset, hour, minute = 0, status, createdAt, custIdx, forceDays = null }) {
   const svc = pick(svcBag);
   const pet = petsPool[(custIdx + Math.floor(rnd() * 3)) % petsPool.length];
   const customerId = petOwner.get(String(pet._id));
   const scheduledStart = at(dayOffset, hour, minute);
-  const scheduledEnd = new Date(scheduledStart.getTime() + svc.durationMinutes * 60_000);
+  const isBoarding = T === 'BOARDING';
+  let stayDays = isBoarding ? (forceDays ?? 1 + Math.floor(rnd() * 4)) : null;
+  if (isBoarding && dayOffset < 0 && !forceDays) stayDays = Math.max(1, Math.min(stayDays, -dayOffset)); // past stays must already be over
+  const scheduledEnd = isBoarding
+    ? new Date(scheduledStart.getTime() + stayDays * DAY)
+    : new Date(scheduledStart.getTime() + svc.durationMinutes * 60_000);
   const addOns = rnd() < 0.3 ? [pick(addOnPool)] : [];
-  const gross = svc.price + addOns.reduce((s, a) => s + a.price, 0);
+  const gross = svc.price * (isBoarding ? stayDays : 1) + addOns.reduce((s, a) => s + a.price, 0);
   const discountAmount = rnd() < 0.15 ? 50 : 0;
   const net = gross - discountAmount;
   const commissionAmount = round2(net * (commissionPercent / 100));
   const providerPayoutAmount = round2(net - commissionAmount);
   const completed = status === 'COMPLETED';
+  const started = status === 'STARTED';
   const cancelled = status === 'CANCELLED';
   const cancel = cancelled ? pick(cancelReasons) : null;
   const _id = new mongoose.Types.ObjectId();
@@ -280,7 +309,7 @@ function makeBooking({ dayOffset, hour, minute = 0, status, createdAt, custIdx }
     scheduledEnd,
     status,
     otpStart: otp(),
-    otpStartVerifiedAt: completed ? scheduledStart : null,
+    otpStartVerifiedAt: completed || started ? scheduledStart : null,
     otpEnd: otp(),
     otpEndVerifiedAt: completed ? scheduledEnd : null,
     payoutCreditedAt: null,
@@ -297,14 +326,14 @@ function makeBooking({ dayOffset, hour, minute = 0, status, createdAt, custIdx }
     cancellationReason: cancel?.[1] ?? null,
     notes: pick(customerNotes),
     addOns,
-    durationDays: null,
-    dropOffTime: null,
-    pickupTime: null,
-    consultationMode: null,
+    durationDays: isBoarding ? stayDays : null,
+    dropOffTime: isBoarding ? '10:00 AM' : null,
+    pickupTime: isBoarding ? '06:00 PM' : null,
+    consultationMode: T === 'VET' || T === 'CLINIC' ? (rnd() < 0.25 ? 'ONLINE' : 'CLINIC') : null,
     providerNotes: completed ? pick(providerNotes) : '',
-    photos: T === 'GROOMER' && completed && rnd() < 0.5 ? [...photosPool(String(_id).slice(-4), 'BEFORE'), ...photosPool(String(_id).slice(-4), 'AFTER')] : [],
+    photos: (T === 'VET' || T === 'CLINIC') && completed && rnd() < 0.6 ? [{ url: `https://picsum.photos/seed/rx-${String(_id).slice(-4)}/600/800`, phase: 'PRESCRIPTION', caption: 'Prescription', uploadedAt: new Date() }] : T === 'BOARDING' && completed && rnd() < 0.6 ? [{ url: `https://picsum.photos/seed/rcpt-${String(_id).slice(-4)}/600/800`, phase: 'RECEIPT', caption: 'Check-out receipt', uploadedAt: new Date() }] : T === 'GROOMER' && completed && rnd() < 0.5 ? [...photosPool(String(_id).slice(-4), 'BEFORE'), ...photosPool(String(_id).slice(-4), 'AFTER')] : [],
     progressUpdates: [],
-    walkStats: null,
+    walkStats: T === 'PET_WALKER' && completed ? { distanceMeters: 1200 + Math.floor(rnd() * 3500), durationSeconds: svc.durationMinutes * 60, steps: 1800 + Math.floor(rnd() * 5000), calories: 60 + Math.floor(rnd() * 200), updatedAt: scheduledEnd } : null,
     isDeleted: false,
     seedTag: TAG,
     createdAt,
@@ -331,6 +360,13 @@ makeBooking({ dayOffset: 0, hour: 14, status: 'ACCEPTED', createdAt: at(-2, 10),
 makeBooking({ dayOffset: 0, hour: 16, status: 'ACCEPTED', createdAt: at(-2, 15), custIdx: cIdx++ });
 makeBooking({ dayOffset: 0, hour: 17, minute: 30, status: 'PENDING', createdAt: at(0, 0, 5), custIdx: cIdx++ });
 makeBooking({ dayOffset: 0, hour: 12, status: 'CANCELLED', createdAt: at(-3, 11), custIdx: cIdx++ });
+if (T === 'BOARDING') {
+  // pets currently checked in: started 1-3 days ago, checking out today / +1 / +2
+  for (let i = 0; i < 6; i++) {
+    const back = 1 + (i % 3);
+    makeBooking({ dayOffset: -back, hour: 10, status: 'STARTED', createdAt: at(-back - 3, 12), custIdx: cIdx++, forceDays: back + (i % 3) });
+  }
+}
 // future: 3 live bookings per day + a pre-completed one so earnings/analytics never go flat
 for (let d = 1; d <= FUTURE_DAYS; d++) {
   const hours = [...slotHours].sort(() => rnd() - 0.5);
@@ -568,7 +604,7 @@ const providerSet = {
   bankAccount: bank,
   galleryUrls: [1, 2, 3, 4].map((i) => `https://picsum.photos/seed/salon-${i}/800/600`),
   ...(T === 'GROOMER' ? { 'metadata.groomer': { specializations: ['Breed Cuts', 'De-shedding', 'Bath & Spa', 'Nail Trimming'] } } : {}),
-  ...((provider.skills ?? []).length ? {} : { skills: T === 'PET_WALKER' ? ['Dog Walking', 'Puppy Care', 'Leash Training', 'Pet First Aid'] : ['Obedience', 'Behaviour Correction', 'Puppy Training', 'Agility'] }),
+  ...((provider.skills ?? []).length ? {} : { skills: T === 'PET_WALKER' ? ['Dog Walking', 'Puppy Care', 'Leash Training', 'Pet First Aid'] : T === 'TRAINER' ? ['Obedience', 'Behaviour Correction', 'Puppy Training', 'Agility'] : T === 'VET' || T === 'CLINIC' ? ['General Medicine', 'Vaccination', 'Dental Care', 'Dermatology'] : T === 'BOARDING' ? ['Overnight Care', 'Daily Walks', 'Medication Handling'] : ['Pet Sitting', 'Feeding', 'Basic First Aid'] }),
   certifications: [
     { _id: new mongoose.Types.ObjectId(), title: 'Certified Professional Groomer', issuedBy: 'Indian Pet Grooming Academy', issuedYear: 2019 },
     { _id: new mongoose.Types.ObjectId(), title: 'Pet First Aid & CPR', issuedBy: 'Red Cross India', issuedYear: 2022 },
@@ -578,6 +614,8 @@ const providerSet = {
 };
 const haveDocNames = new Set((provider.kycDocuments ?? []).map((d) => d.name));
 const extraDocs = [
+  ['AADHAAR_CARD', 'GOVERNMENT_ID'],
+  ['PAN_CARD', 'GOVERNMENT_ID'],
   ['DRIVING_LICENSE', 'GOVERNMENT_ID'],
   ['POLICE_VERIFICATION', 'OTHER'],
 ]
