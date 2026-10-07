@@ -43,6 +43,16 @@ function timeLabel(date: Date): string {
   });
 }
 
+/** e.g. "Wed Oct 07 2026" (same shape as Date#toDateString) in IST. */
+function istDate(date: Date): string {
+  const part = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' })
+      .formatToParts(date)
+      .map((p) => [p.type, p.value]),
+  );
+  return `${part.weekday} ${part.month} ${part.day} ${part.year}`;
+}
+
 function displayTime(date: Date): string {
   const now = new Date();
   const dayMs = 24 * 60 * 60 * 1000;
@@ -224,7 +234,7 @@ export function mapVetHome(
       Pharmacy: 0,
       'Services & Others': 0,
       chart_data: earningsByDay.map((d) => ({
-        label: new Date(d.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
+        label: new Date(d.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', timeZone: 'UTC' }),
         value: d.amount,
       })),
     },
@@ -307,7 +317,7 @@ export function mapBoardingHome(
               id: b.pet.id,
               name: b.pet.name,
               breed: b.pet.breed,
-              stay_dates: `${b.scheduledStart.toDateString()} - ${b.scheduledEnd.toDateString()}`,
+              stay_dates: `${istDate(b.scheduledStart)} - ${istDate(b.scheduledEnd)}`,
               image_url: b.pet.avatarUrl,
               approve: false,
             }
@@ -442,7 +452,7 @@ export function mapGroomerHome(
           amount: `₹${weekEarnings}`,
           percentage_change: `${weekGrowth.percentage}%`,
           chart_points: weekEarningsByDay.map((d) => ({
-            label: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
+            label: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }),
             value: d.amount,
           })),
         },
@@ -626,7 +636,7 @@ export function mapSitterAnalytics(range: string, analytics: ProviderAnalytics) 
       },
       earnings_chart: {
         chart_data: analytics.earningsByDay.map((d) => ({
-          label: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
+          label: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }),
           value: d.amount,
         })),
       },
@@ -655,7 +665,7 @@ export function mapWalkerAnalytics(range: string, analytics: ProviderAnalytics) 
         percentage: String(earningsGrowth.percentage),
         level: earningsGrowth.level,
         chart_data: analytics.earningsByDay.map((d) => ({
-          label: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
+          label: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }),
           value: d.amount,
         })),
       },
@@ -677,15 +687,16 @@ export function mapPerformanceAnalytics(range: string, analytics: ProviderAnalyt
   const g = growth(total, analytics.previousPeriodEarnings);
   const labelOf = (date: Date) =>
     range === 'year'
-      ? date.toLocaleDateString('en-US', { month: 'short' })
+      ? date.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' })
       : range === 'month'
-        ? date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
-        : date.toLocaleDateString('en-US', { weekday: 'short' });
+        ? date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+        : date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
   // Pre-seed every bucket in the range with 0 so the chart isn't empty on days/months without earnings.
   const byLabel = new Map<string, number>();
-  const now = new Date();
+  // IST clock; shifted so its UTC fields read as IST wall time (labels above format in UTC).
+  const now = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
   if (range === 'year') {
-    for (let i = 11; i >= 0; i--) byLabel.set(labelOf(new Date(now.getFullYear(), now.getMonth() - i, 1)), 0);
+    for (let i = 11; i >= 0; i--) byLabel.set(labelOf(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1))), 0);
   } else {
     const days = range === 'month' ? 30 : 7;
     for (let i = days - 1; i >= 0; i--) byLabel.set(labelOf(new Date(now.getTime() - i * 86_400_000)), 0);
@@ -729,7 +740,7 @@ export function mapTrainerAnalytics(analytics: ProviderAnalytics) {
         title: 'Weekly Earnings',
         total_amount: sumEarnings(analytics),
         chart: analytics.earningsByDay.map((d) => ({
-          day: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' })[0],
+          day: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' })[0],
           amount: d.amount,
         })),
       },

@@ -201,7 +201,7 @@ export const providerService = {
 
   async checkIn(userId: string) {
     const provider = await requireOwnProvider(userId);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10); // IST day
 
     const openEntry = provider.attendance.find(
       (entry) => entry.date === today && !entry.checkOutAt,
@@ -215,7 +215,7 @@ export const providerService = {
 
   async checkOut(userId: string) {
     const provider = await requireOwnProvider(userId);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10); // IST day
 
     const openEntry = provider.attendance.find(
       (entry) => entry.date === today && !entry.checkOutAt,
@@ -342,7 +342,7 @@ export const providerService = {
         },
         {
           $group: {
-            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: 'Asia/Kolkata' } },
             amount: { $sum: { $subtract: ['$price', '$discountAmount'] } },
           },
         },

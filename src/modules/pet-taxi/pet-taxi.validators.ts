@@ -5,8 +5,8 @@ const objectIdSchema = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
 
 function isTodayOrFuture(value: string): boolean {
   const date = new Date(value);
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
+  // start of today in IST, as an instant
+  const startOfToday = new Date(Math.floor((Date.now() + 5.5 * 3_600_000) / 86_400_000) * 86_400_000 - 5.5 * 3_600_000);
   return date >= startOfToday;
 }
 

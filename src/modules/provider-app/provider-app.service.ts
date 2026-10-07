@@ -765,10 +765,9 @@ export const providerAppService = {
         : query.type === 'past'
           ? [BOOKING_STATUSES.COMPLETED, BOOKING_STATUSES.CANCELLED]
           : ACTIVE_STATUSES;
-    const now = new Date();
     const dateRange =
       query.filter === 'today'
-        ? { from: new Date(now.setHours(0, 0, 0, 0)), to: new Date(now.setHours(23, 59, 59, 999)) }
+        ? dayRangeFor(new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10))
         : query.filter === 'this_week'
           ? { from: new Date(), to: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) }
           : {};

@@ -66,7 +66,7 @@ export const analyticsService = {
       { $match: { createdAt: { $gte: from, $lte: to } } },
       {
         $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: 'Asia/Kolkata' } },
           count: { $sum: 1 },
         },
       },
@@ -86,7 +86,7 @@ export const analyticsService = {
       },
       {
         $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: 'Asia/Kolkata' } },
           revenue: { $sum: '$amount' },
         },
       },
@@ -101,7 +101,7 @@ export const analyticsService = {
       { $match: { createdAt: { $gte: from, $lte: to } } },
       {
         $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: 'Asia/Kolkata' } },
           newUsers: { $sum: 1 },
         },
       },

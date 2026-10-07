@@ -92,8 +92,8 @@ function parseBookingListQuery(query: ListBookingsQuery): {
   }
 
   const dateRange: { from?: Date; to?: Date } = {};
-  if (query.from) dateRange.from = new Date(`${query.from}T00:00:00.000Z`);
-  if (query.to) dateRange.to = new Date(`${query.to}T23:59:59.999Z`);
+  if (query.from) dateRange.from = new Date(`${query.from}T00:00:00.000+05:30`);
+  if (query.to) dateRange.to = new Date(`${query.to}T23:59:59.999+05:30`);
 
   return { statuses, dateRange };
 }
