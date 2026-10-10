@@ -15,17 +15,16 @@ export class BookingRepository extends BaseRepository<IBooking> {
     super(BookingModel);
   }
 
-  /** True if the provider already has an active booking overlapping the given time window. */
-  async hasOverlap(providerId: string, scheduledStart: Date, scheduledEnd: Date): Promise<boolean> {
-    const overlapping = await this.model
-      .findOne({
+  /** Number of active bookings the provider already has overlapping the given time window. */
+  async countOverlap(providerId: string, scheduledStart: Date, scheduledEnd: Date): Promise<number> {
+    return this.model
+      .countDocuments({
         providerId,
         status: { $in: ACTIVE_STATUSES },
         scheduledStart: { $lt: scheduledEnd },
         scheduledEnd: { $gt: scheduledStart },
       })
       .exec();
-    return overlapping !== null;
   }
 
   /** Active bookings for a provider overlapping the given window, for computing free/busy slots. */

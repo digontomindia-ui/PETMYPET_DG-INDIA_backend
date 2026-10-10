@@ -7,6 +7,7 @@ import { ROLES, type Role } from '../../common/constants/roles.js';
 import { petRepository } from '../pets/pet.repository.js';
 import { serviceRepository } from '../services/service.repository.js';
 import { providerRepository } from '../providers/provider.repository.js';
+import type { ProviderDocument } from '../providers/provider.types.js';
 import { couponService } from '../coupons/coupon.service.js';
 import { notificationService } from '../notifications/notification.service.js';
 import { NOTIFICATION_TYPES } from '../notifications/notification.constants.js';
@@ -194,6 +195,16 @@ async function acceptBooking(booking: BookingDocument) {
   return await toProviderBookingView(booking);
 }
 
+/** How many bookings a provider can hold at the same time: a boarding facility / sitter / walker
+ * takes several pets at once (their declared capacity), everyone else is one-at-a-time. */
+function concurrentCapacity(provider: ProviderDocument): number {
+  const m = provider.metadata;
+  const declared = m?.boarding?.capacity ?? m?.petSitter?.maxPetsAtOnce ?? m?.petWalker?.maxPetsPerWalk;
+  if (declared && declared > 0) return declared;
+  // ponytail: boarding that never declared capacity gets a flat default, not one-at-a-time
+  return provider.providerType === 'BOARDING' ? 10 : 1;
+}
+
 export function computeAmounts(price: number, discountAmount: number, commissionPercent: number) {
   const netPrice = Math.max(0, price - discountAmount);
   const commissionAmount = Math.round(netPrice * (commissionPercent / 100) * 100) / 100;
@@ -229,12 +240,12 @@ export const bookingService = {
       ? new Date(scheduledStart.getTime() + input.durationDays * DAY_MS)
       : new Date(scheduledStart.getTime() + service.durationMinutes * 60_000);
 
-    const overlap = await bookingRepository.hasOverlap(
+    const overlapping = await bookingRepository.countOverlap(
       input.providerId,
       scheduledStart,
       scheduledEnd,
     );
-    if (overlap)
+    if (overlapping >= concurrentCapacity(provider))
       throw AppError.conflict('This provider is already booked during the selected time');
 
     let discountAmount = 0;

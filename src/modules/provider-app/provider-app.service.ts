@@ -303,6 +303,11 @@ function applyRoleFields(
     }
   }
 
+  // Onboarding's `name` lands in businessName only; the profile screens read user.name, which is
+  // '' for a fresh signup — so mirror it there or the new vendor's profile shows up blank.
+  if (input.name && !user.name) user.name = input.name;
+  if (input.email) user.email = input.email;
+
   if (input.documents) {
     const now = new Date();
     if (input.documents.adhar_card) {

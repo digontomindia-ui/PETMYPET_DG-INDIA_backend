@@ -381,7 +381,7 @@ export const providerAppAccountService = {
       success: true,
       message: 'Personal info fetched successfully.',
       data: {
-        full_name: user.name,
+        full_name: user.name || (provider.businessName === 'Pending onboarding' ? '' : provider.businessName),
         email: user.email ?? '',
         phone: user.phone,
         date_of_birth: provider.dateOfBirth ? provider.dateOfBirth.toISOString().slice(0, 10) : null,
