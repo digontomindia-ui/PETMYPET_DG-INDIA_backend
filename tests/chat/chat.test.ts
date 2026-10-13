@@ -6,6 +6,7 @@ vi.mock('../../src/common/integrations/sms.js', () => ({ sendSms: vi.fn() }));
 
 const { createApp } = await import('../../src/app.js');
 const { signupAndVerify } = await import('../helpers/auth.js');
+const { createApprovedProviderWithService } = await import('../helpers/provider.js');
 
 describe('chat REST layer', () => {
   const app = createApp();
@@ -95,5 +96,44 @@ describe('chat REST layer', () => {
       .set('Authorization', `Bearer ${alice.tokens.accessToken}`)
       .send({ text: '   ' });
     expect(res.status).toBe(400);
+  });
+
+  it('opens the owner↔provider room from a bookingId alone and rejects outsiders', async () => {
+    const { providerAccount, providerId, serviceId } = await createApprovedProviderWithService(app);
+    const owner = await signupAndVerify(app, { role: 'USER' });
+    const stranger = await signupAndVerify(app, { role: 'USER' });
+
+    const bookingRes = await request(app)
+      .post('/api/v1/bookings')
+      .set('Authorization', `Bearer ${owner.tokens.accessToken}`)
+      .send({ providerId, serviceId, scheduledStart: new Date(Date.now() + 2 * 3600000).toISOString() })
+      .expect(201);
+    const bookingId = bookingRes.body.data.id as string;
+
+    const ownerRoom = await request(app)
+      .post('/api/v1/chat/rooms')
+      .set('Authorization', `Bearer ${owner.tokens.accessToken}`)
+      .send({ bookingId });
+    expect(ownerRoom.status).toBe(201);
+    expect(ownerRoom.body.data.otherParticipantId).toBe(providerAccount.user.id);
+    expect(ownerRoom.body.data.bookingId).toBe(bookingId);
+
+    const providerRoom = await request(app)
+      .post('/api/v1/chat/rooms')
+      .set('Authorization', `Bearer ${providerAccount.tokens.accessToken}`)
+      .send({ bookingId });
+    expect(providerRoom.body.data.id).toBe(ownerRoom.body.data.id);
+
+    const strangerRes = await request(app)
+      .post('/api/v1/chat/rooms')
+      .set('Authorization', `Bearer ${stranger.tokens.accessToken}`)
+      .send({ bookingId });
+    expect(strangerRes.status).toBe(403);
+
+    const emptyRes = await request(app)
+      .post('/api/v1/chat/rooms')
+      .set('Authorization', `Bearer ${owner.tokens.accessToken}`)
+      .send({});
+    expect(emptyRes.status).toBe(400);
   });
 });

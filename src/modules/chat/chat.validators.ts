@@ -2,10 +2,14 @@ import { z } from 'zod';
 
 const objectIdSchema = z.string().regex(/^[a-f\d]{24}$/i, 'Invalid id');
 
-export const createRoomSchema = z.object({
-  participantId: objectIdSchema,
-  bookingId: objectIdSchema.optional(),
-});
+export const createRoomSchema = z
+  .object({
+    participantId: objectIdSchema.optional(),
+    bookingId: objectIdSchema.optional(),
+  })
+  .refine((data) => data.participantId || data.bookingId, {
+    message: 'participantId or bookingId is required',
+  });
 
 export const sendMessageSchema = z
   .object({

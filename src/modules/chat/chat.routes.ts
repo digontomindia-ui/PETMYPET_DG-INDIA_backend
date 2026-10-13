@@ -28,10 +28,10 @@ chatRoutes.use(authenticate);
  *         application/json:
  *           schema:
  *             type: object
- *             required: [participantId]
+ *             description: Send participantId, bookingId, or both. With only bookingId the other side of the booking (owner ↔ provider) is used.
  *             properties:
- *               participantId: { type: string, description: "24-hex-char ObjectId of the other participant" }
- *               bookingId: { type: string, description: "Optional related booking ObjectId" }
+ *               participantId: { type: string, description: "24-hex-char user ObjectId of the other participant" }
+ *               bookingId: { type: string, description: "Related booking ObjectId; caller must be its owner or provider" }
  *           example:
  *             participantId: "64f1a2b3c4d5e6f7a8b9c0d2"
  *             bookingId: "64f1a2b3c4d5e6f7a8b9c0a1"

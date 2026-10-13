@@ -1,6 +1,8 @@
 import { AppError } from '../../common/errors/app-error.js';
 import { parsePagination } from '../../common/utils/pagination.js';
 import { userRepository } from '../users/user.repository.js';
+import { bookingRepository } from '../bookings/booking.repository.js';
+import { providerRepository } from '../providers/provider.repository.js';
 import { notificationService } from '../notifications/notification.service.js';
 import { NOTIFICATION_TYPES } from '../notifications/notification.constants.js';
 import { tryGetSocketServer } from '../../sockets/index.js';
@@ -30,17 +32,29 @@ export const chatService = {
   requireParticipant,
 
   async createOrGetRoom(userId: string, input: CreateRoomInput) {
-    if (input.participantId === userId) {
+    // The owner app only has the booking's providerId (a profile id, not a user id), so a bookingId
+    // alone resolves the other side; it also stops anyone linking a room to someone else's booking.
+    let participantId = input.participantId;
+    if (input.bookingId) {
+      const booking = await bookingRepository.findById(input.bookingId);
+      if (!booking) throw AppError.notFound('Booking not found');
+      const provider = await providerRepository.findById(booking.providerId.toString());
+      const ownerId = booking.userId.toString();
+      const providerUserId = provider?.userId.toString();
+      if (userId !== ownerId && userId !== providerUserId) {
+        throw AppError.forbidden('You are not part of this booking');
+      }
+      participantId ??= userId === ownerId ? providerUserId : ownerId;
+    }
+    if (!participantId) throw AppError.notFound('The other participant was not found');
+
+    if (participantId === userId) {
       throw AppError.badRequest('Cannot create a chat room with yourself');
     }
-    const otherUser = await userRepository.findById(input.participantId);
+    const otherUser = await userRepository.findById(participantId);
     if (!otherUser) throw AppError.notFound('The other participant was not found');
 
-    const room = await chatRepository.findOrCreateRoom(
-      userId,
-      input.participantId,
-      input.bookingId,
-    );
+    const room = await chatRepository.findOrCreateRoom(userId, participantId, input.bookingId);
     const unreadCount = await chatRepository.countUnreadInRoom(
       room._id.toString(),
       userId,

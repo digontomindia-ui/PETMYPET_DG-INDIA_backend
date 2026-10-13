@@ -31,9 +31,9 @@ const envSchema = z.object({
   PASSWORD_RESET_TTL_SECONDS: z.coerce.number().int().positive().default(900),
 
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900000),
-  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
+  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(500),
   AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900000),
-  AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
+  AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(50),
 
   /** Bunny.net Storage Zone name, e.g. "patmypets". */
   BUNNY_STORAGE_ZONE: z.string().default(''),
