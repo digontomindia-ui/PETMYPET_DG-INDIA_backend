@@ -454,6 +454,15 @@ export const bookingService = {
       ?.to(`booking:${bookingId}`)
       .emit(WALK_SOCKET_EVENTS.STARTED, { bookingId });
 
+    // Without this push the owner app never refetches, so the end OTP (revealed only once STARTED) stays hidden.
+    await notificationService.notify({
+      userId: booking.userId.toString(),
+      type: NOTIFICATION_TYPES.BOOKING_STARTED,
+      title: 'Service started',
+      body: 'Your service has started. Share the end code with the provider when it is done.',
+      data: { bookingId },
+    });
+
     return await toProviderBookingView(booking);
   },
 

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c ' *)",
+      "Bash(codegraph --version)",
+      "Bash(codegraph init *)",
+      "Bash(./node_modules/.bin/tsc -p tsconfig.json --noEmit)"
+    ]
+  }
+}
