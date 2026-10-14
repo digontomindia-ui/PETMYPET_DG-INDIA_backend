@@ -14,9 +14,15 @@ export const createBookingSchema = z.object({
   providerId: objectIdSchema,
   serviceId: objectIdSchema,
   petId: objectIdSchema.optional(),
-  scheduledStart: z.coerce.date().refine((date) => date.getTime() > Date.now(), {
-    message: 'scheduledStart must be in the future',
-  }),
+  // Apps send the picked wall-clock time; without an offset the UTC server would shift it +5:30.
+  scheduledStart: z
+    .preprocess(
+      (v) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(v) ? `${v}+05:30` : v),
+      z.coerce.date(),
+    )
+    .refine((date) => date.getTime() > Date.now(), {
+      message: 'scheduledStart must be in the future',
+    }),
   couponCode: z.string().min(1).max(30).optional(),
   notes: z.string().max(1000).default(''),
   addOns: z.array(addOnSchema).default([]),
