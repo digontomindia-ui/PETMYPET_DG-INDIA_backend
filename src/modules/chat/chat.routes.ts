@@ -32,9 +32,15 @@ chatRoutes.use(authenticate);
  *             properties:
  *               participantId: { type: string, description: "24-hex-char user ObjectId of the other participant" }
  *               bookingId: { type: string, description: "Related booking ObjectId; caller must be its owner or provider" }
- *           example:
- *             participantId: "64f1a2b3c4d5e6f7a8b9c0d2"
- *             bookingId: "64f1a2b3c4d5e6f7a8b9c0a1"
+ *           examples:
+ *             fromBooking:
+ *               summary: Chat with the other side of a booking (user ↔ vendor)
+ *               value:
+ *                 bookingId: "64f1a2b3c4d5e6f7a8b9c0a1"
+ *             withUser:
+ *               summary: Chat with a user directly
+ *               value:
+ *                 participantId: "64f1a2b3c4d5e6f7a8b9c0d2"
  *     responses:
  *       201:
  *         description: Room created

@@ -77,7 +77,7 @@
     },
     {
       "name": "Chat",
-      "description": "1:1 messaging between any two users (customer↔provider, or matched Pet Companion owners). Rooms can be flagged `isUrgent` for a provider-app \"Emergency\" inbox filter. Real-time delivery also available over Socket.IO for connected clients."
+      "description": "1:1 messaging between any two users (customer↔provider, or matched Pet Companion owners). Rooms can be flagged `isUrgent` for a provider-app \"Emergency\" inbox filter. Real-time delivery also available over Socket.IO for connected clients.\n\n**Socket.IO (not representable in OpenAPI)** — same host/port as the API, path `/socket.io`. Connect with `io(BASE_HOST, { auth: { token: \"<accessToken>\" } })`; handshake is rejected if the token is missing/invalid or the session was logged out. Flow: `join_room` → `send_message` → listen `new_message`. Sending via REST also emits `new_message`.\n\n**Client → server (provider app):** `join_room {room_id}`, `leave_room {room_id}`, `send_message {room_id, temp_id?, message?, type?, media_url?}` (supports ack callback), `typing_start` / `typing_stop {room_id}`, `mark_read {room_id}`.\n\n**Server → client:** `new_message {id, room_id, sender_id, sender_name, message, type, media_url, status, created_at}`, `message_ack {temp_id, id, room_id, status: SENT|FAILED, created_at}`, `user_typing {room_id, user_id, is_typing}`, `messages_read {room_id, read_by, read_at}`, `user_status {user_id, is_online, last_seen}`.\n\n**Owner-app aliases (camelCase):** `chat:join`, `chat:typing`, `chat:message`, `chat:read` — payloads `{roomId, text?, imageUrl?}`; server emits `chat:message` (message DTO), `chat:typing {roomId, userId}`, `chat:read {roomId, readerId}`."
     },
     {
       "name": "Notifications",
@@ -8539,6 +8539,31 @@
                       "avg_rating": "4.7",
                       "total_earnings": 4500,
                       "active_client": 0
+                    },
+                    "monthly_growth": {
+                      "percentage": 12,
+                      "level": "up",
+                      "chart_data": [
+                        {
+                          "label": "Oct",
+                          "value": 4500
+                        }
+                      ]
+                    },
+                    "top_rated_services": [
+                      {
+                        "id": "64f8…",
+                        "name": "Core Vaccinations",
+                        "price": 85,
+                        "booking_count": 124,
+                        "rating": 4.9
+                      }
+                    ],
+                    "stats": {
+                      "monthly_revenue": 4500,
+                      "retention_rate": 89,
+                      "avg_consult_time": 18,
+                      "satisfaction_score": 4.92
                     }
                   }
                 }
@@ -8694,6 +8719,37 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/patients/{pet_id}/records": {
+      "get": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Patient \"View Records\" — pet profile, vaccinations, medical records and this provider's visit history",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Patient records"
+          },
+          "404": {
+            "description": "Pet not found or never booked with this provider"
           }
         }
       }
@@ -9187,7 +9243,7 @@
           "ProviderApp"
         ],
         "summary": "Message history for one chat room — REST alias for the provider app's chat screen",
-        "description": "Bearer token required (any authenticated role). Thin wrapper over the **Chat** module's\nmessage history; real-time delivery for connected clients is over Socket.IO instead.\n",
+        "description": "Bearer token required (any authenticated role). Thin wrapper over the **Chat** module's\nmessage history; real-time delivery for connected clients is over Socket.IO instead.\n`is_online`/`last_seen` describe the other participant. Fetching history marks the room read for the caller.\n",
         "security": [
           {
             "bearerAuth": []
@@ -9233,6 +9289,8 @@
                   "message": "Messages fetched successfully.",
                   "data": {
                     "room_id": "64f8b9c0d1e2f3a4b5c6d7e8",
+                    "is_online": true,
+                    "last_seen": null,
                     "messages": [
                       {
                         "id": "64f6f7a8b9c0d1e2f3a4b5c6",
@@ -9273,6 +9331,89 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/message/{room_id}/clear": {
+      "post": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Clear chat — hides the room's existing messages for the caller only",
+        "description": "The other participant keeps their copy; new messages after this call show normally.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cleared"
+          }
+        }
+      }
+    },
+    "/message/{room_id}/block": {
+      "post": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Block chat — nobody in the room can send until unblocked",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Blocked — data: { isBlocked, blockedByMe }"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ProviderApp"
+        ],
+        "summary": "Unblock chat (removes the caller's own block)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unblocked"
           }
         }
       }
@@ -20100,23 +20241,31 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "participantId"
-                ],
+                "description": "Send participantId, bookingId, or both. With only bookingId the other side of the booking (owner ↔ provider) is used.",
                 "properties": {
                   "participantId": {
                     "type": "string",
-                    "description": "24-hex-char ObjectId of the other participant"
+                    "description": "24-hex-char user ObjectId of the other participant"
                   },
                   "bookingId": {
                     "type": "string",
-                    "description": "Optional related booking ObjectId"
+                    "description": "Related booking ObjectId; caller must be its owner or provider"
                   }
                 }
               },
-              "example": {
-                "participantId": "64f1a2b3c4d5e6f7a8b9c0d2",
-                "bookingId": "64f1a2b3c4d5e6f7a8b9c0a1"
+              "examples": {
+                "fromBooking": {
+                  "summary": "Chat with the other side of a booking (user ↔ vendor)",
+                  "value": {
+                    "bookingId": "64f1a2b3c4d5e6f7a8b9c0a1"
+                  }
+                },
+                "withUser": {
+                  "summary": "Chat with a user directly",
+                  "value": {
+                    "participantId": "64f1a2b3c4d5e6f7a8b9c0d2"
+                  }
+                }
               }
             }
           }
@@ -20762,6 +20911,94 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/chat/rooms/{roomId}/clear": {
+      "post": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Clear chat for the caller only (the other participant keeps their messages)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chat cleared"
+          },
+          "403": {
+            "description": "Not a participant"
+          },
+          "404": {
+            "description": "Room not found"
+          }
+        }
+      }
+    },
+    "/chat/rooms/{roomId}/block": {
+      "post": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Block the chat — nobody in the room can send messages until it is unblocked",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Blocked — data: { isBlocked, blockedByMe }"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Unblock the chat (only removes the caller's own block)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unblocked — data: { isBlocked, blockedByMe }"
           }
         }
       }
@@ -21940,6 +22177,53 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/bookings/{id}/reject": {
+      "patch": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "Reject a PENDING booking (service provider only). Booking becomes CANCELLED (cancelledBy PROVIDER) and the customer is notified.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "example": "Fully booked that day"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Booking rejected"
+          },
+          "400": {
+            "description": "Booking is not pending"
           }
         }
       }
@@ -26347,6 +26631,34 @@
         "responses": {
           "200": {
             "description": "Paginated bookings"
+          }
+        }
+      }
+    },
+    "/admin/bookings/{id}/accept": {
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Accept a PENDING booking on the provider's behalf (customer gets the OTP / accepted notification)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Booking accepted"
           }
         }
       }
