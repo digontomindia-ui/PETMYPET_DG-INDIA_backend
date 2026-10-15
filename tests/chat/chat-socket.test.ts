@@ -97,6 +97,35 @@ describe('chat Socket.io gateway', () => {
     bob.close();
   });
 
+  it('delivers chat:message exactly once to a joined recipient, and live to one who never joined', async () => {
+    const senderId = '507f1f77bcf86cd799439021';
+    const joinedId = '507f1f77bcf86cd799439022';
+    const idleId = '507f1f77bcf86cd799439023';
+    const joinedRoom = (await chatRepository.findOrCreateRoom(senderId, joinedId))._id.toString();
+    const idleRoom = (await chatRepository.findOrCreateRoom(senderId, idleId))._id.toString();
+
+    // Tokens first: a socket created before the next await could connect before we listen for it.
+    const tokens = await Promise.all([senderId, joinedId, idleId].map(tokenFor));
+    const [sender, joined, idle] = tokens.map(({ token }) => connect(baseUrl, token));
+    await Promise.all([sender, joined, idle].map((s) => waitForEvent(s, 'connect')));
+
+    sender.emit('chat:join', { roomId: joinedRoom });
+    joined.emit('chat:join', { roomId: joinedRoom });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const received: string[] = [];
+    joined.on('chat:message', (m: { text: string }) => received.push(m.text));
+    const idleReceived = waitForEvent<{ text: string }>(idle, 'chat:message');
+
+    sender.emit('chat:message', { roomId: joinedRoom, text: 'once' });
+    sender.emit('chat:message', { roomId: idleRoom, text: 'not joined' });
+    expect((await idleReceived).text).toBe('not joined');
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(received).toEqual(['once']);
+
+    [sender, joined, idle].forEach((s) => s.close());
+  });
+
   it('rejects a token whose session was revoked (logged out)', async () => {
     const { token, sessionId } = await tokenFor('507f1f77bcf86cd799439021');
     await sessionRepository.revoke(sessionId);

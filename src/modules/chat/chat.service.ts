@@ -112,11 +112,12 @@ export const chatService = {
     const dto = toMessageDto(message);
 
     const io = tryGetSocketServer();
-    io?.to(`room:${roomId}`).emit(CHAT_SOCKET_EVENTS.MESSAGE, dto);
-
     const recipientId = room.participantIds.find((id) => id.toString() !== senderId);
+    // One emit to both rooms so a recipient who joined the room doesn't get the message twice.
+    io?.to(recipientId ? [`room:${roomId}`, `user:${recipientId.toString()}`] : `room:${roomId}`)
+      .emit(CHAT_SOCKET_EVENTS.MESSAGE, dto);
+
     if (recipientId) {
-      io?.to(`user:${recipientId.toString()}`).emit(CHAT_SOCKET_EVENTS.MESSAGE, dto);
       if (io) {
         const sender = await userRepository.findById(senderId);
         // One emit to both rooms = delivered once per socket; the sender's own sockets get
