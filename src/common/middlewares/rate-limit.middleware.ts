@@ -8,8 +8,13 @@ function buildStore(prefix: string) {
   if (isTest) return undefined;
   return new RedisStore({
     prefix,
-    sendCommand: (command: string, ...args: string[]) =>
-      redisClient.call(command, ...args) as Promise<never>,
+    sendCommand: async (command: string, ...args: string[]) => {
+      try {
+        return (await redisClient.call(command, ...args)) as any;
+      } catch {
+        return undefined as any;
+      }
+    },
   });
 }
 

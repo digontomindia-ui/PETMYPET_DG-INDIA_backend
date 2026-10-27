@@ -14,10 +14,10 @@ import { logger } from '../utils/logger.js';
  *                                  keep trying in the background so the app recovers
  *                                  automatically once Redis becomes reachable. */
 export const redisClient = new Redis(env.REDIS_URL, {
-  maxRetriesPerRequest: 3,
+  maxRetriesPerRequest: null,
   lazyConnect: true,
   connectTimeout: 10_000,
-  enableOfflineQueue: false,
+  enableOfflineQueue: true,
   retryStrategy(times: number) {
     // Exponential back-off: 500ms → 1s → 2s … capped at 30s
     const delay = Math.min(times * 500, 30_000);
@@ -30,16 +30,11 @@ redisClient.on('error', (err: Error) => logger.error({ err }, 'Redis client erro
 redisClient.on('connect', () => logger.info('Redis connected'));
 redisClient.on('close', () => logger.warn('Redis connection closed'));
 
-/** Guard against MaxRetriesPerRequestError bubbling up as an uncaught exception/rejection
- * and killing the process. The rate limiter already has `passOnStoreError: true`, but ioredis
- * can still throw these through internal code paths that bypass the command promise chain. */
+/**
+ * Handle unhandled rejections cleanly so Redis or network disconnections never crash the process.
+ */
 process.on('unhandledRejection', (reason: unknown) => {
-  if (reason instanceof Error && reason.name === 'MaxRetriesPerRequestError') {
-    logger.warn({ err: reason }, 'Suppressed Redis MaxRetriesPerRequestError (Redis unreachable)');
-    return;
-  }
-  // Re-throw anything that isn't Redis-related so it still crashes on real bugs.
-  throw reason;
+  logger.error({ err: reason }, 'Unhandled rejection logged');
 });
 
 export async function connectRedis(): Promise<void> {
