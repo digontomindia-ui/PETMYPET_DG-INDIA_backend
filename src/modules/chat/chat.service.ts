@@ -7,7 +7,7 @@ import { notificationService } from '../notifications/notification.service.js';
 import { NOTIFICATION_TYPES } from '../notifications/notification.constants.js';
 import { tryGetSocketServer } from '../../sockets/index.js';
 import { chatRepository } from './chat.repository.js';
-import { clearedAtFor, toMessageDto, toProviderAppMessage, toRoomDto } from './chat.mapper.js';
+import { chatSenderRole, clearedAtFor, toMessageDto, toProviderAppMessage, toRoomDto } from './chat.mapper.js';
 import { CHAT_SOCKET_EVENTS, PROVIDER_APP_SOCKET_EVENTS } from './chat.constants.js';
 import type {
   CreateRoomInput,
@@ -103,9 +103,14 @@ export const chatService = {
   async sendMessage(roomId: string, senderId: string, input: SendMessageInput) {
     const room = await requireParticipant(roomId, senderId);
     if (room.blockedBy.length > 0) throw AppError.forbidden('This chat is blocked');
+
+    // The sender's role is stamped onto the message so every emitted payload and the REST history
+    // carry USER | VENDOR without a per-message lookup; the name is reused for the provider-app event.
+    const sender = await userRepository.findById(senderId);
     const message = await chatRepository.appendMessage(
       roomId,
       senderId,
+      chatSenderRole(sender?.role),
       input.text.trim(),
       input.imageUrl ?? null,
     );
@@ -119,7 +124,6 @@ export const chatService = {
 
     if (recipientId) {
       if (io) {
-        const sender = await userRepository.findById(senderId);
         // One emit to both rooms = delivered once per socket; the sender's own sockets get
         // message_ack instead, so they're excluded here.
         io.to([`room:${roomId}`, `user:${recipientId.toString()}`])

@@ -1,4 +1,5 @@
 import type { HydratedDocument, Types } from 'mongoose';
+import type { ChatSenderRole } from './chat.constants.js';
 
 export interface IChatRoom {
   _id: Types.ObjectId;
@@ -20,6 +21,8 @@ export interface IMessage {
   _id: Types.ObjectId;
   roomId: Types.ObjectId;
   senderId: Types.ObjectId;
+  /** Sender's role at send time — USER (pet owner) or VENDOR (service provider). */
+  senderRole: ChatSenderRole;
   text: string;
   imageUrl: string | null;
   isRead: boolean;

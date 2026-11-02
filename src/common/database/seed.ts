@@ -1437,6 +1437,7 @@ async function seed(): Promise<void> {
   await MessageModel.create({
     roomId: companionChatRoom._id,
     senderId: priya._id,
+    senderRole: 'USER',
     text: 'Would love a playdate with Luna!',
   });
 
@@ -1470,6 +1471,7 @@ async function seed(): Promise<void> {
   await MessageModel.create({
     roomId: dighaChatRoom._id,
     senderId: meera._id,
+    senderRole: 'USER',
     text: 'Rocky and Coco should meet up again soon!',
   });
 

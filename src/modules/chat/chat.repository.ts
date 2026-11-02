@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import { ChatRoomModel, MessageModel } from './chat.schema.js';
+import type { ChatSenderRole } from './chat.constants.js';
 
 export const chatRepository = {
   async findOrCreateRoom(userIdA: string, userIdB: string, bookingId?: string) {
@@ -33,8 +34,14 @@ export const chatRepository = {
     return ChatRoomModel.findByIdAndUpdate(roomId, { isUrgent }, { new: true }).exec();
   },
 
-  async appendMessage(roomId: string, senderId: string, text: string, imageUrl: string | null) {
-    const message = await MessageModel.create({ roomId, senderId, text, imageUrl });
+  async appendMessage(
+    roomId: string,
+    senderId: string,
+    senderRole: ChatSenderRole,
+    text: string,
+    imageUrl: string | null,
+  ) {
+    const message = await MessageModel.create({ roomId, senderId, senderRole, text, imageUrl });
     await ChatRoomModel.updateOne(
       { _id: roomId },
       { lastMessageAt: message.createdAt, lastMessagePreview: text ? text.slice(0, 200) : imageUrl ? 'Photo' : '' },

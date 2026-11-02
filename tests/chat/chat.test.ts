@@ -40,6 +40,7 @@ describe('chat REST layer', () => {
       .send({ text: 'Hello Bob' });
     expect(sendRes.status).toBe(201);
     expect(sendRes.body.data.text).toBe('Hello Bob');
+    expect(sendRes.body.data.senderRole).toBe('USER');
 
     const bobRooms = await request(app)
       .get('/api/v1/chat/rooms')
@@ -123,6 +124,21 @@ describe('chat REST layer', () => {
       .set('Authorization', `Bearer ${providerAccount.tokens.accessToken}`)
       .send({ bookingId });
     expect(providerRoom.body.data.id).toBe(ownerRoom.body.data.id);
+
+    // A message from the provider side is stamped VENDOR; from the owner side, USER.
+    const providerMsg = await request(app)
+      .post(`/api/v1/chat/rooms/${ownerRoom.body.data.id as string}/messages`)
+      .set('Authorization', `Bearer ${providerAccount.tokens.accessToken}`)
+      .send({ text: 'On my way' })
+      .expect(201);
+    expect(providerMsg.body.data.senderRole).toBe('VENDOR');
+
+    const ownerMsg = await request(app)
+      .post(`/api/v1/chat/rooms/${ownerRoom.body.data.id as string}/messages`)
+      .set('Authorization', `Bearer ${owner.tokens.accessToken}`)
+      .send({ text: 'Great, thanks!' })
+      .expect(201);
+    expect(ownerMsg.body.data.senderRole).toBe('USER');
 
     const strangerRes = await request(app)
       .post('/api/v1/chat/rooms')

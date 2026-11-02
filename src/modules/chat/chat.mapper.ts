@@ -1,4 +1,13 @@
+import { ROLES } from '../../common/constants/roles.js';
+import { CHAT_SENDER_ROLES, type ChatSenderRole } from './chat.constants.js';
 import type { ChatRoomDocument, MessageDocument } from './chat.types.js';
+
+/** Maps an account's platform role to the chat's sender-role vocabulary (USER | VENDOR | ADMIN). */
+export function chatSenderRole(role?: string): ChatSenderRole {
+  if (role === ROLES.SERVICE_PROVIDER) return CHAT_SENDER_ROLES.VENDOR;
+  if (role === ROLES.SUPER_ADMIN) return CHAT_SENDER_ROLES.ADMIN;
+  return CHAT_SENDER_ROLES.USER;
+}
 
 /** When the viewer last cleared this chat, if ever. */
 export function clearedAtFor(room: ChatRoomDocument, viewerId: string): Date | undefined {
@@ -27,6 +36,7 @@ export function toMessageDto(message: MessageDocument) {
     id: message._id.toString(),
     roomId: message.roomId.toString(),
     senderId: message.senderId.toString(),
+    senderRole: message.senderRole,
     text: message.text,
     imageUrl: message.imageUrl,
     isRead: message.isRead,
@@ -41,6 +51,7 @@ export function toProviderAppMessage(dto: ReturnType<typeof toMessageDto>, sende
     id: dto.id,
     room_id: dto.roomId,
     sender_id: dto.senderId,
+    sender_role: dto.senderRole,
     sender_name: senderName,
     message: dto.text,
     type: dto.imageUrl ? 'IMAGE' : 'TEXT',

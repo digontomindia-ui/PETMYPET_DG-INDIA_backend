@@ -164,9 +164,14 @@ describe('chat Socket.io gateway', () => {
     expect((await online).is_online).toBe(true);
 
     // Owner app sends via the chat:* contract; provider app (listening to new_message) still gets it.
-    const received = waitForEvent<{ message: string; sender_id: string; type: string }>(provider, 'new_message');
+    const received = waitForEvent<{ message: string; sender_id: string; sender_role: string; type: string }>(provider, 'new_message');
     owner.emit('chat:message', { roomId, text: 'Is Bruno ready?' });
-    expect(await received).toMatchObject({ message: 'Is Bruno ready?', sender_id: ownerId, type: 'TEXT' });
+    expect(await received).toMatchObject({
+      message: 'Is Bruno ready?',
+      sender_id: ownerId,
+      sender_role: 'USER',
+      type: 'TEXT',
+    });
 
     await new Promise((resolve) => setTimeout(resolve, 200));
     expect(strangerGotMessage).toBe(false);
