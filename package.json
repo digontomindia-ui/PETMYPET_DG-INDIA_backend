@@ -21,6 +21,7 @@
     "test:coverage": "vitest run --coverage",
     "worker": "tsx watch src/worker.ts",
     "seed": "tsx src/common/database/seed.ts",
+    "create-admin": "tsx src/common/database/ensure-admin.ts",
     "docs:openapi": "tsx scripts/export-openapi.mts",
     "prepare": "husky"
   },
