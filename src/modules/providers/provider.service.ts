@@ -263,6 +263,7 @@ export const providerService = {
     const provider = await providerRepository.updateById(id, {
       kycStatus: KYC_STATUSES.APPROVED,
       kycRejectionReason: null,
+      approvedAt: new Date(),
       'kycDocuments.$[].status': 'VERIFIED',
     });
     if (!provider) throw AppError.notFound('Provider not found');

@@ -143,6 +143,8 @@ const providerSchema = new Schema<IProvider>(
     languages: { type: [String], default: [] },
     kycStatus: { type: String, enum: Object.values(KYC_STATUSES), default: KYC_STATUSES.PENDING },
     kycRejectionReason: { type: String, default: null },
+    /** When the provider's KYC was most recently approved (null until first approval). */
+    approvedAt: { type: Date, default: null },
     kycDocuments: { type: [kycDocumentSchema], default: [] },
     zoneIds: { type: [{ type: Schema.Types.ObjectId, ref: ZONE_MODEL_NAME }], default: [] },
     location: {

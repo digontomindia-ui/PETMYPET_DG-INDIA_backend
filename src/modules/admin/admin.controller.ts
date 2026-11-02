@@ -106,6 +106,11 @@ export const adminController = {
     sendSuccess(res, HTTP_STATUS.OK, provider, provider.isActive ? 'Provider reactivated' : 'Provider suspended');
   }),
 
+  deleteProvider: asyncHandler(async (req: Request, res: Response) => {
+    await adminOperationsService.deleteProvider(actorId(req), req.params.id as string);
+    sendSuccess(res, HTTP_STATUS.OK, null, 'Vendor account deleted');
+  }),
+
   listBookings: asyncHandler(async (req: Request, res: Response) => {
     const { items, total, page, limit } = await adminOperationsService.listBookings(
       req.query,

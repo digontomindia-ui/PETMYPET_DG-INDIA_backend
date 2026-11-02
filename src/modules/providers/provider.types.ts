@@ -102,6 +102,8 @@ export interface IProvider extends SoftDeletable {
   languages: string[];
   kycStatus: KycStatus;
   kycRejectionReason: string | null;
+  /** Timestamp of the most recent KYC approval; null until first approved. */
+  approvedAt: Date | null;
   kycDocuments: Types.DocumentArray<IKycDocument>;
   zoneIds: Types.ObjectId[];
   location: { type: 'Point'; coordinates: [number, number] };

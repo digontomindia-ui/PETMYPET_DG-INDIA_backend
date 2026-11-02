@@ -23,6 +23,12 @@ export class ProviderRepository extends BaseRepository<IProvider> {
     return this.model.findOne({ userId }).exec();
   }
 
+  /** Includes soft-deleted providers — used by the auth guards so a removed vendor's profile is
+   * still seen (and their login blocked) instead of being silently recreated as a fresh account. */
+  async findByUserIdIncludingDeleted(userId: string) {
+    return this.model.findOne({ userId }, null, { includeDeleted: true }).exec();
+  }
+
   async findNearby(filter: NearbySearchFilter) {
     const query: Record<string, unknown> = {
       isActive: true,

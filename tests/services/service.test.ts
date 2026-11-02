@@ -60,6 +60,13 @@ describe('services', () => {
     const categoryId = await createCategory(app, admin.accessToken);
     const { providerAccount, providerId } = await createProvider(app);
 
+    // Browse listings (GET /services without a providerId) only surface APPROVED providers, so the
+    // provider must be KYC-approved for its service to show up in the category search below.
+    await request(app)
+      .patch(`/api/v1/providers/${providerId}/kyc/approve`)
+      .set('Authorization', `Bearer ${admin.accessToken}`)
+      .expect(200);
+
     const createRes = await request(app)
       .post('/api/v1/services')
       .set('Authorization', `Bearer ${providerAccount.tokens.accessToken}`)

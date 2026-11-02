@@ -372,7 +372,12 @@ export const providerAppService = {
     user.isVerified = true;
     await user.save();
 
-    let provider = await providerRepository.findByUserId(user._id.toString());
+    // Include-deleted lookup: a removed vendor must be blocked here, not silently recreated as a
+    // fresh PENDING account (the default soft-delete filter would hide the deleted doc).
+    let provider = await providerRepository.findByUserIdIncludingDeleted(user._id.toString());
+    if (provider?.isDeleted) {
+      throw AppError.forbidden('This vendor account has been removed. Please contact support.');
+    }
     if (!provider) {
       // Mongoose's `required: true` on a String field rejects '' (not just null/undefined) —
       // placeholders here, overwritten for real by upload-documents right after.

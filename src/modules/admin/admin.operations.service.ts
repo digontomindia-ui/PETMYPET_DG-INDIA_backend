@@ -6,6 +6,7 @@ import { PetModel } from '../pets/pet.schema.js';
 import { ServiceModel } from '../services/service.schema.js';
 import { ProviderModel } from '../providers/provider.schema.js';
 import { toPublicProvider } from '../providers/provider.mapper.js';
+import { sessionRepository } from '../auth/session.repository.js';
 import { BookingModel } from '../bookings/booking.schema.js';
 import { BOOKING_STATUSES } from '../bookings/booking.constants.js';
 import { ReviewModel } from '../reviews/review.schema.js';
@@ -69,6 +70,7 @@ export const adminOperationsService = {
       return {
         ...toPublicProvider(provider),
         suspendedByAdmin: provider.suspendedByAdmin,
+        approvedAt: provider.approvedAt,
         ownerName: owner?.name ?? '',
         ownerPhone: owner?.phone ?? '',
         ownerEmail: owner?.email ?? null,
@@ -105,6 +107,7 @@ export const adminOperationsService = {
       ...toPublicProvider(provider),
       // Private profile fields — admin view only, never on the public provider mapper.
       suspendedByAdmin: provider.suspendedByAdmin,
+      approvedAt: provider.approvedAt,
       dateOfBirth: provider.dateOfBirth,
       gender: provider.gender,
       skills: provider.skills,
@@ -145,6 +148,12 @@ export const adminOperationsService = {
     provider.suspendedByAdmin = !input.isActive;
     await provider.save();
 
+    // Suspension must take effect immediately: revoke every session so the vendor's existing
+    // (long-lived) access tokens stop working on the next request instead of lasting out their TTL.
+    if (!input.isActive) {
+      await sessionRepository.revokeAllForUser(provider.userId.toString());
+    }
+
     await notificationService.notify({
       userId: provider.userId.toString(),
       type: NOTIFICATION_TYPES.GENERIC,
@@ -161,6 +170,28 @@ export const adminOperationsService = {
       { reason: input.reason ?? null },
     );
     return toPublicProvider(provider);
+  },
+
+  /** Delete (revoke) a vendor account. Soft-deletes the provider so bookings/reviews that
+   * reference it stay intact for the data-retention trail, flips it inactive, and revokes every
+   * session so the vendor's existing tokens die immediately. The login guards then block any
+   * re-authentication (see provider.access). */
+  async deleteProvider(actorId: string, id: string) {
+    const provider = await ProviderModel.findById(id).exec();
+    if (!provider) throw AppError.notFound('Provider not found');
+
+    provider.isActive = false;
+    provider.suspendedByAdmin = true;
+    await provider.softDelete();
+    await sessionRepository.revokeAllForUser(provider.userId.toString());
+
+    await notificationService.notify({
+      userId: provider.userId.toString(),
+      type: NOTIFICATION_TYPES.GENERIC,
+      title: 'Account removed',
+      body: 'Your vendor account has been removed. Please contact support if you believe this is a mistake.',
+    });
+    await auditLogService.record(actorId, AUDIT_ACTIONS.PROVIDER_DELETED, 'Provider', id);
   },
 
   async listBookings(query: AdminListBookingsQuery) {

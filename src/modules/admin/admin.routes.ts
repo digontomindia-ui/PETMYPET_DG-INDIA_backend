@@ -693,6 +693,26 @@ adminRoutes.patch(
 
 /**
  * @openapi
+ * /admin/providers/{id}:
+ *   delete:
+ *     tags: [Admin]
+ *     summary: Delete (revoke) a vendor account — soft-deletes the provider and invalidates all its sessions/tokens
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { name: id, in: path, required: true, schema: { type: string } }
+ *     responses:
+ *       200: { description: Vendor account deleted }
+ *       404: { description: Provider not found }
+ */
+adminRoutes.delete(
+  '/providers/:id',
+  ...adminOnly,
+  validate({ params: idParamSchema }),
+  adminController.deleteProvider,
+);
+
+/**
+ * @openapi
  * /admin/bookings:
  *   get:
  *     tags: [Admin]

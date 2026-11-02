@@ -6,6 +6,8 @@ vi.mock('../../src/common/integrations/sms.js', () => ({ sendSms: vi.fn() }));
 
 const { createApp } = await import('../../src/app.js');
 const { sendSms } = await import('../../src/common/integrations/sms.js');
+const { createAdmin } = await import('../helpers/auth.js');
+const { ProviderModel } = await import('../../src/modules/providers/provider.schema.js');
 
 function extractOtp(message: string): string {
   const match = /code is (\d+)\./.exec(message);
@@ -53,6 +55,21 @@ describe('provider app', () => {
         documents: { adhar_card: 'https://example.com/adhar.pdf', pan_card: 'https://example.com/pan.pdf' },
       });
     expect(uploadRes.status).toBe(201);
+
+    // A pending vendor can finish onboarding but is gated out of the dashboard until approved.
+    const pendingHome = await request(app)
+      .get('/api/v1/home')
+      .set('Authorization', `Bearer ${token}`);
+    expect(pendingHome.status).toBe(403);
+    expect(pendingHome.body.details).toMatchObject({ kycStatus: 'PENDING' });
+
+    // Admin approves KYC, which unlocks the dashboard.
+    const provider = await ProviderModel.findOne({}).exec();
+    const admin = await createAdmin(app);
+    await request(app)
+      .patch(`/api/v1/providers/${provider?._id.toString()}/kyc/approve`)
+      .set('Authorization', `Bearer ${admin.accessToken}`)
+      .expect(200);
 
     const homeRes = await request(app).get('/api/v1/home').set('Authorization', `Bearer ${token}`);
     expect(homeRes.status).toBe(200);

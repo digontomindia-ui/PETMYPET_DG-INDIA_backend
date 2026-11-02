@@ -171,15 +171,56 @@ describe('provider app: earnings, withdrawals, reviews, admin payouts', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ isActive: false, reason: 'Complaints' })
       .expect(200);
+    // Suspension revokes the provider's sessions, so their existing token is dead (401) — they
+    // can't reach the self-reactivation route at all, let alone flip themselves back on.
     await request(app)
       .patch('/api/v1/providers/me/active')
       .set('Authorization', `Bearer ${providerAccount.tokens.accessToken}`)
       .send({ isActive: true })
-      .expect(403);
+      .expect(401);
     const list = await request(app)
       .get('/api/v1/admin/providers?isActive=false')
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
     expect(list.body.data.some((p: { id: string }) => p.id === providerId)).toBe(true);
+  });
+
+  it('admin deletes a vendor: existing tokens die and the account can no longer log in', async () => {
+    const { providerAccount, providerId, adminToken } = await createApprovedProviderWithService(app);
+    const providerToken = providerAccount.tokens.accessToken;
+
+    // Token works before deletion.
+    await request(app)
+      .get('/api/v1/earnings')
+      .set('Authorization', `Bearer ${providerToken}`)
+      .expect(200);
+
+    await request(app)
+      .delete(`/api/v1/admin/providers/${providerId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+
+    // Existing session is revoked immediately.
+    await request(app)
+      .get('/api/v1/earnings')
+      .set('Authorization', `Bearer ${providerToken}`)
+      .expect(401);
+
+    // Re-authenticating is blocked outright.
+    await request(app)
+      .post('/api/v1/auth/login')
+      .send({ identifier: providerAccount.payload.email, password: providerAccount.payload.password })
+      .expect(403);
+
+    // The deleted vendor no longer appears in the active directory, and a repeat delete 404s.
+    const list = await request(app)
+      .get('/api/v1/admin/providers')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    expect(list.body.data.some((p: { id: string }) => p.id === providerId)).toBe(false);
+    await request(app)
+      .delete(`/api/v1/admin/providers/${providerId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(404);
   });
 });

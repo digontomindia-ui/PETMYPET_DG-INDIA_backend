@@ -15,6 +15,7 @@ import { sendSms } from '../../common/integrations/sms.js';
 import { logger } from '../../common/utils/logger.js';
 import { userRepository } from '../users/user.repository.js';
 import { toPublicUser } from '../users/user.mapper.js';
+import { assertProviderLoginAllowed } from '../providers/provider.access.js';
 import { referralService } from '../referrals/referral.service.js';
 import type { PublicUser, UserDocument } from '../users/user.types.js';
 import { otpRepository } from './otp.repository.js';
@@ -109,6 +110,12 @@ export async function verifyOtp(identifier: string, purpose: OtpPurpose, code: s
 }
 
 export async function issueTokens(user: UserDocument, deviceInfo: DeviceInfo): Promise<AuthTokens> {
+  // Central vendor login gate: a suspended or deleted provider is blocked here regardless of
+  // which login path (password, customer OTP, or provider app) issued the request.
+  if (user.role === ROLES.SERVICE_PROVIDER) {
+    await assertProviderLoginAllowed(user._id.toString());
+  }
+
   const session = await sessionRepository.create(
     user._id.toString(),
     'pending',

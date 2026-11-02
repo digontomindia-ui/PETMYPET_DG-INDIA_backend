@@ -3,6 +3,7 @@ import { authenticate } from '../../common/middlewares/auth.middleware.js';
 import { requireRole } from '../../common/middlewares/role.middleware.js';
 import { validate } from '../../common/middlewares/validate.middleware.js';
 import { ROLES } from '../../common/constants/roles.js';
+import { ensureProviderApproved } from '../providers/provider.access.js';
 import { providerAppController } from './provider-app.controller.js';
 import {
   bankAccountSchema,
@@ -33,6 +34,11 @@ import {
 } from './provider-app.validators.js';
 
 const requireProvider = [authenticate, requireRole(ROLES.SERVICE_PROVIDER)] as const;
+
+/** Approved-only vendors: the operational dashboard (bookings, sessions, earnings, patients,
+ * analytics, reviews). Onboarding and profile/document routes use `requireProvider` instead, so a
+ * PENDING or REJECTED vendor can still finish onboarding and re-submit KYC. */
+const requireApprovedProvider = [...requireProvider, ensureProviderApproved] as const;
 
 /**
  * Mirrors a separately-specified vendor mobile app's exact endpoint contract (bare paths, no
@@ -273,7 +279,7 @@ providerAppRoutes.post(
  *           application/json:
  *             schema: { $ref: '#/components/schemas/ErrorResponse' }
  */
-providerAppRoutes.get('/home', ...requireProvider, providerAppController.getHome);
+providerAppRoutes.get('/home', ...requireApprovedProvider, providerAppController.getHome);
 
 /**
  * @openapi
@@ -318,7 +324,7 @@ providerAppRoutes.get('/home', ...requireProvider, providerAppController.getHome
  */
 providerAppRoutes.get(
   '/my-appointments',
-  ...requireProvider,
+  ...requireApprovedProvider,
   validate({ query: myAppointmentsQuerySchema }),
   providerAppController.getMyAppointments,
 );
@@ -375,7 +381,7 @@ providerAppRoutes.get(
  */
 providerAppRoutes.get(
   '/appointments',
-  ...requireProvider,
+  ...requireApprovedProvider,
   validate({ query: appointmentsQuerySchema }),
   providerAppController.getAppointments,
 );
@@ -433,7 +439,7 @@ providerAppRoutes.get(
  */
 providerAppRoutes.get(
   '/trainer/dashboard',
-  ...requireProvider,
+  ...requireApprovedProvider,
   validate({ query: trainerDashboardQuerySchema }),
   providerAppController.getTrainerDashboard,
 );
@@ -482,7 +488,7 @@ providerAppRoutes.get(
  */
 providerAppRoutes.get(
   '/analytics',
-  ...requireProvider,
+  ...requireApprovedProvider,
   validate({ query: providerAppAnalyticsQuerySchema }),
   providerAppController.getAnalytics,
 );
@@ -559,7 +565,7 @@ providerAppRoutes.get('/profile', ...requireProvider, providerAppController.getP
  */
 providerAppRoutes.get(
   '/patients',
-  ...requireProvider,
+  ...requireApprovedProvider,
   validate({ query: patientsQuerySchema }),
   providerAppController.getPatients,
 );
@@ -579,7 +585,7 @@ providerAppRoutes.get(
  */
 providerAppRoutes.get(
   '/patients/:pet_id/records',
-  ...requireProvider,
+  ...requireApprovedProvider,
   validate({ params: petIdParamSchema }),
   providerAppController.getPatientRecords,
 );
@@ -633,7 +639,7 @@ providerAppRoutes.get(
  */
 providerAppRoutes.post(
   '/start-Session/verify-otp',
-  ...requireProvider,
+  ...requireApprovedProvider,
   validate({ body: sessionOtpSchema }),
   providerAppController.startSessionVerifyOtp,
 );
@@ -672,7 +678,7 @@ providerAppRoutes.post(
  */
 providerAppRoutes.post(
   '/session/resend-otp',
-  ...requireProvider,
+  ...requireApprovedProvider,
   providerAppController.resendSessionOtp,
 );
 
@@ -725,7 +731,7 @@ providerAppRoutes.post(
  */
 providerAppRoutes.post(
   '/end-Session/verify-otp',
-  ...requireProvider,
+  ...requireApprovedProvider,
   validate({ body: sessionOtpSchema }),
   providerAppController.endSessionVerifyOtp,
 );
@@ -770,7 +776,7 @@ providerAppRoutes.post(
  */
 providerAppRoutes.get(
   '/end-Session',
-  ...requireProvider,
+  ...requireApprovedProvider,
   providerAppController.getEndSessionSummary,
 );
 
@@ -821,7 +827,7 @@ providerAppRoutes.get(
  */
 providerAppRoutes.post(
   '/session/upload-training-process',
-  ...requireProvider,
+  ...requireApprovedProvider,
   validate({ body: uploadTrainingProcessSchema }),
   providerAppController.uploadTrainingProcess,
 );
@@ -1017,7 +1023,7 @@ providerAppRoutes.delete('/message/:room_id/block', authenticate, validate({ par
  */
 providerAppRoutes.get(
   '/reviews-ratings',
-  ...requireProvider,
+  ...requireApprovedProvider,
   validate({ query: reviewsQuerySchema }),
   providerAppController.getReviews,
 );
@@ -1045,7 +1051,7 @@ providerAppRoutes.get(
  */
 providerAppRoutes.post(
   '/reviews-ratings/:review_id/reply',
-  ...requireProvider,
+  ...requireApprovedProvider,
   validate({ params: reviewIdParamSchema, body: replyReviewSchema }),
   providerAppController.replyToReview,
 );
@@ -1100,7 +1106,7 @@ providerAppRoutes.post(
  */
 providerAppRoutes.get(
   '/earnings',
-  ...requireProvider,
+  ...requireApprovedProvider,
   validate({ query: earningsQuerySchema }),
   providerAppController.getEarnings,
 );
@@ -1127,7 +1133,7 @@ providerAppRoutes.get(
  */
 providerAppRoutes.post(
   '/earnings/withdraw',
-  ...requireProvider,
+  ...requireApprovedProvider,
   validate({ body: withdrawSchema }),
   providerAppController.withdraw,
 );
@@ -1147,7 +1153,7 @@ providerAppRoutes.post(
  */
 providerAppRoutes.get(
   '/earnings/withdrawals',
-  ...requireProvider,
+  ...requireApprovedProvider,
   validate({ query: listQuerySchema }),
   providerAppController.listWithdrawals,
 );
@@ -1340,7 +1346,7 @@ providerAppRoutes.put(
  */
 providerAppRoutes.get(
   '/appointments/:booking_id',
-  ...requireProvider,
+  ...requireApprovedProvider,
   validate({ params: bookingIdParamSchema }),
   providerAppController.getAppointmentDetail,
 );
