@@ -75,4 +75,41 @@ describe('provider app', () => {
     expect(homeRes.status).toBe(200);
     expect(homeRes.body.success).toBe(true);
   });
+
+  it('lets a number abandoned at OTP re-register as a different type, and hides the shell from admin', async () => {
+    const phone = '+919812345010';
+    const latestOtp = () => extractOtp(vi.mocked(sendSms).mock.calls.at(-1)?.[1] as string);
+
+    // Sign up + verify as a groomer, then stop — no document upload (onboarding abandoned).
+    await request(app).post('/api/v1/signin-signup').send({ role: 'pet-groomer', phone }).expect(200);
+    await request(app)
+      .post('/api/v1/verify-otp')
+      .send({ role: 'pet-groomer', phone, otp: latestOtp() })
+      .expect(200);
+
+    // The shell exists with the placeholder name and the groomer type.
+    const shell = await ProviderModel.findOne({}).exec();
+    expect(shell?.providerType).toBe('GROOMER');
+    expect(shell?.businessName).toBe('Pending onboarding');
+
+    // Admin directory hides the shell (it's not a real vendor yet).
+    const admin = await createAdmin(app);
+    const list = await request(app)
+      .get('/api/v1/admin/providers')
+      .set('Authorization', `Bearer ${admin.accessToken}`)
+      .expect(200);
+    expect(list.body.data.some((p: { id: string }) => p.id === shell?._id.toString())).toBe(false);
+
+    // Same number re-registers as a trainer — no "already registered" conflict.
+    await request(app).post('/api/v1/signin-signup').send({ role: 'dogs-trainer', phone }).expect(200);
+    await request(app)
+      .post('/api/v1/verify-otp')
+      .send({ role: 'dogs-trainer', phone, otp: latestOtp() })
+      .expect(200);
+
+    // The shell was retyped to TRAINER (not duplicated).
+    const providers = await ProviderModel.find({}).exec();
+    expect(providers).toHaveLength(1);
+    expect(providers[0]?.providerType).toBe('TRAINER');
+  });
 });

@@ -17,7 +17,7 @@ import { ServiceModel } from '../services/service.schema.js';
 import { CategoryModel } from '../categories/category.schema.js';
 import { providerRepository } from './provider.repository.js';
 import { mapAttendanceEntry, toPublicProvider, toPublicProviderSummary } from './provider.mapper.js';
-import { KYC_STATUSES } from './provider.constants.js';
+import { KYC_STATUSES, PENDING_ONBOARDING_BUSINESS_NAME } from './provider.constants.js';
 import type {
   AttendanceQuery,
   CreateProviderProfileInput,
@@ -251,7 +251,11 @@ export const providerService = {
 
   async listPendingKyc(query: { page?: string; limit?: string }) {
     const { page, limit, skip } = parsePagination(query);
-    const filter = { kycStatus: KYC_STATUSES.PENDING };
+    // Exclude shell accounts that stopped at OTP (placeholder businessName, no real submission yet).
+    const filter = {
+      kycStatus: KYC_STATUSES.PENDING,
+      businessName: { $ne: PENDING_ONBOARDING_BUSINESS_NAME },
+    };
     const [providers, total] = await Promise.all([
       providerRepository.findMany(filter, { skip, limit, sort: { createdAt: 1 } }),
       providerRepository.count(filter),

@@ -10,7 +10,11 @@ import { ServiceModel } from '../services/service.schema.js';
 import { ZoneModel } from '../zones/zone.schema.js';
 import { providerRepository } from '../providers/provider.repository.js';
 import { providerService } from '../providers/provider.service.js';
-import { KYC_DOCUMENT_TYPES, KYC_STATUSES } from '../providers/provider.constants.js';
+import {
+  KYC_DOCUMENT_TYPES,
+  KYC_STATUSES,
+  PENDING_ONBOARDING_BUSINESS_NAME,
+} from '../providers/provider.constants.js';
 import { bookingRepository } from '../bookings/booking.repository.js';
 import { BookingModel } from '../bookings/booking.schema.js';
 import { ReviewModel } from '../reviews/review.schema.js';
@@ -339,7 +343,14 @@ export const providerAppService = {
         throw AppError.conflict('This phone number is already registered as a customer account');
       }
       const existingProvider = await providerRepository.findByUserId(user._id.toString());
-      if (existingProvider && existingProvider.providerType !== providerType) {
+      // Only a *fully onboarded* provider of a different type blocks re-registration. A shell left
+      // behind by a signup that stopped at OTP (never completed onboarding) is not a real vendor, so
+      // the same number can still register — as any type — until onboarding actually finishes.
+      if (
+        existingProvider &&
+        existingProvider.businessName !== PENDING_ONBOARDING_BUSINESS_NAME &&
+        existingProvider.providerType !== providerType
+      ) {
         const existingSlug = roleSlugForProviderType(existingProvider.providerType);
         throw AppError.conflict(
           `This phone number is already registered as a${existingSlug ? ` "${existingSlug}"` : ''} account`,
@@ -378,16 +389,31 @@ export const providerAppService = {
     if (provider?.isDeleted) {
       throw AppError.forbidden('This vendor account has been removed. Please contact support.');
     }
+    const isShell = provider?.businessName === PENDING_ONBOARDING_BUSINESS_NAME;
+    if (provider && !isShell && provider.providerType !== providerType) {
+      // An already-onboarded provider can't switch type by re-verifying — mirrors signin-signup.
+      const existingSlug = roleSlugForProviderType(provider.providerType);
+      throw AppError.conflict(
+        `This phone number is already registered as a${existingSlug ? ` "${existingSlug}"` : ''} account`,
+      );
+    }
+    if (provider && isShell && provider.providerType !== providerType) {
+      // Shell from an abandoned signup: retype it to whatever they're registering as now, dropping
+      // any type-specific metadata the old shell carried.
+      provider.providerType = providerType;
+      provider.metadata = {};
+      await provider.save();
+    }
     if (!provider) {
       // Mongoose's `required: true` on a String field rejects '' (not just null/undefined) —
       // placeholders here, overwritten for real by upload-documents right after.
       provider = await providerRepository.create({
         userId: user._id,
         providerType,
-        businessName: 'Pending onboarding',
+        businessName: PENDING_ONBOARDING_BUSINESS_NAME,
         description: '',
         location: { type: 'Point', coordinates: [0, 0] },
-        address: 'Pending onboarding',
+        address: PENDING_ONBOARDING_BUSINESS_NAME,
       });
     }
 

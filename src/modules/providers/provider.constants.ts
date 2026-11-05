@@ -1,5 +1,12 @@
 export const PROVIDER_MODEL_NAME = 'Provider';
 
+/** Placeholder businessName/address a provider carries between phone verification and completing
+ * onboarding (the vendor app creates the account at verify-OTP, before any real details exist).
+ * Onboarding always overwrites businessName with the real name, so this exact value is the single
+ * signal for "shell account, not a real vendor yet" — used to hide shells from admin views and to
+ * let a half-registered number re-register as a different provider type. */
+export const PENDING_ONBOARDING_BUSINESS_NAME = 'Pending onboarding';
+
 export const KYC_STATUSES = {
   PENDING: 'PENDING',
   APPROVED: 'APPROVED',

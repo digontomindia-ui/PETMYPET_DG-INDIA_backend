@@ -6,6 +6,7 @@ import { PetModel } from '../pets/pet.schema.js';
 import { ServiceModel } from '../services/service.schema.js';
 import { ProviderModel } from '../providers/provider.schema.js';
 import { toPublicProvider } from '../providers/provider.mapper.js';
+import { PENDING_ONBOARDING_BUSINESS_NAME } from '../providers/provider.constants.js';
 import { sessionRepository } from '../auth/session.repository.js';
 import { BookingModel } from '../bookings/booking.schema.js';
 import { BOOKING_STATUSES } from '../bookings/booking.constants.js';
@@ -58,7 +59,11 @@ export const adminOperationsService = {
     if (query.providerType) filter.providerType = query.providerType;
     if (query.kycStatus) filter.kycStatus = query.kycStatus;
     if (query.isActive) filter.isActive = query.isActive === 'true';
-    if (query.search) filter.businessName = { $regex: escapeRegex(query.search), $options: 'i' };
+    // Always hide shell accounts (verified phone but never completed onboarding — they carry the
+    // placeholder businessName and blank owner name); they're not real vendors yet.
+    filter.businessName = query.search
+      ? { $regex: escapeRegex(query.search), $options: 'i', $ne: PENDING_ONBOARDING_BUSINESS_NAME }
+      : { $ne: PENDING_ONBOARDING_BUSINESS_NAME };
 
     const [providers, total] = await Promise.all([
       ProviderModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).exec(),
