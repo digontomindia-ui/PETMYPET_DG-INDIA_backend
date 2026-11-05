@@ -188,6 +188,13 @@ export const adminOperationsService = {
     provider.isActive = false;
     provider.suspendedByAdmin = true;
     await provider.softDelete();
+    // Cascade: hide the vendor's services from every user-facing surface. Browse, global search and
+    // direct ?providerId= lookups all run through soft-delete-aware find queries, so soft-deleting
+    // the services removes them everywhere — otherwise a deleted vendor's services keep showing.
+    await ServiceModel.updateMany(
+      { providerId: provider._id, isDeleted: false },
+      { isDeleted: true, deletedAt: new Date() },
+    ).exec();
     await sessionRepository.revokeAllForUser(provider.userId.toString());
 
     await notificationService.notify({

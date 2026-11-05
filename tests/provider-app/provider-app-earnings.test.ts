@@ -186,19 +186,26 @@ describe('provider app: earnings, withdrawals, reviews, admin payouts', () => {
   });
 
   it('admin deletes a vendor: existing tokens die and the account can no longer log in', async () => {
-    const { providerAccount, providerId, adminToken } = await createApprovedProviderWithService(app);
+    const { providerAccount, providerId, serviceId, adminToken } = await createApprovedProviderWithService(app);
     const providerToken = providerAccount.tokens.accessToken;
 
-    // Token works before deletion.
+    // Token works before deletion, and the service is visible to users.
     await request(app)
       .get('/api/v1/earnings')
       .set('Authorization', `Bearer ${providerToken}`)
       .expect(200);
+    const before = await request(app).get(`/api/v1/services?providerId=${providerId}`).expect(200);
+    expect(before.body.data.some((s: { id: string }) => s.id === serviceId)).toBe(true);
 
     await request(app)
       .delete(`/api/v1/admin/providers/${providerId}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
+
+    // The vendor's services are gone from every user-facing surface.
+    const after = await request(app).get(`/api/v1/services?providerId=${providerId}`).expect(200);
+    expect(after.body.data).toHaveLength(0);
+    await request(app).get(`/api/v1/services/${serviceId}`).expect(404);
 
     // Existing session is revoked immediately.
     await request(app)
