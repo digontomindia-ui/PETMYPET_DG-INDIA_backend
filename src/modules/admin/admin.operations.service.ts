@@ -195,14 +195,21 @@ export const adminOperationsService = {
       { providerId: provider._id, isDeleted: false },
       { isDeleted: true, deletedAt: new Date() },
     ).exec();
-    await sessionRepository.revokeAllForUser(provider.userId.toString());
 
+    // Notify before removing the person, then soft-delete the underlying user account too — a vendor
+    // IS its user, so leaving it behind keeps the deleted vendor showing in the admin Users list and
+    // holds their phone/email hostage. Soft-delete frees both for a fresh registration later.
     await notificationService.notify({
       userId: provider.userId.toString(),
       type: NOTIFICATION_TYPES.GENERIC,
       title: 'Account removed',
       body: 'Your vendor account has been removed. Please contact support if you believe this is a mistake.',
     });
+    await sessionRepository.revokeAllForUser(provider.userId.toString());
+    await UserModel.updateOne(
+      { _id: provider.userId },
+      { isDeleted: true, deletedAt: new Date() },
+    ).exec();
     await auditLogService.record(actorId, AUDIT_ACTIONS.PROVIDER_DELETED, 'Provider', id);
   },
 

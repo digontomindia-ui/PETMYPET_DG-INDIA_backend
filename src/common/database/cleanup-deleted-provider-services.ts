@@ -1,9 +1,10 @@
 /**
- * One-off cleanup: soft-delete the services of providers that were already deleted.
+ * One-off cleanup for vendors that were deleted *before* the delete-cascade fix.
  *
- * The admin "delete vendor" action now cascades (it soft-deletes the vendor's services too), but
- * vendors deleted *before* that fix left their services active — so they can still show to users in
- * browse/search. Run this once to tidy up that existing data.
+ * The admin "delete vendor" action now also soft-deletes the vendor's services and their underlying
+ * user account, but vendors deleted earlier left both behind — so their services could still show to
+ * users (browse/search) and their person kept appearing in the admin Users list. Run this once to
+ * tidy up that existing data.
  *
  * Reads MONGO_URI from the environment (run where the backend's env is set).
  *
@@ -14,6 +15,7 @@ import 'dotenv/config';
 import { connectDatabase, disconnectDatabase } from './mongoose.js';
 import { ProviderModel } from '../../modules/providers/provider.schema.js';
 import { ServiceModel } from '../../modules/services/service.schema.js';
+import { UserModel } from '../../modules/users/user.schema.js';
 
 async function main(): Promise<void> {
   await connectDatabase();
@@ -22,17 +24,24 @@ async function main(): Promise<void> {
   const deletedProviders = await ProviderModel.find({ isDeleted: true }, null, {
     includeDeleted: true,
   })
-    .select('_id')
+    .select('_id userId')
     .exec();
-  const ids = deletedProviders.map((p) => p._id);
-  console.log(`Found ${ids.length} deleted provider(s).`);
+  const providerIds = deletedProviders.map((p) => p._id);
+  const userIds = deletedProviders.map((p) => p.userId);
+  console.log(`Found ${providerIds.length} deleted provider(s).`);
 
-  if (ids.length > 0) {
-    const result = await ServiceModel.updateMany(
-      { providerId: { $in: ids }, isDeleted: false },
+  if (providerIds.length > 0) {
+    const services = await ServiceModel.updateMany(
+      { providerId: { $in: providerIds }, isDeleted: false },
       { isDeleted: true, deletedAt: new Date() },
     ).exec();
-    console.log(`Soft-deleted ${result.modifiedCount} orphaned service(s).`);
+    console.log(`Soft-deleted ${services.modifiedCount} orphaned service(s).`);
+
+    const users = await UserModel.updateMany(
+      { _id: { $in: userIds }, isDeleted: false },
+      { isDeleted: true, deletedAt: new Date() },
+    ).exec();
+    console.log(`Soft-deleted ${users.modifiedCount} orphaned user account(s).`);
   }
 
   await disconnectDatabase();

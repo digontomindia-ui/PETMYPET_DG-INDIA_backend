@@ -213,11 +213,12 @@ describe('provider app: earnings, withdrawals, reviews, admin payouts', () => {
       .set('Authorization', `Bearer ${providerToken}`)
       .expect(401);
 
-    // Re-authenticating is blocked outright.
-    await request(app)
+    // Re-authenticating fails — the whole account (provider + user) is gone, so login reports no account.
+    const relogin = await request(app)
       .post('/api/v1/auth/login')
       .send({ identifier: providerAccount.payload.email, password: providerAccount.payload.password })
-      .expect(403);
+      .expect(200);
+    expect(relogin.body.data.isRegistered).toBe(false);
 
     // The deleted vendor no longer appears in the active directory, and a repeat delete 404s.
     const list = await request(app)
@@ -225,6 +226,14 @@ describe('provider app: earnings, withdrawals, reviews, admin payouts', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
     expect(list.body.data.some((p: { id: string }) => p.id === providerId)).toBe(false);
+
+    // The person (user account) is gone from the admin Users list too.
+    const users = await request(app)
+      .get('/api/v1/users?role=SERVICE_PROVIDER')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    expect(users.body.data.some((u: { id: string }) => u.id === providerAccount.user.id)).toBe(false);
+
     await request(app)
       .delete(`/api/v1/admin/providers/${providerId}`)
       .set('Authorization', `Bearer ${adminToken}`)
