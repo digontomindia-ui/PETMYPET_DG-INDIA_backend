@@ -71,9 +71,11 @@ export interface IProviderMetadata {
     specializations: string[];
   };
   boarding?: {
-    capacity: number;
-    availableKennels: number;
-    amenities: string[];
+    capacity?: number;
+    availableKennels?: number;
+    amenities?: string[];
+    /** Year the boarding facility was founded (collected at onboarding). */
+    foundedYear?: number;
   };
   trainer?: {
     trainingPlans: ITrainingPlan[];

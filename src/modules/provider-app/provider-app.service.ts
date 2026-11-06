@@ -229,9 +229,25 @@ async function countNewClients(providerId: Types.ObjectId, todays: EnrichedBooki
   return petIds.length - returning.length;
 }
 
+/** Groomer, pet sitter, dog walker and dog trainer all collect the same four details. Validates
+ * them (per-role required fields are enforced here, not in the shared superset schema) and returns
+ * the narrowed values so each branch can assign without re-checking. */
+function requireNameExperienceEmailBio(input: UploadDocumentsInput): {
+  name: string;
+  experience: number;
+  email: string;
+  bio: string;
+} {
+  if (!input.name) throw AppError.badRequest('name is required');
+  if (input.experience === undefined) throw AppError.badRequest('experience is required');
+  if (!input.email) throw AppError.badRequest('email is required');
+  if (!input.bio) throw AppError.badRequest('bio is required');
+  return { name: input.name, experience: input.experience, email: input.email, bio: input.bio };
+}
+
 /** Applies the role-specific subset of upload-documents fields onto a shell provider profile
- * created at verify-otp time; each branch mutates in place, common fields (documents/media) are
- * applied once at the end. */
+ * created at verify-otp time; each branch validates and mutates in place, common fields (name
+ * mirror / documents) are applied once at the end. KYC documents are the same for every role. */
 function applyRoleFields(
   provider: ProviderDocument,
   user: UserDocument,
@@ -260,56 +276,70 @@ function applyRoleFields(
       break;
     }
     case PROVIDER_TYPES.BOARDING: {
+      // Boarding collects: name, address, founded (year), boarding details.
       if (!input.boarding_name) throw AppError.badRequest('boarding_name is required');
+      if (!input.location?.address) throw AppError.badRequest('address is required');
+      if (!input.founded) throw AppError.badRequest('founded is required');
+      if (!input.description) throw AppError.badRequest('description is required');
       provider.businessName = input.boarding_name;
-      provider.description = input.description ?? provider.description;
+      provider.description = input.description;
+      const foundedYear = Number.parseInt(input.founded, 10);
+      if (!Number.isNaN(foundedYear)) {
+        provider.metadata.boarding = { ...provider.metadata.boarding, foundedYear };
+      }
       if (input.clinic_images) provider.galleryUrls = input.clinic_images;
       break;
     }
     case PROVIDER_TYPES.VET: {
+      // Vet collects: name, email, specialization, years of experience, bio.
       if (!input.name) throw AppError.badRequest('name is required');
+      if (!input.email) throw AppError.badRequest('email is required');
+      if (!input.specialization) throw AppError.badRequest('specialization is required');
+      if (input.experience === undefined) throw AppError.badRequest('experience is required');
+      if (!input.bio) throw AppError.badRequest('bio is required');
       provider.businessName = input.name;
-      provider.experienceYears = input.experience ?? provider.experienceYears;
-      provider.description = input.bio ?? provider.description;
+      provider.experienceYears = input.experience;
+      provider.description = input.bio;
       provider.profileImageUrl = input.profile_image ?? provider.profileImageUrl;
-      if (input.email) user.email = input.email;
-      if (input.specialization) {
-        provider.metadata.vet = {
-          specializations: [input.specialization],
-          consultationFee: provider.metadata.vet?.consultationFee ?? 0,
-          licenseNumber: provider.metadata.vet?.licenseNumber ?? '',
-          supportsVideoConsultation: provider.metadata.vet?.supportsVideoConsultation ?? false,
-        };
-      }
+      user.email = input.email;
+      provider.metadata.vet = {
+        specializations: [input.specialization],
+        consultationFee: provider.metadata.vet?.consultationFee ?? 0,
+        licenseNumber: provider.metadata.vet?.licenseNumber ?? '',
+        supportsVideoConsultation: provider.metadata.vet?.supportsVideoConsultation ?? false,
+      };
       break;
     }
     case PROVIDER_TYPES.TRAINER: {
-      if (!input.name) throw AppError.badRequest('name is required');
-      provider.businessName = input.name;
-      provider.experienceYears = input.experience ?? provider.experienceYears;
-      provider.description = input.bio ?? provider.description;
+      // Dog trainer collects: name, experience, email, bio.
+      const details = requireNameExperienceEmailBio(input);
+      provider.businessName = details.name;
+      provider.experienceYears = details.experience;
+      provider.description = details.bio;
       provider.profileImageUrl = input.profile_image ?? provider.profileImageUrl;
-      if (input.email) user.email = input.email;
+      user.email = details.email;
       if (input.media) provider.galleryUrls = input.media;
       break;
     }
     default: {
-      // GROOMER, PET_WALKER, PET_SITTER all share this shape.
-      if (!input.name) throw AppError.badRequest('name is required');
-      provider.businessName = input.name;
-      provider.experienceYears = input.experience ?? provider.experienceYears;
-      provider.description = input.bio ?? provider.description;
+      // Groomer, pet sitter and dog walker all collect: name, experience, email, bio.
+      const details = requireNameExperienceEmailBio(input);
+      provider.businessName = details.name;
+      provider.experienceYears = details.experience;
+      provider.description = details.bio;
       provider.profileImageUrl = input.profile_image ?? provider.profileImageUrl;
-      if (input.email) user.email = input.email;
+      user.email = details.email;
       if (provider.providerType === PROVIDER_TYPES.GROOMER && input.specialization) {
         provider.metadata.groomer = { specializations: [input.specialization] };
       }
     }
   }
 
-  // Onboarding's `name` lands in businessName only; the profile screens read user.name, which is
-  // '' for a fresh signup — so mirror it there or the new vendor's profile shows up blank.
-  if (input.name && !user.name) user.name = input.name;
+  // Onboarding's name lands in businessName only; the profile screens (and the admin Users list)
+  // read user.name, which is '' for a fresh signup — so mirror the display name there, covering the
+  // boarding/clinic variants that use boarding_name/clinic_name instead of `name`.
+  const displayName = input.name ?? input.boarding_name ?? input.clinic_name;
+  if (displayName && !user.name) user.name = displayName;
   if (input.email) user.email = input.email;
 
   if (input.documents) {

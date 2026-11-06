@@ -8,6 +8,7 @@ const { createApp } = await import('../../src/app.js');
 const { sendSms } = await import('../../src/common/integrations/sms.js');
 const { createAdmin } = await import('../helpers/auth.js');
 const { ProviderModel } = await import('../../src/modules/providers/provider.schema.js');
+const { UserModel } = await import('../../src/modules/users/user.schema.js');
 
 function extractOtp(message: string): string {
   const match = /code is (\d+)\./.exec(message);
@@ -111,5 +112,61 @@ describe('provider app', () => {
     const providers = await ProviderModel.find({}).exec();
     expect(providers).toHaveLength(1);
     expect(providers[0]?.providerType).toBe('TRAINER');
+  });
+
+  it('onboards a boarding provider with its role-specific fields and rejects missing details', async () => {
+    const phone = '+919812345020';
+    const latestOtp = () => extractOtp(vi.mocked(sendSms).mock.calls.at(-1)?.[1] as string);
+
+    await request(app).post('/api/v1/signin-signup').send({ role: 'boarding-center', phone }).expect(200);
+    const verify = await request(app)
+      .post('/api/v1/verify-otp')
+      .send({ role: 'boarding-center', phone, otp: latestOtp() })
+      .expect(200);
+    const token = verify.body.token as string;
+
+    // Boarding requires name + address + founded + details — omitting them is rejected.
+    await request(app)
+      .post('/api/v1/upload-documents')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ boarding_name: 'Happy Paws' })
+      .expect(400);
+
+    // Full boarding onboarding succeeds and stores the founded year.
+    await request(app)
+      .post('/api/v1/upload-documents')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        boarding_name: 'Happy Paws Boarding',
+        description: 'Spacious, air-conditioned kennels',
+        founded: '2015',
+        location: { address: '12 MG Road, Bengaluru', longtude: 77.6, latatude: 12.9 },
+        documents: { adhar_card: 'https://example.com/a.pdf', pan_card: 'https://example.com/p.pdf' },
+      })
+      .expect(201);
+
+    const provider = await ProviderModel.findOne({ providerType: 'BOARDING' }).exec();
+    expect(provider?.businessName).toBe('Happy Paws Boarding');
+    expect(provider?.metadata.boarding?.foundedYear).toBe(2015);
+    // The person's name is mirrored from the boarding name, so admin never shows "No name yet".
+    const user = await UserModel.findById(provider?.userId).exec();
+    expect(user?.name).toBe('Happy Paws Boarding');
+  });
+
+  it('rejects a groomer onboarding that is missing a required detail (bio)', async () => {
+    const phone = '+919812345030';
+    const latestOtp = () => extractOtp(vi.mocked(sendSms).mock.calls.at(-1)?.[1] as string);
+
+    await request(app).post('/api/v1/signin-signup').send({ role: 'pet-groomer', phone }).expect(200);
+    const verify = await request(app)
+      .post('/api/v1/verify-otp')
+      .send({ role: 'pet-groomer', phone, otp: latestOtp() })
+      .expect(200);
+
+    await request(app)
+      .post('/api/v1/upload-documents')
+      .set('Authorization', `Bearer ${verify.body.token as string}`)
+      .send({ name: 'Ravi', experience: 3, email: 'ravi@example.com' }) // no bio
+      .expect(400);
   });
 });

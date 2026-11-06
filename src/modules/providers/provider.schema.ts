@@ -113,6 +113,7 @@ const metadataSchema = new Schema<IProviderMetadata>(
       capacity: { type: Number },
       availableKennels: { type: Number },
       amenities: { type: [String], default: undefined },
+      foundedYear: { type: Number },
     },
     trainer: {
       trainingPlans: { type: [trainingPlanSchema], default: undefined },
