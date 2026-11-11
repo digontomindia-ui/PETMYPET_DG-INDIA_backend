@@ -20,9 +20,22 @@ export const providerVerifyOtpSchema = z.object({
   otp: z.string().min(4).max(6),
 });
 
+/** A KYC document must be an already-uploaded file URL, not a local device path. The vendor app
+ * must upload the image to POST /uploads (category KYC_DOCUMENT) and send back the returned
+ * https URL — sending the phone's local file path (e.g. /data/user/0/.../cache/x.jpg) stores a
+ * link that nothing can ever open. */
+const documentUrlSchema = z
+  .string()
+  .trim()
+  .url('Document must be an uploaded file URL')
+  .refine((value) => /^https?:\/\//i.test(value), {
+    message:
+      'Document must be an uploaded file URL — upload the file via /uploads first, then send the returned URL (not the phone’s local file path)',
+  });
+
 const documentsSchema = z.object({
-  adhar_card: z.string().min(1),
-  pan_card: z.string().min(1),
+  adhar_card: documentUrlSchema,
+  pan_card: documentUrlSchema,
 });
 
 /** One superset schema for every role's upload-documents body — the request itself carries no

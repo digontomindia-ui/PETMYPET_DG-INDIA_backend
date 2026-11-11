@@ -169,4 +169,48 @@ describe('provider app', () => {
       .send({ name: 'Ravi', experience: 3, email: 'ravi@example.com' }) // no bio
       .expect(400);
   });
+
+  it('rejects KYC documents sent as local device paths instead of uploaded URLs', async () => {
+    const phone = '+919812345040';
+    const latestOtp = () => extractOtp(vi.mocked(sendSms).mock.calls.at(-1)?.[1] as string);
+
+    await request(app).post('/api/v1/signin-signup').send({ role: 'pet-groomer', phone }).expect(200);
+    const verify = await request(app)
+      .post('/api/v1/verify-otp')
+      .send({ role: 'pet-groomer', phone, otp: latestOtp() })
+      .expect(200);
+    const token = verify.body.token as string;
+
+    // A phone's local file path is not a usable document URL — must be rejected.
+    await request(app)
+      .post('/api/v1/upload-documents')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Ravi',
+        experience: 3,
+        email: 'ravi@example.com',
+        bio: 'Groomer',
+        documents: {
+          adhar_card: '/data/user/0/com.example.app/cache/scaled_abc.jpg',
+          pan_card: '/data/user/0/com.example.app/cache/scaled_def.jpg',
+        },
+      })
+      .expect(400);
+
+    // An uploaded (https) URL is accepted.
+    await request(app)
+      .post('/api/v1/upload-documents')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Ravi',
+        experience: 3,
+        email: 'ravi@example.com',
+        bio: 'Groomer',
+        documents: {
+          adhar_card: 'https://patmypets-uploads.b-cdn.net/patmypets/kyc-documents/a.jpg',
+          pan_card: 'https://patmypets-uploads.b-cdn.net/patmypets/kyc-documents/p.jpg',
+        },
+      })
+      .expect(201);
+  });
 });
