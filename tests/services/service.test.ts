@@ -171,4 +171,28 @@ describe('services', () => {
     const vet = await request(app).get('/api/v1/services?providerType=VET').expect(200);
     expect((vet.body.data as { id: string }[]).some((s) => s.id === serviceId)).toBe(false);
   });
+
+  it('scopes GET /services to the caller provider\'s own services (customers still see all)', async () => {
+    const a = await createApprovedProviderWithService(app);
+    const b = await createApprovedProviderWithService(app);
+
+    // Provider A browsing sees only their own service, never provider B's.
+    const providerView = await request(app)
+      .get('/api/v1/services')
+      .set('Authorization', `Bearer ${a.providerAccount.tokens.accessToken}`)
+      .expect(200);
+    const provIds = (providerView.body.data as { id: string }[]).map((s) => s.id);
+    expect(provIds).toContain(a.serviceId);
+    expect(provIds).not.toContain(b.serviceId);
+
+    // A customer (or anonymous) still browses everyone's services.
+    const customer = await signupAndVerify(app, { role: 'USER' });
+    const customerView = await request(app)
+      .get('/api/v1/services')
+      .set('Authorization', `Bearer ${customer.tokens.accessToken}`)
+      .expect(200);
+    const custIds = (customerView.body.data as { id: string }[]).map((s) => s.id);
+    expect(custIds).toContain(a.serviceId);
+    expect(custIds).toContain(b.serviceId);
+  });
 });

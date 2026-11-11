@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../../common/middlewares/auth.middleware.js';
+import { authenticate, optionalAuthenticate } from '../../common/middlewares/auth.middleware.js';
 import { requireRole } from '../../common/middlewares/role.middleware.js';
 import { validate } from '../../common/middlewares/validate.middleware.js';
 import { ROLES } from '../../common/constants/roles.js';
@@ -90,7 +90,14 @@ export const serviceRoutes = Router();
  *             schema: { $ref: '#/components/schemas/ErrorResponse' }
  *             example: { success: false, error: BAD_REQUEST, message: "categoryId: Invalid id" }
  */
-serviceRoutes.get('/', validate({ query: searchServicesQuerySchema }), serviceController.search);
+// optionalAuthenticate: a provider's token scopes the browse to their OWN services (the vendor app's
+// "My Services" screen); customers and anonymous callers browse every provider's services.
+serviceRoutes.get(
+  '/',
+  optionalAuthenticate,
+  validate({ query: searchServicesQuerySchema }),
+  serviceController.search,
+);
 /**
  * @openapi
  * /services/me:
