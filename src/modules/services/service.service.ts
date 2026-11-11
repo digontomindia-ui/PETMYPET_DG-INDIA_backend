@@ -48,6 +48,7 @@ export const serviceService = {
     const { items, total } = await serviceRepository.search({
       categoryId: query.categoryId,
       providerId: query.providerId,
+      providerType: query.providerType,
       text: query.q,
       minPrice: query.minPrice ? Number(query.minPrice) : undefined,
       maxPrice: query.maxPrice ? Number(query.maxPrice) : undefined,

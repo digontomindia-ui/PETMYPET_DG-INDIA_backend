@@ -58,6 +58,9 @@ export const updateServiceSchema = z
 export const searchServicesQuerySchema = z.object({
   categoryId: objectIdSchema.optional(),
   providerId: objectIdSchema.optional(),
+  /** Filter to services offered by providers of this vertical, e.g. GROOMER or VET — lets a
+   * "Grooming" / "Vaccination" button show only that category's services. */
+  providerType: z.string().optional(),
   q: z.string().optional(),
   minPrice: z.string().optional(),
   maxPrice: z.string().optional(),

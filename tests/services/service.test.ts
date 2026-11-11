@@ -161,4 +161,14 @@ describe('services', () => {
       .set('Authorization', `Bearer ${customer.tokens.accessToken}`)
       .expect(403);
   });
+
+  it('filters the browse by providerType (vertical)', async () => {
+    const { serviceId } = await createApprovedProviderWithService(app); // a GROOMER + service
+
+    const groomer = await request(app).get('/api/v1/services?providerType=GROOMER').expect(200);
+    expect((groomer.body.data as { id: string }[]).some((s) => s.id === serviceId)).toBe(true);
+
+    const vet = await request(app).get('/api/v1/services?providerType=VET').expect(200);
+    expect((vet.body.data as { id: string }[]).some((s) => s.id === serviceId)).toBe(false);
+  });
 });
