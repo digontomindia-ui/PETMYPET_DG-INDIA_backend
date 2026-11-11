@@ -6,6 +6,7 @@ vi.mock('../../src/common/integrations/sms.js', () => ({ sendSms: vi.fn() }));
 
 const { createApp } = await import('../../src/app.js');
 const { signupAndVerify, createAdmin } = await import('../helpers/auth.js');
+const { createApprovedProviderWithService } = await import('../helpers/provider.js');
 
 async function createCategory(app: Awaited<ReturnType<typeof createApp>>, adminToken: string) {
   const res = await request(app)
@@ -139,5 +140,25 @@ describe('services', () => {
       .set('Authorization', `Bearer ${providerAccount.tokens.accessToken}`)
       .send({ categoryId, name: 'Full Grooming', price: 500, durationMinutes: 90 });
     expect(res.status).toBe(404);
+  });
+
+  it('GET /services/me returns only the caller provider\'s own services', async () => {
+    const a = await createApprovedProviderWithService(app);
+    const b = await createApprovedProviderWithService(app);
+
+    const mine = await request(app)
+      .get('/api/v1/services/me')
+      .set('Authorization', `Bearer ${a.providerAccount.tokens.accessToken}`)
+      .expect(200);
+    const ids = (mine.body.data as { id: string }[]).map((s) => s.id);
+    expect(ids).toContain(a.serviceId);
+    expect(ids).not.toContain(b.serviceId);
+
+    // A non-provider (customer) cannot use it.
+    const customer = await signupAndVerify(app, { role: 'USER' });
+    await request(app)
+      .get('/api/v1/services/me')
+      .set('Authorization', `Bearer ${customer.tokens.accessToken}`)
+      .expect(403);
   });
 });

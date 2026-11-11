@@ -93,6 +93,21 @@ export const serviceRoutes = Router();
 serviceRoutes.get('/', validate({ query: searchServicesQuerySchema }), serviceController.search);
 /**
  * @openapi
+ * /services/me:
+ *   get:
+ *     tags: [Services]
+ *     summary: The authenticated provider's own services (active + inactive), scoped by token (SERVICE_PROVIDER only)
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: The caller's own services }
+ *       401: { description: Authentication required }
+ *       403: { description: Not a provider }
+ *       404: { description: Provider profile not found }
+ */
+// Declared before `/:id` so "me" isn't captured as a service id.
+serviceRoutes.get('/me', ...requireProvider, serviceController.listMine);
+/**
+ * @openapi
  * /services/{id}:
  *   get:
  *     tags: [Services]

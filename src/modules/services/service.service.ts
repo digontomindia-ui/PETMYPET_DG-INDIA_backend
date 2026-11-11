@@ -30,6 +30,19 @@ export const serviceService = {
     return toServiceDto(service);
   },
 
+  /** The authenticated provider's OWN services (active and inactive), scoped by their token so one
+   * provider can never see another's. The vendor app's "My Services" screen must use this instead of
+   * the public GET /services browse, which returns every provider's services. */
+  async listMine(userId: string) {
+    const provider = await providerRepository.findByUserId(userId);
+    if (!provider) throw AppError.notFound('Provider profile not found');
+    const services = await serviceRepository.findMany(
+      { providerId: provider._id },
+      { sort: { createdAt: -1 } },
+    );
+    return { services: services.map(toServiceDto) };
+  },
+
   async search(query: SearchServicesQuery) {
     const { page, limit, skip } = parsePagination(query);
     const { items, total } = await serviceRepository.search({

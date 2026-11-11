@@ -22,6 +22,11 @@ export const serviceController = {
     sendSuccess(res, HTTP_STATUS.OK, services, 'Success', buildPaginationMeta(page, limit, total));
   }),
 
+  listMine: asyncHandler(async (req: Request, res: Response) => {
+    const { services } = await serviceService.listMine(requireAuth(req));
+    sendSuccess(res, HTTP_STATUS.OK, services);
+  }),
+
   getById: asyncHandler(async (req: Request, res: Response) => {
     const service = await serviceService.getById(req.params.id as string);
     sendSuccess(res, HTTP_STATUS.OK, service);
